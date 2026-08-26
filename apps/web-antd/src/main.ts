@@ -1,4 +1,4 @@
-import { initPreferences } from '@vben/preferences';
+import { initPreferences, updatePreferences } from '@vben/preferences';
 import { unmountGlobalLoading } from '@vben/utils';
 
 import { overridesPreferences, preferencesExtension } from './preferences';
@@ -18,6 +18,16 @@ async function initApplication() {
     extension: preferencesExtension,
     namespace,
     overrides: overridesPreferences,
+  });
+
+  // Logo 属系统品牌标识，强制以代码为准——
+  // initPreferences 合并策略是 localStorage 缓存优先于 overrides，
+  // 存量浏览器缓存了旧 CDN Logo 时不会生效，这里统一覆盖并回写缓存
+  updatePreferences({
+    logo: {
+      source: '/logo.svg',
+      sourceDark: '/logo.svg',
+    },
   });
 
   // 启动应用并挂载

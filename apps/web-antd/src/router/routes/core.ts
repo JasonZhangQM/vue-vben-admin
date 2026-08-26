@@ -92,6 +92,36 @@ const coreRoutes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    component: BasicLayout,
+    meta: {
+      hideInMenu: true,
+      title: '个人中心',
+    },
+    name: 'Profile',
+    path: '/profile',
+    redirect: '/profile/base',
+    children: [
+      {
+        name: 'ProfileBase',
+        path: 'base',
+        component: () => import('#/views/_core/profile/index.vue'),
+        meta: { title: '基本信息' },
+      },
+      {
+        name: 'ProfilePassword',
+        path: 'password',
+        component: () => import('#/views/_core/profile/index.vue'),
+        meta: { title: '安全设置' },
+      },
+      {
+        name: 'ProfileNotification',
+        path: 'notification',
+        component: () => import('#/views/_core/profile/index.vue'),
+        meta: { title: '通知设置' },
+      },
+    ],
+  },
 ];
 
 export { coreRoutes, fallbackNotFoundRoute };

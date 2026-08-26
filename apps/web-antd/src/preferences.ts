@@ -19,9 +19,16 @@ interface WebAntdPreferencesExtension {
 export const overridesPreferences = defineOverridesPreferences({
   // overrides
   app: {
+    // 后端路由模式：菜单/路由由 GET /users/me/menus 驱动
+    accessMode: 'backend',
+    enableRefreshToken: true,
     name: import.meta.env.VITE_APP_TITLE,
   },
   copyright: appCopyrightPreferences,
+  logo: {
+    // 系统 Logo（public/logo.svg，内嵌 PNG 的 SVG，明暗主题通用）
+    source: '/logo.svg',
+  },
 });
 
 export const preferencesExtension =

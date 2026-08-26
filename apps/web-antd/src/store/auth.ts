@@ -33,11 +33,13 @@ export const useAuthStore = defineStore('auth', () => {
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
-      const { accessToken } = await loginApi(params);
+      const { accessToken, mustChangePassword, refreshToken } = await loginApi(params);
 
       // 如果成功获取到 accessToken
       if (accessToken) {
         accessStore.setAccessToken(accessToken);
+        // 双 token：refresh 存 store，供过期静默续期
+        accessStore.setRefreshToken(refreshToken);
 
         // 获取用户信息并存储到 accessStore 中
         const [fetchUserInfoResult, accessCodes] = await Promise.all([
@@ -65,6 +67,15 @@ export const useAuthStore = defineStore('auth', () => {
             description: `${$t('authentication.loginSuccessDesc')}:${userInfo?.realName}`,
             duration: 3,
             message: $t('authentication.loginSuccess'),
+          });
+        }
+
+        // 首登/重置后强制改密：提示引导（个人中心 → 安全设置）
+        if (mustChangePassword) {
+          notification.warning({
+            description: '当前使用初始密码，请前往「个人中心 → 安全设置」修改密码。',
+            duration: 8,
+            message: '请修改初始密码',
           });
         }
       }
