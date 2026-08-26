@@ -62,10 +62,11 @@ export async function loginApi(data: AuthApi.LoginParams) {
  */
 export async function refreshTokenApi() {
   const accessStore = useAccessStore();
-  const resp = await baseRequestClient.post<ApiResult<AuthApi.RefreshTokenResult>>(
-    '/auth/refresh',
-    { refresh_token: accessStore.refreshToken },
-  );
+  // baseRequestClient 未配置 responseReturn:'data'，返回的是完整响应，
+  // 泛型按结构声明（request<T> 内部 response as T），不直接依赖 axios 包
+  const resp = await baseRequestClient.post<{
+    data: ApiResult<AuthApi.RefreshTokenResult>;
+  }>('/auth/refresh', { refresh_token: accessStore.refreshToken });
   const body = resp.data;
   if (body.code !== 0 || !body.data) {
     throw new Error(body.message || 'refresh token 无效');
@@ -103,8 +104,11 @@ export async function getCaptchaApi() {
  * 修改本人密码（改密后后端踢出全部会话，需重新登录）
  */
 export async function changeMyPasswordApi(oldPassword: string, newPassword: string) {
-  return requestClient.patch('/users/me/password', {
-    new_password: newPassword,
-    old_password: oldPassword,
+  return requestClient.request('/users/me/password', {
+    data: {
+      new_password: newPassword,
+      old_password: oldPassword,
+    },
+    method: 'PATCH',
   });
 }

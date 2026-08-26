@@ -63,7 +63,10 @@ export function createRole(data: RoleCreateParams) {
 
 /** 修改角色 */
 export function updateRole(id: number, data: RoleUpdateParams) {
-  return requestClient.patch(`/roles/${id}`, data);
+  return requestClient.request(`/roles/${id}`, {
+    data,
+    method: 'PATCH',
+  });
 }
 
 /** 删除角色（仅非内置且无用户绑定） */

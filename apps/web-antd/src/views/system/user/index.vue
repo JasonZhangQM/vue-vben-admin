@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { UserListItem } from '#/api/system/user';
+import type { TableColumnType } from 'ant-design-vue';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -184,7 +185,7 @@ async function onDelete(row: UserListItem) {
 }
 
 // ================= 表格定义 =================
-const columns = [
+const columns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', width: 60 },
   { title: '用户名', dataIndex: 'username', width: 110 },
   { title: '姓名', dataIndex: 'name', width: 100 },
@@ -254,21 +255,21 @@ onMounted(async () => {
           <template v-else-if="column.key === 'actions'">
             <Space :size="4" wrap>
               <AccessControl :codes="['user:update']" type="code">
-                <Button size="small" type="link" @click="openEdit(record)">编辑</Button>
+                <Button size="small" type="link" @click="openEdit(record as UserListItem)">编辑</Button>
               </AccessControl>
               <AccessControl :codes="['user:update']" type="code">
                 <Switch
                   :checked="record.status === 10"
                   checked-children="启用"
                   un-checked-children="停用"
-                  @change="(checked: any) => onToggleStatus(record, !!checked)"
+                  @change="(checked: any) => onToggleStatus(record as UserListItem, !!checked)"
                 />
               </AccessControl>
               <AccessControl :codes="['user:reset_pwd']" type="code">
-                <Button size="small" type="link" @click="onResetPwd(record)">重置密码</Button>
+                <Button size="small" type="link" @click="onResetPwd(record as UserListItem)">重置密码</Button>
               </AccessControl>
               <AccessControl :codes="['user:delete']" type="code">
-                <Popconfirm title="确认删除该用户？（逻辑删除）" @confirm="onDelete(record)">
+                <Popconfirm title="确认删除该用户？（逻辑删除）" @confirm="onDelete(record as UserListItem)">
                   <Button danger size="small" type="link">删除</Button>
                 </Popconfirm>
               </AccessControl>

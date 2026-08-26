@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { MenuNode } from '#/api/system/org';
+import type { TableColumnType } from 'ant-design-vue';
 
 import { onMounted, reactive, ref } from 'vue';
 
@@ -60,7 +61,10 @@ const editForm = reactive({
   permission_code: '',
 });
 
-function flattenForParent(nodes: MenuNode[], prefix = '') {
+function flattenForParent(
+  nodes: MenuNode[],
+  prefix = '',
+): { label: string; value: number }[] {
   // 只允许挂到目录（10）下
   return nodes
     .filter((n) => n.type === 10)
@@ -142,7 +146,7 @@ async function onDelete(row: MenuNode) {
   await loadTree();
 }
 
-const columns = [
+const columns: TableColumnType[] = [
   { title: '标题', dataIndex: 'caption' },
   { title: '类型', dataIndex: 'type', width: 80 },
   { title: '路由路径', dataIndex: 'path', ellipsis: true },
@@ -187,10 +191,10 @@ onMounted(loadTree);
           <template v-else-if="column.key === 'actions'">
             <Space :size="4">
               <AccessControl :codes="['menu:update']" type="code">
-                <Button size="small" type="link" @click="openEdit(record)">编辑</Button>
+                <Button size="small" type="link" @click="openEdit(record as MenuNode)">编辑</Button>
               </AccessControl>
               <AccessControl :codes="['menu:delete']" type="code">
-                <Popconfirm title="确认删除？（子级将联动删除）" @confirm="onDelete(record)">
+                <Popconfirm title="确认删除？（子级将联动删除）" @confirm="onDelete(record as MenuNode)">
                   <Button danger size="small" type="link">删除</Button>
                 </Popconfirm>
               </AccessControl>

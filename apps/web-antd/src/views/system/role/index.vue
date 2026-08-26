@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { PermissionItem, RoleListItem } from '#/api/system/role';
+import type { TableColumnType } from 'ant-design-vue';
 
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -20,7 +21,6 @@ import {
   Popconfirm,
   Select,
   Space,
-  Switch,
   Table,
   Tag,
   Textarea,
@@ -191,7 +191,7 @@ async function savePerms() {
   }
 }
 
-const columns = [
+const columns: TableColumnType[] = [
   { title: 'ID', dataIndex: 'id', width: 60 },
   { title: '角色标识', dataIndex: 'code', width: 130 },
   { title: '角色名称', dataIndex: 'name', width: 130 },
@@ -237,16 +237,16 @@ onMounted(async () => {
           <template v-else-if="column.key === 'actions'">
             <Space :size="4">
               <AccessControl :codes="['role:update']" type="code">
-                <Button size="small" type="link" @click="openEdit(record)">编辑</Button>
+                <Button size="small" type="link" @click="openEdit(record as RoleListItem)">编辑</Button>
               </AccessControl>
               <AccessControl :codes="['role:assign']" type="code">
-                <Button size="small" type="link" @click="openPerms(record)">配置权限</Button>
+                <Button size="small" type="link" @click="openPerms(record as RoleListItem)">配置权限</Button>
               </AccessControl>
               <AccessControl :codes="['role:delete']" type="code">
                 <Popconfirm
                   :disabled="record.is_builtin"
                   title="确认删除该角色？（需先解除用户绑定）"
-                  @confirm="onDelete(record)"
+                  @confirm="onDelete(record as RoleListItem)"
                 >
                   <Button :disabled="record.is_builtin" danger size="small" type="link">
                     删除

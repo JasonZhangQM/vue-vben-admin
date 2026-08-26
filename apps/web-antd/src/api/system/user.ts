@@ -77,7 +77,10 @@ export function createUser(data: UserCreateParams) {
 
 /** 修改用户 */
 export function updateUser(id: number, data: UserUpdateParams) {
-  return requestClient.patch(`/users/${id}`, data);
+  return requestClient.request(`/users/${id}`, {
+    data,
+    method: 'PATCH',
+  });
 }
 
 /** 删除用户（逻辑删除） */
@@ -87,7 +90,10 @@ export function deleteUser(id: number) {
 
 /** 启用/停用/离职 */
 export function changeUserStatus(id: number, status: number) {
-  return requestClient.patch(`/users/${id}/status`, { status });
+  return requestClient.request(`/users/${id}/status`, {
+    data: { status },
+    method: 'PATCH',
+  });
 }
 
 /** 重置密码（new_password 为空则后端生成） */

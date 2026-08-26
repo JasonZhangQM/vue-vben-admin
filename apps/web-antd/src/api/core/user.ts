@@ -18,8 +18,12 @@ export async function getUserInfoApi(): Promise<UserInfo> {
   const raw = await requestClient.get<MyProfile>('/users/me');
   return {
     avatar: raw.avatar_url || '',
+    // vben UserInfo 协议必填字段：token 由登录流程维护，此处仅占位
+    desc: '',
+    homePath: '/dashboard/workspace',
     realName: raw.name,
     roles: raw.roles.map((r) => r.code),
+    token: '',
     userId: String(raw.id),
     username: raw.username,
   };

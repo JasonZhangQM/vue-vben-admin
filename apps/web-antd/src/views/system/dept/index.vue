@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { DeptNode } from '#/api/system/org';
+import type { TableColumnType } from 'ant-design-vue';
 
 import { onMounted, reactive, ref } from 'vue';
 
@@ -49,7 +50,11 @@ const editForm = reactive({
 });
 
 /** 树拍平成下拉选项（排除自身及子孙，防成环） */
-function flattenForParent(nodes: DeptNode[], excludeId: number, prefix = '') {
+function flattenForParent(
+  nodes: DeptNode[],
+  excludeId: number,
+  prefix = '',
+): { label: string; value: number }[] {
   return nodes
     .filter((n) => n.id !== excludeId)
     .flatMap((n) => [
@@ -121,7 +126,7 @@ async function onToggleStatus(row: DeptNode, checked: boolean) {
   await loadTree();
 }
 
-const columns = [
+const columns: TableColumnType[] = [
   { title: '部门名称', dataIndex: 'name' },
   { title: '排序', dataIndex: 'ordery', width: 80 },
   { title: '人数', dataIndex: 'member_count', width: 80 },
@@ -160,21 +165,21 @@ onMounted(loadTree);
           <template v-else-if="column.key === 'actions'">
             <Space :size="4">
               <AccessControl :codes="['dept:create']" type="code">
-                <Button size="small" type="link" @click="openCreate(record)">加子部门</Button>
+                <Button size="small" type="link" @click="openCreate(record as DeptNode)">加子部门</Button>
               </AccessControl>
               <AccessControl :codes="['dept:update']" type="code">
-                <Button size="small" type="link" @click="openEdit(record)">编辑</Button>
+                <Button size="small" type="link" @click="openEdit(record as DeptNode)">编辑</Button>
               </AccessControl>
               <AccessControl :codes="['dept:update']" type="code">
                 <Switch
                   :checked="record.status === 10"
                   checked-children="启用"
                   un-checked-children="停用"
-                  @change="(checked: any) => onToggleStatus(record, !!checked)"
+                  @change="(checked: any) => onToggleStatus(record as DeptNode, !!checked)"
                 />
               </AccessControl>
               <AccessControl :codes="['dept:delete']" type="code">
-                <Popconfirm title="确认删除该部门？" @confirm="onDelete(record)">
+                <Popconfirm title="确认删除该部门？" @confirm="onDelete(record as DeptNode)">
                   <Button danger size="small" type="link">删除</Button>
                 </Popconfirm>
               </AccessControl>

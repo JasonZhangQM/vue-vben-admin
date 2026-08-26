@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import type { OperationLogItem } from '#/api/system/log';
+import type { TableColumnType } from 'ant-design-vue';
 
 import { onMounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { Button, Card, Descriptions, DescriptionsItem, Drawer, Input, Modal, Select, Table, Tag } from 'ant-design-vue';
+import { Button, Card, Descriptions, DescriptionsItem, Drawer, Input, Select, Table, Tag } from 'ant-design-vue';
 
 import { getOperationLogs } from '#/api/system/log';
 
@@ -41,7 +42,7 @@ function openDetail(row: OperationLogItem) {
   detailVisible.value = true;
 }
 
-const columns = [
+const columns: TableColumnType[] = [
   { title: '时间', dataIndex: 'created_at', width: 170 },
   { title: '操作人', dataIndex: 'username', width: 100 },
   { title: '模块', dataIndex: 'module', width: 80 },
@@ -98,7 +99,7 @@ onMounted(loadList);
             </Tag>
           </template>
           <template v-else-if="column.key === 'actions'">
-            <Button size="small" type="link" @click="openDetail(record)">详情</Button>
+            <Button size="small" type="link" @click="openDetail(record as OperationLogItem)">详情</Button>
           </template>
         </template>
       </Table>

@@ -3,6 +3,7 @@
 import { requestClient } from '#/api/request';
 
 export interface DeptNode {
+  children?: DeptNode[];
   id: number;
   leader_user_id: null | number;
   member_count: number;
@@ -18,6 +19,7 @@ export interface DeptCreateParams {
   name: string;
   ordery?: number;
   parent_id: number;
+  status?: number;
 }
 
 export interface MenuNode {
@@ -48,7 +50,11 @@ export function createDept(data: DeptCreateParams) {
 
 /** 修改部门 */
 export function updateDept(id: number, data: Partial<DeptCreateParams>) {
-  return requestClient.patch(`/departments/${id}`, data);
+  // RequestClient 未内置 patch 方法，经通用 request 发送（packages 层视为只读）
+  return requestClient.request(`/departments/${id}`, {
+    data,
+    method: 'PATCH',
+  });
 }
 
 /** 删除部门（无成员/无子部门才允许） */
@@ -68,7 +74,10 @@ export function createMenu(data: Record<string, unknown>) {
 
 /** 修改菜单 */
 export function updateMenu(id: number, data: Record<string, unknown>) {
-  return requestClient.patch(`/menus/${id}`, data);
+  return requestClient.request(`/menus/${id}`, {
+    data,
+    method: 'PATCH',
+  });
 }
 
 /** 删除菜单 */
