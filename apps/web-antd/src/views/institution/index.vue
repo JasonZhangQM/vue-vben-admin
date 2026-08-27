@@ -145,10 +145,9 @@ async function submitCreate() {
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detail = ref<null | {
-  institution: Record<string, any>;
-  contacts: any[];
-  branches: any[];
-  agreements: any[];
+  id: number;
+  name: string;
+  [key: string]: any; // 后端扁平结构：机构字段在顶层 + contacts/branches/agreements
 }>(null);
 
 async function openDetail(row: any) {
@@ -156,6 +155,10 @@ async function openDetail(row: any) {
   detailLoading.value = true;
   try {
     detail.value = await getInstitutionDetail(row.id);
+  } catch {
+    // 拉取失败也要能关闭抽屉（detail 保持 null，仅提示）
+    detailVisible.value = false;
+    message.error('机构详情加载失败');
   } finally {
     detailLoading.value = false;
   }
@@ -174,19 +177,19 @@ const agreementForm = reactive({
 
 async function submitContact() {
   if (!detail.value || !contactForm.name) return;
-  await addContact(detail.value.institution.id, { ...contactForm });
+  await addContact(detail.value.id, { ...contactForm });
   contactForm.name = '';
   contactForm.phone = '';
   message.success('联系人已添加');
-  detail.value = await getInstitutionDetail(detail.value.institution.id);
+  detail.value = await getInstitutionDetail(detail.value.id);
 }
 
 async function submitBranch() {
   if (!detail.value || !branchForm.name) return;
-  await addBranch(detail.value.institution.id, { ...branchForm });
+  await addBranch(detail.value.id, { ...branchForm });
   Object.assign(branchForm, { name: '', short_name: '', branch_addr: '' });
   message.success('分支机构已添加');
-  detail.value = await getInstitutionDetail(detail.value.institution.id);
+  detail.value = await getInstitutionDetail(detail.value.id);
 }
 
 async function submitAgreement() {
@@ -194,13 +197,13 @@ async function submitAgreement() {
     message.warning('请填写协议有效期');
     return;
   }
-  await addAgreement(detail.value.institution.id, { ...agreementForm });
+  await addAgreement(detail.value.id, { ...agreementForm });
   Object.assign(agreementForm, {
     agreement_type: 10, flow_credit: 0, back_credit: 0,
     valid_begin_date: '', valid_end_date: '',
   });
   message.success('协议已创建');
-  detail.value = await getInstitutionDetail(detail.value.institution.id);
+  detail.value = await getInstitutionDetail(detail.value.id);
 }
 
 // ================= 行操作 =================
@@ -338,10 +341,12 @@ onMounted(loadList);
       <div v-if="detail" class="space-y-4">
         <Card size="small" title="基本信息">
           <div class="grid grid-cols-2 gap-2 text-sm">
-            <div>名称：{{ detail.institution.name }}</div>
-            <div>简称：{{ detail.institution.short_name || '—' }}</div>
-            <div>类型：{{ typeLabel(detail.institution.institution_type) }}</div>
-            <div>法定代表人：{{ detail.institution.legal_representative || '—' }}</div>
+            <div>名称：{{ detail.name }}</div>
+            <div>简称：{{ detail.short_name || '—' }}</div>
+            <div>类型：{{ detail.institution_type_display || typeLabel(detail.institution_type) }}</div>
+            <div>法定代表人：{{ detail.legal_representative || '—' }}</div>
+            <div>状态：<Tag :color="statusColor(detail.status)">{{ detail.status_display }}</Tag></div>
+            <div>联系人：{{ detail.contact_count }} / 分支：{{ detail.branch_count }}</div>
           </div>
         </Card>
 
@@ -374,8 +379,8 @@ onMounted(loadList);
                 <template v-else-if="column.key === 'op'">
                   <AccessControl :codes="['institution:update']" type="code">
                     <Popconfirm @confirm="async () => {
-                      await deleteContact(detail!.institution.id, record.id);
-                      detail = await getInstitutionDetail(detail!.institution.id);
+                      await deleteContact(detail!.id, record.id);
+                      detail = await getInstitutionDetail(detail!.id);
                     }">
                       <Button danger size="small" type="link">删除</Button>
                     </Popconfirm>
@@ -410,8 +415,8 @@ onMounted(loadList);
                 <template v-if="column.key === 'op'">
                   <AccessControl :codes="['institution:update']" type="code">
                     <Popconfirm @confirm="async () => {
-                      await deleteBranch(detail!.institution.id, record.id);
-                      detail = await getInstitutionDetail(detail!.institution.id);
+                      await deleteBranch(detail!.id, record.id);
+                      detail = await getInstitutionDetail(detail!.id);
                     }">
                       <Button danger size="small" type="link">删除</Button>
                     </Popconfirm>
@@ -452,8 +457,8 @@ onMounted(loadList);
                 <template v-else-if="column.key === 'op'">
                   <AccessControl :codes="['institution:update']" type="code">
                     <Popconfirm @confirm="async () => {
-                      await deleteAgreement(detail!.institution.id, record.id);
-                      detail = await getInstitutionDetail(detail!.institution.id);
+                      await deleteAgreement(detail!.id, record.id);
+                      detail = await getInstitutionDetail(detail!.id);
                     }">
                       <Button danger size="small" type="link">删除</Button>
                     </Popconfirm>

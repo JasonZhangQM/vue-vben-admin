@@ -41,15 +41,21 @@ export interface AgreementItem {
   valid_end_date: string;
 }
 
-export interface InstitutionDetail {
-  agreements: AgreementItem[];
-  branches: BranchItem[];
+/** 机构详情（扁平结构：机构字段在顶层 + 三个子资源数组，与后端 get_detail 对齐） */
+export interface InstitutionDetail extends InstitutionListItem {
+  contact_addr: null | string;
+  contact_count: number;
+  branch_count: number;
+  credit_code: null | string;
+  current_agreement: AgreementItem | null;
+  email: null | string;
+  institution_subtype_display: null | string;
+  institution_type_display: string;
+  registered_addr: null | string;
+  status_display: string;
   contacts: ContactItem[];
-  institution: InstitutionListItem & {
-    address: null | string;
-    credit_line: number;
-    description: null | string;
-  };
+  branches: BranchItem[];
+  agreements: AgreementItem[];
 }
 
 export interface InstitutionCreateParams {
