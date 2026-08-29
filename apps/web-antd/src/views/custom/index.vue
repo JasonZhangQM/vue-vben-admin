@@ -36,7 +36,8 @@ import {
 import {
   getCreditRegionTree,
   getIndustryTree,
-  getRegionTree,
+  getRegionChildren,
+  getRegionRoots,
 } from '#/api/basic/dict';
 import { getUserList } from '#/api/system/user';
 
@@ -182,7 +183,7 @@ const industryTreeData = ref<any[]>([]);
 const creditRegionTreeData = ref<any[]>([]);
 const groupTreeData = ref<any[]>([]);
 
-/** 后端树节点 → AntD TreeSelect treeData */
+/** 后端全量树节点 → AntD TreeSelect treeData（行业/授信区域/集团用） */
 function toTreeData(nodes: any[]): any[] {
   return (nodes ?? []).map((n) => ({
     key: n.id,
@@ -192,17 +193,56 @@ function toTreeData(nodes: any[]): any[] {
   }));
 }
 
+/** 区域懒加载节点 → AntD TreeSelect treeData（初始 roots / 子级追加通用）
+ * 有子级的节点必须同时设 children: [] + isLeaf: false：
+ * - children: [] 空数组占位，让 TreeSelect 知道此节点有子级容器
+ * - isLeaf: false 显式告诉 Tree 这不是叶子节点（空数组 .length=0 → falsy，
+ *   单靠 children 无法通过 expandable 判断）
+ */
+function toRegionNodes(nodes: any[]): any[] {
+  return (nodes ?? []).map((n) => ({
+    key: n.id,
+    title: n.name,
+    value: n.id,
+    children: n.has_children ? [] : undefined,
+    isLeaf: !n.has_children,
+  }));
+}
+
+/** 在 treeData 中递归查找指定 key 的节点（引用原对象，Vue 响应式生效） */
+function findNodeInTree(nodes: any[], key: number): any | null {
+  for (const n of nodes) {
+    if (n.key === key) return n;
+    if (n.children?.length) {
+      const hit = findNodeInTree(n.children, key);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+/** 区域 TreeSelect 异步懒加载：在 regionTreeData 中找到节点并替换 children */
+async function loadRegionChildren(node: any) {
+  const children = await getRegionChildren(node.key);
+  const target = findNodeInTree(regionTreeData.value, node.key);
+  if (target) {
+    target.children = toRegionNodes(children);
+    // 有子级但没更多孙子 → 展开箭头消失正确
+  }
+}
+
 async function loadOptions() {
   // 用户下拉（管护经理 / 风控专员共用）
-  const [users, regions, industries, creditRegions, groups] = await Promise.all([
+  // 区域只加载省级 roots（懒加载）；行业/授信区域/集团全量
+  const [users, regionRoots, industries, creditRegions, groups] = await Promise.all([
     getUserList({ page: 1, page_size: 200 }),
-    getRegionTree(),
+    getRegionRoots(),
     getIndustryTree(),
     getCreditRegionTree(),
     getGroupTree(),
   ]);
   userOptions.value = users.items.map((u) => ({ label: u.name, value: u.id }));
-  regionTreeData.value = toTreeData(regions);
+  regionTreeData.value = toRegionNodes(regionRoots);
   industryTreeData.value = toTreeData(industries);
   creditRegionTreeData.value = toTreeData(creditRegions);
   groupTreeData.value = toTreeData(groups);
@@ -527,8 +567,8 @@ function filterOption(input: string, node: any) {
             v-model:value="createForm.region_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="regionTreeData"
-            placeholder="行政区划"
-            tree-default-expand-all
+            :load-data="loadRegionChildren"
+            placeholder="行政区划（展开加载子级）"
           />
         </FormItem>
         <FormItem label="行业分类" required>

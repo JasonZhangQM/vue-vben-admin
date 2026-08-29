@@ -35,9 +35,31 @@ export interface EvaluateCompanyItem {
   name: string;
 }
 
-/** 行政区域树（级联全量模式） */
+/** 行政区域树节点（懒加载接口返回，has_children 供前端渲染展开箭头） */
+export interface RegionTreeNode {
+  code: string;
+  has_children: boolean;
+  id: number;
+  level: number;
+  level_display?: string;
+  name: string;
+  parent_id: number;
+  status: number;
+}
+
+/** 行政区域树（级联全量模式，约 4.5 万条，仅用于级联选择器全量场景） */
 export function getRegionTree() {
-  return requestClient.get<TreeNode[]>('/dicts/regions/tree');
+  return requestClient.get<TreeNode[]>('/regions/tree');
+}
+
+/** 行政区域懒加载：顶层省级列表（34 条，TreeSelect 首屏） */
+export function getRegionRoots() {
+  return requestClient.get<RegionTreeNode[]>('/regions/roots');
+}
+
+/** 行政区域懒加载：指定节点直接下级 */
+export function getRegionChildren(parentId: number) {
+  return requestClient.get<RegionTreeNode[]>(`/regions/${parentId}/children`);
 }
 
 /** 行业分类树 */

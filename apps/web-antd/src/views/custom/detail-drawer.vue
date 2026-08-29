@@ -41,7 +41,7 @@ import {
   listShareholders,
   updateCustomer,
 } from '#/api/basic/customer';
-import { getIndustryTree, getRegionTree } from '#/api/basic/dict';
+import { getIndustryTree, getRegionChildren, getRegionRoots } from '#/api/basic/dict';
 
 const props = defineProps<{ customerId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -124,15 +124,47 @@ function toTreeData(nodes: any[]): any[] {
   }));
 }
 
+/** 区域懒加载节点：has_children=true 需同时设 children: [] + isLeaf: false */
+function toRegionNodes(nodes: any[]): any[] {
+  return (nodes ?? []).map((n) => ({
+    key: n.id,
+    title: n.name,
+    value: n.id,
+    children: n.has_children ? [] : undefined,
+    isLeaf: !n.has_children,
+  }));
+}
+
+/** 在 treeData 中递归查找指定 key 的节点（引用原对象，Vue 响应式生效） */
+function findNodeInTree(nodes: any[], key: number): any | null {
+  for (const n of nodes) {
+    if (n.key === key) return n;
+    if (n.children?.length) {
+      const hit = findNodeInTree(n.children, key);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
+/** 区域 TreeSelect 异步懒加载：修改 regionTreeData 原对象触发 Vue 响应式 */
+async function loadRegionChildren(node: any) {
+  const children = await getRegionChildren(node.key);
+  const target = findNodeInTree(regionTreeData.value, node.key);
+  if (target) {
+    target.children = toRegionNodes(children);
+  }
+}
+
 async function openEdit() {
   if (!detail.value) return;
-  // 编辑需要区域 / 行业树（仅首次加载）
+  // 编辑需要区域 roots（懒加载）/ 行业全量（仅首次加载）
   if (!regionTreeData.value.length) {
-    const [regions, industries] = await Promise.all([
-      getRegionTree(),
+    const [regionRoots, industries] = await Promise.all([
+      getRegionRoots(),
       getIndustryTree(),
     ]);
-    regionTreeData.value = toTreeData(regions);
+    regionTreeData.value = toRegionNodes(regionRoots);
     industryTreeData.value = toTreeData(industries);
   }
   Object.assign(editForm, {
@@ -465,9 +497,9 @@ async function submitLimit() {
             :disabled="!canUpdate"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="regionTreeData"
+            :load-data="loadRegionChildren"
             allow-clear
             placeholder="留空保持不变"
-            tree-default-expand-all
           />
         </FormItem>
         <FormItem label="行业分类">
