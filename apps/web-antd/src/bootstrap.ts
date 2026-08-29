@@ -11,6 +11,9 @@ import { useTitle } from '@vueuse/core';
 
 import { $t, setupI18n } from '#/locales';
 
+import { useDictStore } from '#/store';
+
+import SearchSelect from '#/components/SearchSelect.vue';
 import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
@@ -45,6 +48,16 @@ async function bootstrap(namespace: string) {
 
   // 配置 pinia-tore
   await initStores(app, { namespace });
+
+  // 全局注册业务通用组件
+  app.component('SearchSelect', SearchSelect);
+
+  // 启动时预加载全部枚举字典（后端 GET /api/v1/dicts，公开接口无需登录）
+  // 拉取失败不阻断启动，字典会在首次访问业务页面时按需再试
+  const dictStore = useDictStore();
+  dictStore.loadAll().catch(() => {
+    console.warn('[dict] initial load failed, will retry on first access');
+  });
 
   // 安装权限指令
   registerAccessDirective(app);
