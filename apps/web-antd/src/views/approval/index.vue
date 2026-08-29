@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 审批中心：待我审批 / 我的申请，审批通过后 executor 自动生效。 */
+﻿<script lang="ts" setup>
+/** 审批中心：待我审批 / 我的申请；摘要列为详情入口，审批动作收纳在详情抽屉内。 */
 
 import type {
   ApprovalInstanceDetail,
@@ -19,7 +19,7 @@ import {
   Drawer,
   message,
   Modal,
-  Space,
+  Popconfirm,
   Table,
   Tabs,
   TabPane,
@@ -87,48 +87,31 @@ async function loadMine() {
   }
 }
 
-// ================= 审批动作（同意 / 驳回） =================
-const actVisible = ref(false);
-const actLoading = ref(false);
-const actTarget = ref<ApprovalInstanceItem | null>(null);
-const actAction = ref(10); // 10 同意 / 20 驳回
-const actOpinion = ref('');
+// ================= 行点击高亮（各 Tab 独立记录） =================
+const tasksActiveKey = ref<number>();
+const tasksCustomRow = (record: any) => ({
+  onClick: () => {
+    tasksActiveKey.value = record.id;
+  },
+});
+const tasksRowClassName = (record: any) =>
+  record.id === tasksActiveKey.value ? 'row-active' : '';
 
-function openAct(record: any, action: number) {
-  actTarget.value = record;
-  actAction.value = action;
-  actOpinion.value = '';
-  actVisible.value = true;
-}
+const mineActiveKey = ref<number>();
+const mineCustomRow = (record: any) => ({
+  onClick: () => {
+    mineActiveKey.value = record.id;
+  },
+});
+const mineRowClassName = (record: any) =>
+  record.id === mineActiveKey.value ? 'row-active' : '';
 
-async function submitAct() {
-  if (!actTarget.value?.current_task_id) return;
-  if (actAction.value === 20 && !actOpinion.value.trim()) {
-    message.warning('驳回必须填写审批意见');
-    return;
-  }
-  actLoading.value = true;
-  try {
-    await actTask(actTarget.value.current_task_id, actAction.value, actOpinion.value || undefined);
-    message.success(actAction.value === 10 ? '已同意' : '已驳回');
-    actVisible.value = false;
-    await loadTasks();
-  } finally {
-    actLoading.value = false;
-  }
-}
-
-// ================= 撤回 =================
-async function onWithdraw(record: any) {
-  await withdrawInstance(record.id);
-  message.success('申请已撤回');
-  await loadMine();
-}
-
-// ================= 实例详情 =================
+// ================= 实例详情（摘要列链接 = 唯一入口） =================
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detail = ref<ApprovalInstanceDetail | null>(null);
+// 当前行的待办任务 ID（仅待我审批列表返回，供抽屉内审批动作使用）
+const currentTaskId = ref<null | number>(null);
 
 /** payload 分字段展示（创建草稿 / 修改 diff / 移交 ID 列表） */
 const payloadEntries = ref<{ key: string; value: string }[]>([]);
@@ -140,37 +123,88 @@ function renderPayload(payload: Record<string, any>) {
   }));
 }
 
-async function openDetail(record: any) {
-  detailVisible.value = true;
+async function loadDetail(id: number) {
   detailLoading.value = true;
   try {
-    detail.value = await getInstanceDetail(record.id);
+    detail.value = await getInstanceDetail(id);
     renderPayload(detail.value.payload);
+  } catch {
+    // 详情拉取失败：自动关闭抽屉 + 错误提示，避免页面挂死
+    detailVisible.value = false;
+    detail.value = null;
+    message.error('审批详情加载失败');
   } finally {
     detailLoading.value = false;
   }
 }
 
+function openDetail(record: any, fromTasks: boolean) {
+  if (fromTasks) tasksActiveKey.value = record.id;
+  else mineActiveKey.value = record.id;
+  currentTaskId.value = record.current_task_id ?? null;
+  detailVisible.value = true;
+  detail.value = null;
+  loadDetail(record.id);
+}
+
+// ================= 审批动作（同意 / 驳回，收纳在详情抽屉） =================
+const actVisible = ref(false);
+const actLoading = ref(false);
+const actAction = ref(10); // 10 同意 / 20 驳回
+const actOpinion = ref('');
+
+function openAct(action: number) {
+  actAction.value = action;
+  actOpinion.value = '';
+  actVisible.value = true;
+}
+
+async function submitAct() {
+  if (!currentTaskId.value) return;
+  if (actAction.value === 20 && !actOpinion.value.trim()) {
+    message.warning('驳回必须填写审批意见');
+    return;
+  }
+  actLoading.value = true;
+  try {
+    await actTask(currentTaskId.value, actAction.value, actOpinion.value || undefined);
+    message.success(actAction.value === 10 ? '已同意' : '已驳回');
+    actVisible.value = false;
+    detailVisible.value = false;
+    await loadTasks();
+  } finally {
+    actLoading.value = false;
+  }
+}
+
+// ================= 撤回（收纳在详情抽屉） =================
+async function onWithdraw() {
+  if (!detail.value) return;
+  await withdrawInstance(detail.value.id);
+  message.success('申请已撤回');
+  detailVisible.value = false;
+  await loadMine();
+}
+
 const baseColumns: TableColumnType[] = [
-  { title: '审批单号', dataIndex: 'id', width: 90 },
-  { title: '流程', dataIndex: 'flow_name', width: 130 },
-  { title: '摘要', dataIndex: 'summary', ellipsis: true },
-  { title: '提交人', dataIndex: 'submitted_by_name', width: 100 },
-  { title: '提交时间', dataIndex: 'submitted_at', width: 170 },
+  // 审批单号属业务单号列，保留展示
+  { title: '审批单号', dataIndex: 'id', ellipsis: true },
+  { title: '流程', dataIndex: 'flow_name', ellipsis: true },
+  { title: '摘要', dataIndex: 'summary' }, // 详情入口链接列：不加 ellipsis
+  { title: '提交人', dataIndex: 'submitted_by_name', ellipsis: true },
+  { title: '提交时间', dataIndex: 'submitted_at', ellipsis: true },
 ];
 
 const taskColumns: TableColumnType[] = [
   ...baseColumns,
-  { title: '当前节点', dataIndex: 'current_step', width: 90 },
-  { title: '状态', dataIndex: 'status_display', width: 90 },
-  { title: '操作', key: 'actions', width: 210, fixed: 'right' },
+  { title: '当前节点', dataIndex: 'current_step', ellipsis: true },
+  { title: '状态', dataIndex: 'status_display', ellipsis: true },
 ];
 
 const mineColumns: TableColumnType[] = [
   ...baseColumns,
-  { title: '状态', dataIndex: 'status_display', width: 90 },
-  { title: '完成时间', dataIndex: 'finished_at', width: 170 },
-  { title: '操作', key: 'actions', width: 170, fixed: 'right' },
+  { title: '状态', dataIndex: 'status_display', ellipsis: true },
+  { title: '完成时间', dataIndex: 'finished_at', ellipsis: true },
 ];
 
 onMounted(() => {
@@ -180,36 +214,39 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page title="审批中心" description="客户创建 / 敏感修改 / 批量移交易等审批流转">
-    <Card>
+  <!-- 不传 title/description：不渲染页头 -->
+  <Page>
+    <Card size="small">
       <Tabs>
         <!-- 待我审批 -->
         <TabPane key="tasks" :tab="`待我审批（${tasksTotal}）`">
           <Table
             :columns="taskColumns"
+            :custom-row="tasksCustomRow"
             :data-source="tasksList"
             :loading="tasksLoading"
             :pagination="{
               current: tasksQuery.page,
               pageSize: tasksQuery.page_size,
               total: tasksTotal,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
               showTotal: (t: number) => `共 ${t} 条`,
               onChange: (p: number) => { tasksQuery.page = p; loadTasks(); },
+              onShowSizeChange: (_c: number, s: number) => { tasksQuery.page = 1; tasksQuery.page_size = s; loadTasks(); },
             }"
-            :scroll="{ x: 1100 }"
+            :row-class-name="tasksRowClassName"
+            :scroll="{ x: 'max-content' }"
             row-key="id"
-            size="middle"
+            size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'status'">
-                <Tag :color="STATUS_COLOR[record.status]">{{ record.status_display }}</Tag>
+              <template v-if="column.dataIndex === 'summary'">
+                <!-- 摘要列即详情入口 -->
+                <a @click="openDetail(record, true)">{{ record.summary }}</a>
               </template>
-              <template v-else-if="column.key === 'actions'">
-                <Space :size="4">
-                  <Button size="small" type="primary" @click="openAct(record, 10)">同意</Button>
-                  <Button danger size="small" @click="openAct(record, 20)">驳回</Button>
-                  <Button size="small" type="link" @click="openDetail(record)">详情</Button>
-                </Space>
+              <template v-else-if="column.dataIndex === 'status'">
+                <Tag :color="STATUS_COLOR[record.status]">{{ record.status_display }}</Tag>
               </template>
             </template>
           </Table>
@@ -219,39 +256,33 @@ onMounted(() => {
         <TabPane key="mine" :tab="`我的申请（${mineTotal}）`">
           <Table
             :columns="mineColumns"
+            :custom-row="mineCustomRow"
             :data-source="mineList"
             :loading="mineLoading"
             :pagination="{
               current: mineQuery.page,
               pageSize: mineQuery.page_size,
               total: mineTotal,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
               showTotal: (t: number) => `共 ${t} 条`,
               onChange: (p: number) => { mineQuery.page = p; loadMine(); },
+              onShowSizeChange: (_c: number, s: number) => { mineQuery.page = 1; mineQuery.page_size = s; loadMine(); },
             }"
-            :scroll="{ x: 1100 }"
+            :row-class-name="mineRowClassName"
+            :scroll="{ x: 'max-content' }"
             row-key="id"
-            size="middle"
+            size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'status'">
+              <template v-if="column.dataIndex === 'summary'">
+                <a @click="openDetail(record, false)">{{ record.summary }}</a>
+              </template>
+              <template v-else-if="column.dataIndex === 'status'">
                 <Tag :color="STATUS_COLOR[record.status]">{{ record.status_display }}</Tag>
               </template>
               <template v-else-if="column.dataIndex === 'finished_at'">
                 {{ record.finished_at ?? '—' }}
-              </template>
-              <template v-else-if="column.key === 'actions'">
-                <Space :size="4">
-                  <Button size="small" type="link" @click="openDetail(record)">详情</Button>
-                  <Button
-                    v-if="record.status === 10"
-                    danger
-                    size="small"
-                    type="link"
-                    @click="onWithdraw(record)"
-                  >
-                    撤回
-                  </Button>
-                </Space>
               </template>
             </template>
           </Table>
@@ -259,16 +290,16 @@ onMounted(() => {
       </Tabs>
     </Card>
 
-    <!-- 审批动作弹窗 -->
+    <!-- 审批动作弹窗（由详情抽屉触发） -->
     <Modal
       v-model:open="actVisible"
       :confirm-loading="actLoading"
       :ok-button-props="{ danger: actAction === 20 }"
       :ok-text="actAction === 10 ? '确认同意' : '确认驳回'"
-      :title="`${actAction === 10 ? '同意' : '驳回'}审批单 #${actTarget?.id ?? ''}`"
+      :title="`${actAction === 10 ? '同意' : '驳回'}审批单 #${detail?.id ?? ''}`"
       @ok="submitAct"
     >
-      <div class="mb-2 text-sm text-gray-500">{{ actTarget?.summary }}</div>
+      <div class="mb-2 text-sm text-gray-500">{{ detail?.summary }}</div>
       <Textarea
         v-model:value="actOpinion"
         :placeholder="actAction === 20 ? '驳回意见（必填）' : '审批意见（可空）'"
@@ -276,14 +307,31 @@ onMounted(() => {
       />
     </Modal>
 
-    <!-- 实例详情 -->
+    <!-- 实例详情抽屉：审批动作收纳在 #extra -->
     <Drawer
       v-model:open="detailVisible"
       :title="`审批单 #${detail?.id ?? ''} · ${detail?.flow_name ?? ''}`"
-      width="640"
+      width="66%"
     >
       <div v-if="detail" class="space-y-4">
         <Card size="small" title="基本信息">
+          <template #extra>
+            <div class="flex gap-2">
+              <!-- 待我审批来源且有当前任务：同意 / 驳回 -->
+              <template v-if="currentTaskId">
+                <Button size="small" type="primary" @click="openAct(10)">同意</Button>
+                <Button danger size="small" @click="openAct(20)">驳回</Button>
+              </template>
+              <!-- 本人提交且 pending：撤回 -->
+              <Popconfirm
+                v-if="detail.status === 10 && !currentTaskId"
+                title="确认撤回该申请？"
+                @confirm="onWithdraw"
+              >
+                <Button danger size="small">撤回</Button>
+              </Popconfirm>
+            </div>
+          </template>
           <Descriptions :column="2" size="small">
             <DescriptionsItem label="流程">{{ detail.flow_name }}</DescriptionsItem>
             <DescriptionsItem label="状态">
@@ -333,3 +381,11 @@ onMounted(() => {
     </Drawer>
   </Page>
 </template>
+
+<style scoped>
+/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
+:deep(.ant-table-tbody > tr.row-active) > td,
+:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
+  background-color: #e6f4ff;
+}
+</style>

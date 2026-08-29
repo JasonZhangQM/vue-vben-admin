@@ -1,4 +1,6 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
+/** 部门管理：树形表格，部门名称列为详情入口；编辑/启停/删除/加子部门收纳在详情抽屉。 */
+
 import type { DeptNode } from '#/api/system/org';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -10,6 +12,9 @@ import { Page } from '@vben/common-ui';
 import {
   Button,
   Card,
+  Descriptions,
+  DescriptionsItem,
+  Drawer,
   Form,
   FormItem,
   Input,
@@ -38,7 +43,52 @@ async function loadTree() {
   }
 }
 
-// ================= 新建 / 编辑 =================
+/** 在树中按 id 查找节点（含子孙） */
+function findNode(nodes: DeptNode[], id: number): DeptNode | undefined {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    const hit = findNode(n.children ?? [], id);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+// ================= 详情抽屉 =================
+const detailOpen = ref(false);
+const detailNode = ref<null | DeptNode>(null);
+
+// 行点击高亮：记录当前行 key
+const activeRowKey = ref<number>();
+const customRow = (record: any) => ({
+  onClick: () => {
+    activeRowKey.value = record.id;
+  },
+});
+const rowClassName = (record: any) =>
+  record.id === activeRowKey.value ? 'row-active' : '';
+
+function openDetail(row: any) {
+  activeRowKey.value = row.id; // 打开详情即高亮该行
+  detailNode.value = row;
+  detailOpen.value = true;
+}
+
+/** 抽屉内操作完成后刷新树 + 重载抽屉数据 */
+async function refresh() {
+  await loadTree();
+  if (detailNode.value) {
+    detailNode.value = findNode(tree.value, detailNode.value.id) ?? null;
+  }
+}
+
+/** 上级部门名称（详情展示用） */
+function parentName(node: DeptNode): string {
+  if (!node.parent_id) return '（顶级）';
+  const parent = findNode(tree.value, node.parent_id);
+  return parent?.name ?? '—';
+}
+
+// ================= 新建 / 编辑（编辑入口在详情抽屉） =================
 const editVisible = ref(false);
 const editMode = ref<'create' | 'edit'>('create');
 const editLoading = ref(false);
@@ -74,13 +124,14 @@ function openCreate(parent?: DeptNode) {
   editVisible.value = true;
 }
 
-function openEdit(row: DeptNode) {
+function openEdit() {
+  if (!detailNode.value) return;
   editMode.value = 'edit';
   Object.assign(editForm, {
-    id: row.id,
-    parent_id: row.parent_id,
-    name: row.name,
-    ordery: row.ordery,
+    id: detailNode.value.id,
+    parent_id: detailNode.value.parent_id,
+    name: detailNode.value.name,
+    ordery: detailNode.value.ordery,
   });
   editVisible.value = true;
 }
@@ -108,87 +159,127 @@ async function submitEdit() {
       message.success('保存成功');
     }
     editVisible.value = false;
-    await loadTree();
+    await refresh();
   } finally {
     editLoading.value = false;
   }
 }
 
-async function onDelete(row: DeptNode) {
-  await deleteDept(row.id);
-  message.success('已删除');
-  await loadTree();
+// ================= 启停 / 删除 / 加子部门（收纳在详情抽屉） =================
+async function onToggleStatus(checked: boolean) {
+  if (!detailNode.value) return;
+  await updateDept(detailNode.value.id, { status: checked ? 10 : 20 });
+  message.success(checked ? '已启用' : '已停用');
+  await refresh();
 }
 
-async function onToggleStatus(row: DeptNode, checked: boolean) {
-  await updateDept(row.id, { status: checked ? 10 : 20 });
-  message.success(checked ? '已启用' : '已停用');
+async function onDelete() {
+  if (!detailNode.value) return;
+  await deleteDept(detailNode.value.id);
+  message.success('已删除');
+  detailOpen.value = false;
   await loadTree();
 }
 
 const columns: TableColumnType[] = [
-  { title: '部门名称', dataIndex: 'name' },
-  { title: '排序', dataIndex: 'ordery', width: 80 },
-  { title: '人数', dataIndex: 'member_count', width: 80 },
-  { title: '状态', dataIndex: 'status', width: 90 },
-  { title: '操作', key: 'actions', width: 280, fixed: 'right' },
+  { title: '部门名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
+  { title: '排序', dataIndex: 'ordery', ellipsis: true },
+  { title: '人数', dataIndex: 'member_count', ellipsis: true },
+  { title: '状态', dataIndex: 'status', ellipsis: true },
 ];
 
 onMounted(loadTree);
 </script>
 
 <template>
-  <Page title="部门管理" description="部门树维护；删除前需清空成员与子部门">
-    <Card>
-      <div class="mb-4">
+  <!-- 不传 title/description：不渲染页头 -->
+  <Page>
+    <!-- 筛选区：独立 Card（部门树无筛选字段，仅放新增入口） -->
+    <Card class="mb-3" size="small">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex-1" />
         <AccessControl :codes="['dept:create']" type="code">
           <Button type="primary" @click="openCreate()">新增一级部门</Button>
         </AccessControl>
       </div>
+    </Card>
 
+    <!-- 数据区：Card 与 Table 均 size="small" 紧凑布局 -->
+    <Card size="small">
       <Table
         :columns="columns"
+        :custom-row="customRow"
         :data-source="tree"
         :loading="loading"
         :pagination="false"
-        :scroll="{ x: 800 }"
+        :row-class-name="rowClassName"
+        :scroll="{ x: 'max-content' }"
         default-expand-all-rows
         row-key="id"
-        size="middle"
+        size="small"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'status'">
+          <template v-if="column.dataIndex === 'name'">
+            <!-- 部门名称列即详情入口 -->
+            <a @click="openDetail(record)">{{ record.name }}</a>
+          </template>
+          <template v-else-if="column.dataIndex === 'status'">
             <Tag :color="record.status === 10 ? 'green' : 'red'">
               {{ record.status === 10 ? '启用' : '停用' }}
             </Tag>
-          </template>
-          <template v-else-if="column.key === 'actions'">
-            <Space :size="4">
-              <AccessControl :codes="['dept:create']" type="code">
-                <Button size="small" type="link" @click="openCreate(record as DeptNode)">加子部门</Button>
-              </AccessControl>
-              <AccessControl :codes="['dept:update']" type="code">
-                <Button size="small" type="link" @click="openEdit(record as DeptNode)">编辑</Button>
-              </AccessControl>
-              <AccessControl :codes="['dept:update']" type="code">
-                <Switch
-                  :checked="record.status === 10"
-                  checked-children="启用"
-                  un-checked-children="停用"
-                  @change="(checked: any) => onToggleStatus(record as DeptNode, !!checked)"
-                />
-              </AccessControl>
-              <AccessControl :codes="['dept:delete']" type="code">
-                <Popconfirm title="确认删除该部门？" @confirm="onDelete(record as DeptNode)">
-                  <Button danger size="small" type="link">删除</Button>
-                </Popconfirm>
-              </AccessControl>
-            </Space>
           </template>
         </template>
       </Table>
     </Card>
 
+    <!-- 部门详情抽屉：操作收纳在 #extra -->
+    <Drawer
+      v-model:open="detailOpen"
+      :title="detailNode ? `部门 ${detailNode.name}` : '部门详情'"
+      width="66%"
+    >
+      <div v-if="detailNode">
+        <Card size="small" title="基本信息">
+          <template #extra>
+            <Space :size="8">
+              <!-- 编辑按钮：必备，置于首位 -->
+              <AccessControl :codes="['dept:update']" type="code">
+                <Button size="small" type="primary" @click="openEdit">编辑</Button>
+              </AccessControl>
+              <AccessControl :codes="['dept:create']" type="code">
+                <Button size="small" @click="openCreate(detailNode)">加子部门</Button>
+              </AccessControl>
+              <AccessControl :codes="['dept:update']" type="code">
+                <Switch
+                  :checked="detailNode.status === 10"
+                  checked-children="启用"
+                  un-checked-children="停用"
+                  @change="(checked: any) => onToggleStatus(!!checked)"
+                />
+              </AccessControl>
+              <AccessControl :codes="['dept:delete']" type="code">
+                <Popconfirm title="确认删除该部门？" @confirm="onDelete">
+                  <Button danger size="small">删除</Button>
+                </Popconfirm>
+              </AccessControl>
+            </Space>
+          </template>
+          <Descriptions :column="2" size="small">
+            <DescriptionsItem label="部门名称">{{ detailNode.name }}</DescriptionsItem>
+            <DescriptionsItem label="上级部门">{{ parentName(detailNode) }}</DescriptionsItem>
+            <DescriptionsItem label="排序">{{ detailNode.ordery }}</DescriptionsItem>
+            <DescriptionsItem label="人数">{{ detailNode.member_count }}</DescriptionsItem>
+            <DescriptionsItem label="状态">
+              <Tag :color="detailNode.status === 10 ? 'green' : 'red'">
+                {{ detailNode.status === 10 ? '启用' : '停用' }}
+              </Tag>
+            </DescriptionsItem>
+          </Descriptions>
+        </Card>
+      </div>
+    </Drawer>
+
+    <!-- 新建 / 编辑部门弹窗 -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
@@ -204,6 +295,7 @@ onMounted(loadTree);
             value="（顶级）"
           />
           <Select
+            show-search
             v-else
             v-model:value="editForm.parent_id"
             :options="flattenForParent(tree, editForm.id)"
@@ -220,3 +312,12 @@ onMounted(loadTree);
     </Modal>
   </Page>
 </template>
+
+<style scoped>
+/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
+:deep(.ant-table-tbody > tr.row-active) > td,
+:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
+  background-color: #e6f4ff;
+}
+</style>
+

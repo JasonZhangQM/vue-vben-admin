@@ -1,4 +1,4 @@
-/** 基础数据：客户模块 API（审批三场景 / 子资源 / 核心额度 / 统计）。 */
+/** 基础数据：客户模块 API（创建/修改直接生效，无审批；子资源/核心额度/统计）。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -56,7 +56,6 @@ export interface CustomerDetail extends CustomerListItem {
     total_assets: number;
     typing: number;
   };
-  pending_requests: null | { id: number; summary: string }[];
   personal: null | Record<string, any>;
   shareholder_count: number;
   tags: null | number[];
@@ -119,12 +118,12 @@ export function getCustomerDetail(id: number) {
   return requestClient.get<CustomerDetail>(`/customers/${id}`);
 }
 
-/** 添加客户（发起 customer_create 审批，通过后落库） */
+/** 添加客户（直接落库） */
 export function createCustomer(data: CustomerCreateParams) {
-  return requestClient.post<{ instance_id: number }>('/customers', data);
+  return requestClient.post<{ id: number }>('/customers', data);
 }
 
-/** 修改自由字段（免审批） */
+/** 修改客户（所有字段直接生效） */
 export function updateCustomer(id: number, data: object) {
   return requestClient.request(`/customers/${id}`, {
     data,
@@ -137,21 +136,13 @@ export function deleteCustomer(id: number) {
   return requestClient.delete(`/customers/${id}`);
 }
 
-/** 提交敏感字段修改申请（customer_update 审批，diff 应用） */
-export function submitChangeRequest(id: number, values: object) {
-  return requestClient.post<{ instance_id: number }>(
-    `/customers/${id}/change-requests`,
-    { values },
-  );
-}
-
-/** 批量管护移交申请（customer_transfer 审批） */
-export function submitTransfer(data: {
+/** 批量管护移交（直接生效，≤200 个客户） */
+export function batchTransfer(data: {
   customer_ids: number[];
   reason: string;
   to_managementor_id: number;
 }) {
-  return requestClient.post<{ instance_id: number }>(
+  return requestClient.post<{ count: number }>(
     '/customers/transfer-requests',
     data,
   );

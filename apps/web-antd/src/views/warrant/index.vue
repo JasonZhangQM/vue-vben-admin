@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 权证管理：列表 / 创建（主表 + 类型扩展 + 所有权人）/ 详情抽屉。 */
 
 import type { CustomerDictItem } from '#/api/basic/dict';
@@ -20,15 +20,13 @@ import {
   InputNumber,
   message,
   Modal,
-  Popconfirm,
   Select,
-  Space,
   Table,
   Tag,
 } from 'ant-design-vue';
 
 import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
-import { createWarrant, deleteWarrant, getWarrantList } from '#/api/basic/warrant';
+import { createWarrant, getWarrantList } from '#/api/basic/warrant';
 
 import DetailDrawer from './detail-drawer.vue';
 
@@ -93,19 +91,33 @@ async function loadList() {
   }
 }
 
+/** 重置：清空全部筛选条件并回到第 1 页重新查询 */
+function resetQuery() {
+  query.q = '';
+  query.warrant_type = undefined;
+  query.warrant_state = undefined;
+  query.page = 1;
+  loadList();
+}
+
 // ================= 详情 =================
 const detailOpen = ref(false);
 const detailWarrantId = ref<null | number>(null);
 
+// 行点击高亮：记录当前行 key
+const activeRowKey = ref<number>();
+const customRow = (record: any) => ({
+  onClick: () => {
+    activeRowKey.value = record.id;
+  },
+});
+const rowClassName = (record: any) =>
+  record.id === activeRowKey.value ? 'row-active' : '';
+
 function openDetail(row: any) {
+  activeRowKey.value = row.id; // 打开详情即高亮该行
   detailWarrantId.value = row.id;
   detailOpen.value = true;
-}
-
-async function onDelete(row: any) {
-  await deleteWarrant(row.id);
-  message.success('权证已删除');
-  await loadList();
 }
 
 // ================= 新建 =================
@@ -335,15 +347,17 @@ async function submitCreate() {
   }
 }
 
+/** 空值文案兜底 */
+const dash = (v: unknown) =>
+  v === null || v === undefined || v === '' ? '—' : String(v);
+
 const columns: TableColumnType[] = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '权证号', dataIndex: 'warrant_num', ellipsis: true },
-  { title: '类型', dataIndex: 'warrant_type', width: 100 },
-  { title: '状态', dataIndex: 'warrant_state', width: 100 },
-  { title: '评估值', dataIndex: 'evaluate_value', width: 110 },
-  { title: '登记人', dataIndex: 'created_by_name', width: 100 },
-  { title: '登记时间', dataIndex: 'created_at', width: 170 },
-  { title: '操作', key: 'actions', width: 130, fixed: 'right' },
+  { title: '权证号', dataIndex: 'warrant_num' }, // 详情入口链接列：不加 ellipsis
+  { title: '类型', dataIndex: 'warrant_type', ellipsis: true },
+  { title: '状态', dataIndex: 'warrant_state', ellipsis: true },
+  { title: '评估值', dataIndex: 'evaluate_value', ellipsis: true },
+  { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
+  { title: '登记时间', dataIndex: 'created_at', ellipsis: true },
 ];
 
 onMounted(() => {
@@ -353,9 +367,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page title="权证管理" description="反担保权证登记：出入库联动状态，所有权统一走中间表">
-    <Card>
-      <div class="mb-4 flex flex-wrap items-center gap-3">
+  <!-- 不传 title/description：不渲染页头 -->
+  <Page>
+    <!-- 筛选区：独立 Card -->
+    <Card class="mb-3" size="small">
+      <div class="flex flex-wrap items-center gap-3">
         <Input
           v-model:value="query.q"
           allow-clear
@@ -364,6 +380,7 @@ onMounted(() => {
           @press-enter="() => { query.page = 1; loadList(); }"
         />
         <Select
+            show-search
           v-model:value="query.warrant_type"
           :options="TYPE_OPTIONS"
           allow-clear
@@ -371,6 +388,7 @@ onMounted(() => {
           style="width: 120px"
         />
         <Select
+            show-search
           v-model:value="query.warrant_state"
           :options="STATE_OPTIONS"
           allow-clear
@@ -378,28 +396,42 @@ onMounted(() => {
           style="width: 120px"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
+        <Button @click="resetQuery">重置</Button>
+        <div class="flex-1" />
         <AccessControl :codes="['warrant:create']" type="code">
           <Button type="primary" @click="openCreate">新增权证</Button>
         </AccessControl>
       </div>
+    </Card>
 
+    <!-- 数据区：Card 与 Table 均 size="small" 紧凑布局 -->
+    <Card size="small">
       <Table
         :columns="columns"
+        :custom-row="customRow"
         :data-source="list"
         :loading="loading"
         :pagination="{
           current: query.page,
           pageSize: query.page_size,
           total,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
           showTotal: (t: number) => `共 ${t} 条`,
           onChange: (p: number) => { query.page = p; loadList(); },
+          onShowSizeChange: (_c: number, s: number) => { query.page = 1; query.page_size = s; loadList(); },
         }"
-        :scroll="{ x: 950 }"
+        :row-class-name="rowClassName"
+        :scroll="{ x: 'max-content' }"
         row-key="id"
-        size="middle"
+        size="small"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'warrant_type'">
+          <template v-if="column.dataIndex === 'warrant_num'">
+            <!-- 权证号列即详情入口（不加 ellipsis） -->
+            <a @click="openDetail(record)">{{ record.warrant_num }}</a>
+          </template>
+          <template v-else-if="column.dataIndex === 'warrant_type'">
             {{ typeLabel(record.warrant_type) }}
           </template>
           <template v-else-if="column.dataIndex === 'warrant_state'">
@@ -410,15 +442,8 @@ onMounted(() => {
           <template v-else-if="column.dataIndex === 'evaluate_value'">
             {{ record.evaluate_value?.toLocaleString() ?? '—' }}
           </template>
-          <template v-else-if="column.key === 'actions'">
-            <Space :size="4">
-              <Button size="small" type="link" @click="openDetail(record)">详情</Button>
-              <AccessControl :codes="['warrant:delete']" type="code">
-                <Popconfirm title="确认删除该权证？" @confirm="onDelete(record)">
-                  <Button danger size="small" type="link">删除</Button>
-                </Popconfirm>
-              </AccessControl>
-            </Space>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ dash(record.created_by_name) }}
           </template>
         </template>
       </Table>
@@ -441,7 +466,7 @@ onMounted(() => {
           <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
         </FormItem>
         <FormItem label="权证类型" required>
-          <Select v-model:value="createForm.warrant_type" :options="TYPE_OPTIONS" />
+          <Select v-model:value="createForm.warrant_type" show-search :options="TYPE_OPTIONS" />
         </FormItem>
 
         <!-- 房产扩展（1:N 房产包） -->
@@ -451,15 +476,15 @@ onMounted(() => {
             <div class="flex flex-wrap items-center gap-2">
               <Input v-model:value="h.house_locate" placeholder="坐落地址" style="width: 200px" />
               <Select
+                show-search
                 v-model:value="h.house_app"
                 :options="houseAppOptions"
-                show-search
                 option-filter-prop="label"
                 placeholder="用途分类"
                 style="width: 130px"
               />
               <InputNumber v-model:value="h.house_area" placeholder="面积㎡" style="width: 100px" />
-              <Select v-model:value="h.house_usage" :options="HOUSE_USAGE_OPTIONS" style="width: 90px" />
+              <Select v-model:value="h.house_usage" show-search :options="HOUSE_USAGE_OPTIONS" style="width: 90px" />
               <InputNumber v-model:value="h.house_build_year" placeholder="建成年份" style="width: 100px" />
               <Button v-if="houseRows.length > 1" danger size="small" @click="removeHouseRow(i)">删行</Button>
             </div>
@@ -487,7 +512,7 @@ onMounted(() => {
         <template v-else-if="createForm.warrant_type === 31">
           <Divider class="my-3 text-xs">票据信息</Divider>
           <FormItem label="票据主类型" required>
-            <Select v-model:value="createForm.draft_type" :options="DRAFT_MAIN_TYPE_OPTIONS" />
+            <Select v-model:value="createForm.draft_type" show-search :options="DRAFT_MAIN_TYPE_OPTIONS" />
           </FormItem>
           <FormItem label="面额" required>
             <InputNumber v-model:value="createForm.denomination" :min="0.01" placeholder="元" />
@@ -524,6 +549,7 @@ onMounted(() => {
           <Divider class="my-3 text-xs">动产信息</Divider>
           <FormItem label="动产类型">
             <Select
+            show-search
               v-model:value="createForm.chattel_type"
               :options="[
                 { label: '存货', value: 10 },
@@ -543,6 +569,7 @@ onMounted(() => {
           <Divider class="my-3 text-xs">其他权证</Divider>
           <FormItem label="类型">
             <Select
+            show-search
               v-model:value="createForm.other_type"
               :options="[
                 { label: '购房合同', value: 10 },
@@ -565,9 +592,9 @@ onMounted(() => {
         <div v-for="(o, i) in ownerRows" :key="i" class="mb-3 border-l-2 border-green-100 pl-3">
           <div class="flex flex-wrap items-center gap-2">
             <Select
+              show-search
               v-model:value="o.owner_id"
               :options="customerOptions"
-              show-search
               option-filter-prop="label"
               placeholder="选择客户"
               style="width: 220px"
@@ -587,3 +614,12 @@ onMounted(() => {
     <DetailDrawer v-model:open="detailOpen" :warrant-id="detailWarrantId" @updated="loadList" />
   </Page>
 </template>
+
+<style scoped>
+/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
+:deep(.ant-table-tbody > tr.row-active) > td,
+:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
+  background-color: #e6f4ff;
+}
+</style>
+

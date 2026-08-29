@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 客户管理：列表（data_scope 过滤）/ 新建（发起审批）/ 详情抽屉。 */
+﻿<script lang="ts" setup>
+/** 客户管理：列表（data_scope 过滤）/ 新建（直落库）/ 详情抽屉。 */
 
 import type { CustomerListItem } from '#/api/basic/customer';
 import type { TableColumnType } from 'ant-design-vue';
@@ -20,11 +20,9 @@ import {
   InputNumber,
   message,
   Modal,
-  Popconfirm,
   RadioButton,
   RadioGroup,
   Select,
-  Space,
   Table,
   Tag,
   TreeSelect,
@@ -32,7 +30,6 @@ import {
 
 import {
   createCustomer,
-  deleteCustomer,
   getCustomerList,
   getGroupTree,
 } from '#/api/basic/customer';
@@ -121,22 +118,28 @@ async function loadList() {
   }
 }
 
+/** 重置：清空全部筛选条件并回到第 1 页重新查询 */
+function resetQuery() {
+  query.q = '';
+  query.genre = undefined;
+  query.classification = undefined;
+  query.is_core = undefined;
+  query.is_acceptor = undefined;
+  query.page = 1;
+  loadList();
+}
+
 // ================= 详情 =================
 const detailOpen = ref(false);
 const detailCustomerId = ref<null | number>(null);
 
 function openDetail(row: any) {
+  activeRowKey.value = row.id; // 打开详情即高亮该行
   detailCustomerId.value = row.id;
   detailOpen.value = true;
 }
 
-async function onDelete(row: any) {
-  await deleteCustomer(row.id);
-  message.success('客户已注销');
-  await loadList();
-}
-
-// ================= 新建（发起 customer_create 审批） =================
+// ================= 新建（直落库） =================
 const createVisible = ref(false);
 const createLoading = ref(false);
 // 表单字段与后端 CustomerCreate schema 对齐
@@ -299,37 +302,57 @@ async function submitCreate() {
       company,
       personal,
     });
-    message.success(`已发起客户创建审批（审批单 #${res.instance_id}），审批通过后客户生效`);
+    message.success(`客户创建成功（#${res.id}）`);
     createVisible.value = false;
   } finally {
     createLoading.value = false;
   }
 }
 
+// 行点击高亮：记录当前行 key
+const activeRowKey = ref<number>();
+const customRow = (record: any) => ({
+  onClick: () => {
+    activeRowKey.value = record.id;
+  },
+});
+const rowClassName = (record: any) =>
+  record.id === activeRowKey.value ? 'row-active' : '';
+
+/** 空值文案兜底 */
+const dash = (v: unknown) =>
+  v === null || v === undefined || v === '' ? '—' : String(v);
+
 const columns: TableColumnType[] = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '客户名称', dataIndex: 'name', ellipsis: true },
-  { title: '简称', dataIndex: 'short_name', width: 100 },
-  { title: '类型', dataIndex: 'genre', width: 70 },
-  { title: '五级分类', dataIndex: 'classification', width: 90 },
-  { title: '管护经理', dataIndex: 'managementor_name', width: 100 },
-  { title: '风控专员', dataIndex: 'controler_name', width: 100 },
-  { title: '授信额度', dataIndex: 'credit_amount', width: 110 },
-  { title: '在保余额', dataIndex: 'amount', width: 110 },
-  { title: '标记', key: 'flags', width: 110 },
-  { title: '操作', key: 'actions', width: 130, fixed: 'right' },
+  { title: '客户名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
+  { title: '简称', dataIndex: 'short_name', ellipsis: true },
+  { title: '类型', dataIndex: 'genre', ellipsis: true },
+  { title: '五级分类', dataIndex: 'classification', ellipsis: true },
+  { title: '管护经理', dataIndex: 'managementor_name', ellipsis: true },
+  { title: '风控专员', dataIndex: 'controler_name', ellipsis: true },
+  { title: '授信额度', dataIndex: 'credit_amount', ellipsis: true },
+  { title: '在保余额', dataIndex: 'amount', ellipsis: true },
+  { title: '标记', key: 'flags', ellipsis: true },
 ];
 
 onMounted(() => {
   loadList();
   loadOptions();
 });
+
+/** TreeSelect 按 title 搜索（支持输入实时过滤） */
+function filterOption(input: string, node: any) {
+  const title = String(node?.title ?? node?.label ?? '').toLowerCase();
+  return title.includes(input.toLowerCase());
+}
 </script>
 
 <template>
-  <Page title="客户管理" description="客户主数据：创建走审批流，敏感修改走变更审批">
-    <Card>
-      <div class="mb-4 flex flex-wrap items-center gap-3">
+  <!-- 不传 title/description：不渲染页头 -->
+  <Page>
+    <!-- 筛选区：独立 Card -->
+    <Card class="mb-3" size="small">
+      <div class="flex flex-wrap items-center gap-3">
         <Input
           v-model:value="query.q"
           allow-clear
@@ -338,6 +361,7 @@ onMounted(() => {
           @press-enter="() => { query.page = 1; loadList(); }"
         />
         <Select
+            show-search
           v-model:value="query.genre"
           :options="GENRE_OPTIONS"
           allow-clear
@@ -345,6 +369,7 @@ onMounted(() => {
           style="width: 100px"
         />
         <Select
+            show-search
           v-model:value="query.classification"
           :options="CLASSIFICATION_OPTIONS"
           allow-clear
@@ -352,6 +377,7 @@ onMounted(() => {
           style="width: 110px"
         />
         <Select
+            show-search
           v-model:value="query.is_core"
           :options="[
             { label: '核心企业', value: 1 },
@@ -362,6 +388,7 @@ onMounted(() => {
           style="width: 120px"
         />
         <Select
+            show-search
           v-model:value="query.is_acceptor"
           :options="[
             { label: '承兑人', value: 1 },
@@ -372,34 +399,57 @@ onMounted(() => {
           style="width: 110px"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
+        <Button @click="resetQuery">重置</Button>
+        <div class="flex-1" />
         <AccessControl :codes="['customer:create']" type="code">
           <Button type="primary" @click="openCreate">新增客户</Button>
         </AccessControl>
       </div>
+    </Card>
 
+    <!-- 数据区：Card 与 Table 均 size="small" 紧凑布局 -->
+    <Card size="small">
       <Table
         :columns="columns"
+        :custom-row="customRow"
         :data-source="list"
         :loading="loading"
         :pagination="{
           current: query.page,
           pageSize: query.page_size,
           total,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100'],
           showTotal: (t: number) => `共 ${t} 条`,
           onChange: (p: number) => { query.page = p; loadList(); },
+          onShowSizeChange: (_c: number, s: number) => { query.page = 1; query.page_size = s; loadList(); },
         }"
-        :scroll="{ x: 1150 }"
+        :row-class-name="rowClassName"
+        :scroll="{ x: 'max-content' }"
         row-key="id"
-        size="middle"
+        size="small"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'genre'">
+          <template v-if="column.dataIndex === 'name'">
+            <!-- 名称列即详情入口（不加 ellipsis） -->
+            <a @click="openDetail(record)">{{ record.name }}</a>
+          </template>
+          <template v-else-if="column.dataIndex === 'short_name'">
+            {{ dash(record.short_name) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'genre'">
             {{ record.genre === 1 ? '企业' : '个人' }}
           </template>
           <template v-else-if="column.dataIndex === 'classification'">
             <Tag :color="classificationColor(record.classification)">
               {{ classificationLabel(record.classification) }}
             </Tag>
+          </template>
+          <template v-else-if="column.dataIndex === 'managementor_name'">
+            {{ dash(record.managementor_name) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'controler_name'">
+            {{ dash(record.controler_name) }}
           </template>
           <template v-else-if="column.dataIndex === 'credit_amount'">
             {{ record.credit_amount?.toLocaleString() ?? '—' }}
@@ -412,26 +462,16 @@ onMounted(() => {
             <Tag v-if="record.is_acceptor" color="cyan">承兑</Tag>
             <span v-if="!record.is_core && !record.is_acceptor">—</span>
           </template>
-          <template v-else-if="column.key === 'actions'">
-            <Space :size="4">
-              <Button size="small" type="link" @click="openDetail(record)">详情</Button>
-              <AccessControl :codes="['customer:delete']" type="code">
-                <Popconfirm title="确认注销该客户？" @confirm="onDelete(record)">
-                  <Button danger size="small" type="link">注销</Button>
-                </Popconfirm>
-              </AccessControl>
-            </Space>
-          </template>
         </template>
       </Table>
     </Card>
 
-    <!-- 新建客户（发起审批） -->
+    <!-- 新建客户（直落库） -->
     <Modal
       v-model:open="createVisible"
       :confirm-loading="createLoading"
       :width="720"
-      title="新增客户（提交后发起审批）"
+      title="新增客户"
       @ok="submitCreate"
     >
       <Form
@@ -464,24 +504,26 @@ onMounted(() => {
 
         <FormItem label="管护经理" required>
           <Select
+            show-search
             v-model:value="createForm.managementor_id"
             :options="userOptions"
-            show-search
             option-filter-prop="label"
             placeholder="客户经理（业务发起人）"
           />
         </FormItem>
         <FormItem label="风控专员" required>
           <Select
+            show-search
             v-model:value="createForm.controler_id"
             :options="userOptions"
-            show-search
             option-filter-prop="label"
             placeholder="风控对接人"
           />
         </FormItem>
         <FormItem label="行政区域" required>
           <TreeSelect
+            show-search
+            :filter-option="filterOption"
             v-model:value="createForm.region_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="regionTreeData"
@@ -491,6 +533,8 @@ onMounted(() => {
         </FormItem>
         <FormItem label="行业分类" required>
           <TreeSelect
+            show-search
+            :filter-option="filterOption"
             v-model:value="createForm.industry_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="industryTreeData"
@@ -500,6 +544,8 @@ onMounted(() => {
         </FormItem>
         <FormItem label="授信区域">
           <TreeSelect
+            show-search
+            :filter-option="filterOption"
             v-model:value="createForm.credit_region_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="creditRegionTreeData"
@@ -510,6 +556,8 @@ onMounted(() => {
         </FormItem>
         <FormItem label="所属集团">
           <TreeSelect
+            show-search
+            :filter-option="filterOption"
             v-model:value="createForm.group_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="groupTreeData"
@@ -554,10 +602,10 @@ onMounted(() => {
             <Input v-model:value="createForm.registered_addr" />
           </FormItem>
           <FormItem label="企业性质" required>
-            <Select v-model:value="createForm.custom_nature" :options="CUSTOM_NATURE_OPTIONS" />
+            <Select v-model:value="createForm.custom_nature" show-search :options="CUSTOM_NATURE_OPTIONS" />
           </FormItem>
           <FormItem label="决策机构" required>
-            <Select v-model:value="createForm.decisionor" :options="DECISIONOR_OPTIONS" />
+            <Select v-model:value="createForm.decisionor" show-search :options="DECISIONOR_OPTIONS" />
           </FormItem>
         </template>
 
@@ -571,10 +619,10 @@ onMounted(() => {
             <Input v-model:value="createForm.license_addr" />
           </FormItem>
           <FormItem label="婚姻状况" required>
-            <Select v-model:value="createForm.marital_status" :options="MARITAL_OPTIONS" />
+            <Select v-model:value="createForm.marital_status" show-search :options="MARITAL_OPTIONS" />
           </FormItem>
           <FormItem label="户籍性质" required>
-            <Select v-model:value="createForm.household_nature" :options="HOUSEHOLD_OPTIONS" />
+            <Select v-model:value="createForm.household_nature" show-search :options="HOUSEHOLD_OPTIONS" />
           </FormItem>
         </template>
       </Form>
@@ -584,3 +632,13 @@ onMounted(() => {
     <DetailDrawer v-model:open="detailOpen" :customer-id="detailCustomerId" @updated="loadList" />
   </Page>
 </template>
+
+<style scoped>
+/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
+:deep(.ant-table-tbody > tr.row-active) > td,
+:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
+  background-color: #e6f4ff;
+}
+</style>
+
+

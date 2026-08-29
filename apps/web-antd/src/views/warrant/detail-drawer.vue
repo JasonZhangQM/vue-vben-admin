@@ -1,19 +1,27 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库（联动状态）/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
 
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+
+import { AccessControl, useAccess } from '@vben/access';
 
 import {
+  Alert,
   Button,
   Card,
+  DatePicker,
   Descriptions,
   DescriptionsItem,
   Drawer,
+  Form,
+  FormItem,
   Input,
   InputNumber,
   message,
+  Modal,
+  Popconfirm,
   Select,
   Table,
   Tabs,
@@ -21,7 +29,14 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import { addEvaluate, addStorage, getWarrantDetail } from '#/api/basic/warrant';
+import {
+  addEvaluate,
+  addStorage,
+  deleteWarrant,
+  getWarrantDetail,
+  updateWarrant,
+  updateWarrantOwner,
+} from '#/api/basic/warrant';
 
 const props = defineProps<{ warrantId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -38,6 +53,10 @@ const TYPE_LABELS: Record<number, string> = {
 const STATE_COLOR: Record<number, string> = {
   10: 'default', 20: 'green', 30: 'blue', 60: 'default',
   110: 'orange', 210: 'orange', 310: 'red', 410: 'purple', 990: 'red',
+};
+const STATE_LABELS: Record<number, string> = {
+  10: '未入库', 20: '已入库', 30: '已加保', 60: '无需入库',
+  110: '已借出', 210: '已借出', 310: '解保出库', 410: '已移交', 990: '已注销',
 };
 const STORAGE_TYPE_OPTIONS = [
   { label: '入库', value: 10 },
@@ -58,11 +77,26 @@ const EVALUATE_METHOD_OPTIONS = [
 ];
 const USAGE_LABELS: Record<number, string> = { 10: '自用', 20: '出租', 30: '空置' };
 
+/** 空值文案兜底 */
+const dash = (v: unknown) =>
+  v === null || v === undefined || v === '' ? '—' : String(v);
+
+/** 抽屉内操作完成后刷新抽屉 + 通知列表 */
+async function refresh() {
+  await load();
+  emit('updated');
+}
+
 async function load() {
   if (!props.warrantId) return;
   loading.value = true;
   try {
     detail.value = await getWarrantDetail(props.warrantId);
+  } catch {
+    // 详情拉取失败：自动关闭抽屉 + 错误提示，避免页面挂死
+    open.value = false;
+    detail.value = null;
+    message.error('权证详情加载失败');
   } finally {
     loading.value = false;
   }
@@ -74,6 +108,97 @@ watch(
     if (visible) load();
   },
 );
+
+// ===== 编辑（WarrantUpdate 自由字段子集：评估字段） =====
+const { hasAccessByCodes } = useAccess();
+const canUpdate = computed(() => hasAccessByCodes(['warrant:update']));
+
+const editVisible = ref(false);
+const editLoading = ref(false);
+const editForm = reactive({
+  evaluate_method: undefined as number | undefined,
+  evaluate_value: undefined as number | undefined,
+  evaluate_date: '',
+  evaluate_company: '',
+});
+
+function openEdit() {
+  if (!detail.value) return;
+  Object.assign(editForm, {
+    evaluate_method: (detail.value as any).evaluate_method ?? undefined,
+    evaluate_value: detail.value.evaluate_value ?? undefined,
+    evaluate_date: '',
+    evaluate_company: '',
+  });
+  editVisible.value = true;
+}
+
+/** 留空转 undefined 不序列化 */
+const opt = (v: string | undefined | null) =>
+  v && v.trim() ? v.trim() : undefined;
+
+async function submitEdit() {
+  if (!detail.value) return;
+  editLoading.value = true;
+  try {
+    await updateWarrant(detail.value.id, {
+      evaluate_method: editForm.evaluate_method,
+      evaluate_value: editForm.evaluate_value,
+      evaluate_date: editForm.evaluate_date || undefined,
+      evaluate_company: opt(editForm.evaluate_company),
+    });
+    message.success('权证信息已更新');
+    editVisible.value = false;
+    await refresh();
+  } finally {
+    editLoading.value = false;
+  }
+}
+
+// ===== 删除（收纳在抽屉内） =====
+async function onDelete() {
+  if (!detail.value) return;
+  await deleteWarrant(detail.value.id);
+  message.success('权证已删除');
+  open.value = false;
+  emit('updated');
+}
+
+// ===== 所有权人编辑（OwnershipUpdate 自由字段） =====
+const ownerEditVisible = ref(false);
+const ownerEditLoading = ref(false);
+const ownerEditForm = reactive({
+  id: 0,
+  owner_name: '',
+  ownership_num: '',
+  share_ratio: undefined as number | undefined,
+});
+
+function openOwnerEdit(record: any) {
+  Object.assign(ownerEditForm, {
+    id: record.id,
+    owner_name: record.owner_name ?? '',
+    ownership_num: record.ownership_num ?? '',
+    share_ratio: record.share_ratio ?? undefined,
+  });
+  ownerEditVisible.value = true;
+}
+
+async function submitOwnerEdit() {
+  if (!detail.value) return;
+  ownerEditLoading.value = true;
+  try {
+    await updateWarrantOwner(detail.value.id, ownerEditForm.id, {
+      ownership_num: opt(ownerEditForm.ownership_num),
+      share_ratio: ownerEditForm.share_ratio,
+    });
+    message.success('所有权人已更新');
+    ownerEditVisible.value = false;
+    await refresh();
+  } finally {
+    ownerEditLoading.value = false;
+  }
+}
 
 // ===== 出入库（联动主表状态） =====
 const storageForm = reactive({
@@ -94,8 +219,7 @@ async function submitStorage() {
   });
   Object.assign(storageForm, { storage_type: 10, storage_date: '', storage_explain: '' });
   message.success('出入库登记成功（权证状态已联动）');
-  await load();
-  emit('updated');
+  await refresh();
 }
 
 // ===== 评估 =====
@@ -121,33 +245,45 @@ async function submitEvaluate() {
     evaluate_method: 20, evaluate_value: 0, evaluate_date: '', evaluate_company: '',
   });
   message.success('评估记录已添加');
-  await load();
-  emit('updated');
+  await refresh();
 }
 </script>
 
 <template>
-  <Drawer v-model:open="open" :title="detail ? `权证 ${detail.warrant_num}` : '权证详情'" width="720">
+  <Drawer v-model:open="open" :title="detail ? `权证 ${detail.warrant_num}` : '权证详情'" width="66%">
     <div v-if="detail" class="space-y-4">
       <Card size="small" title="基本信息">
+        <template #extra>
+          <div class="flex gap-2">
+            <!-- 编辑按钮：必备，置于首位 -->
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="openEdit">编辑</Button>
+            </AccessControl>
+            <AccessControl :codes="['warrant:delete']" type="code">
+              <Popconfirm title="确认删除该权证？（已入库/已流转权证将被拦截）" @confirm="onDelete">
+                <Button danger size="small">删除</Button>
+              </Popconfirm>
+            </AccessControl>
+          </div>
+        </template>
         <Descriptions :column="2" size="small">
-          <DescriptionsItem label="权证号">{{ detail.warrant_num }}</DescriptionsItem>
+          <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ TYPE_LABELS[detail.warrant_type] ?? detail.warrant_type }}</DescriptionsItem>
           <DescriptionsItem label="状态">
             <Tag :color="STATE_COLOR[detail.warrant_state] ?? 'default'">
-              {{ detail.warrant_state }}
+              {{ STATE_LABELS[detail.warrant_state] ?? detail.warrant_state }}
             </Tag>
           </DescriptionsItem>
           <DescriptionsItem label="评估值">
             {{ detail.evaluate_value?.toLocaleString() ?? '—' }}
           </DescriptionsItem>
-          <DescriptionsItem label="登记人">{{ detail.created_by_name }}</DescriptionsItem>
-          <DescriptionsItem label="登记时间">{{ detail.created_at }}</DescriptionsItem>
+          <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
+          <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
       </Card>
 
       <Tabs>
-        <!-- 所有权人 -->
+        <!-- 所有权人：首列链接打开编辑 Modal -->
         <TabPane key="owners" :tab="`所有权人（${detail.owners.length}）`">
           <Table
             :columns="[
@@ -161,14 +297,20 @@ async function submitEvaluate() {
             size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'share_ratio'">
+              <template v-if="column.dataIndex === 'owner_name'">
+                <a @click="openOwnerEdit(record)">{{ record.owner_name }}</a>
+              </template>
+              <template v-else-if="column.dataIndex === 'ownership_num'">
+                {{ dash(record.ownership_num) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'share_ratio'">
                 {{ record.share_ratio ?? '共有' }}
               </template>
             </template>
           </Table>
         </TabPane>
 
-        <!-- 房产包 -->
+        <!-- 房产包（无独立 PATCH 端点，只读展示） -->
         <TabPane v-if="detail.houses.length" key="houses" :tab="`房产（${detail.houses.length}）`">
           <Table
             :columns="[
@@ -197,14 +339,17 @@ async function submitEvaluate() {
         <TabPane key="storages" :tab="`出入库（${detail.storages.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <Select
+            show-search
               v-model:value="storageForm.storage_type"
               :options="STORAGE_TYPE_OPTIONS"
               size="small"
               style="width: 120px"
             />
-            <Input v-model:value="storageForm.storage_date" placeholder="日期 2026-01-01" size="small" style="width: 140px" />
+            <DatePicker v-model:value="storageForm.storage_date" value-format="YYYY-MM-DD" size="small" style="width: 150px" />
             <Input v-model:value="storageForm.storage_explain" placeholder="说明（可空）" size="small" style="width: 180px" />
-            <Button size="small" type="primary" @click="submitStorage">登记</Button>
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitStorage">登记</Button>
+            </AccessControl>
           </div>
           <Table
             :columns="[
@@ -232,15 +377,18 @@ async function submitEvaluate() {
         <TabPane key="evaluates" :tab="`评估（${detail.evaluates.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <Select
+            show-search
               v-model:value="evaluateForm.evaluate_method"
               :options="EVALUATE_METHOD_OPTIONS"
               size="small"
               style="width: 110px"
             />
             <InputNumber v-model:value="evaluateForm.evaluate_value" placeholder="评估值" size="small" style="width: 120px" />
-            <Input v-model:value="evaluateForm.evaluate_date" placeholder="日期 2026-01-01" size="small" style="width: 140px" />
+            <DatePicker v-model:value="evaluateForm.evaluate_date" value-format="YYYY-MM-DD" size="small" style="width: 150px" />
             <Input v-model:value="evaluateForm.evaluate_company" placeholder="评估公司（可空）" size="small" style="width: 160px" />
-            <Button size="small" type="primary" @click="submitEvaluate">添加</Button>
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitEvaluate">添加</Button>
+            </AccessControl>
           </div>
           <Table
             :columns="[
@@ -266,5 +414,78 @@ async function submitEvaluate() {
         </TabPane>
       </Tabs>
     </div>
+
+    <!-- 权证编辑 Modal（字段对齐后端 WarrantUpdate 评估字段子集） -->
+    <Modal
+      v-model:open="editVisible"
+      :confirm-loading="editLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="编辑权证（评估信息）"
+      @ok="submitEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Alert banner class="mb-3" message="评估日期 / 评估公司留空表示保持不变" type="info" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="评估方式">
+          <Select
+            show-search
+            v-model:value="editForm.evaluate_method"
+            :disabled="!canUpdate"
+            :options="EVALUATE_METHOD_OPTIONS"
+            allow-clear
+            placeholder="留空保持不变"
+          />
+        </FormItem>
+        <FormItem label="评估值">
+          <InputNumber
+            v-model:value="editForm.evaluate_value"
+            :disabled="!canUpdate"
+            :min="0"
+            class="w-full"
+          />
+        </FormItem>
+        <FormItem label="评估日期">
+          <DatePicker
+            v-model:value="editForm.evaluate_date"
+            :disabled="!canUpdate"
+            class="w-full"
+            value-format="YYYY-MM-DD"
+          />
+        </FormItem>
+        <FormItem label="评估公司">
+          <Input v-model:value="editForm.evaluate_company" :disabled="!canUpdate" />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- 所有权人编辑 Modal（字段对齐后端 OwnershipUpdate） -->
+    <Modal
+      v-model:open="ownerEditVisible"
+      :confirm-loading="ownerEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="编辑所有权人"
+      @ok="submitOwnerEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="所有权人">
+          <Input :value="ownerEditForm.owner_name" disabled />
+        </FormItem>
+        <FormItem label="权证编号">
+          <Input v-model:value="ownerEditForm.ownership_num" :disabled="!canUpdate" />
+        </FormItem>
+        <FormItem label="份额(%)">
+          <InputNumber
+            v-model:value="ownerEditForm.share_ratio"
+            :disabled="!canUpdate"
+            :max="100"
+            :min="0"
+            class="w-full"
+            placeholder="留空表示共有"
+          />
+        </FormItem>
+      </Form>
+    </Modal>
   </Drawer>
 </template>
+

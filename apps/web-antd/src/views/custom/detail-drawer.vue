@@ -1,35 +1,47 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度。 */
 
 import type { CustomerDetail } from '#/api/basic/customer';
 
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+
+import { AccessControl, useAccess } from '@vben/access';
 
 import {
   Alert,
   Button,
   Card,
+  DatePicker,
   Drawer,
   Descriptions,
   DescriptionsItem,
-  message,
+  Form,
+  FormItem,
   Input,
   InputNumber,
+  message,
+  Modal,
   Popconfirm,
   Table,
   Tabs,
   TabPane,
   Tag,
+  TreeSelect,
 } from 'ant-design-vue';
 
 import {
   addCoreLimit,
   addDirector,
   addShareholder,
+  deleteCustomer,
   deleteDirector,
   deleteShareholder,
   getCustomerDetail,
+  listDirectors,
+  listShareholders,
+  updateCustomer,
 } from '#/api/basic/customer';
+import { getIndustryTree, getRegionTree } from '#/api/basic/dict';
 
 const props = defineProps<{ customerId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -38,14 +50,39 @@ const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | CustomerDetail>(null);
 const loading = ref(false);
 
+// 股东 / 董事：详情接口只返回计数，数据走独立 API
+const shareholderList = ref<any[]>([]);
+const directorList = ref<any[]>([]);
+
 const classificationColor = (c: number) =>
   ({ 10: 'green', 20: 'blue', 30: 'orange', 40: 'red', 50: 'red' })[c] ?? 'default';
+/** 空值文案兜底 */
+const dash = (v: unknown) =>
+  v === null || v === undefined || v === '' ? '—' : String(v);
+
+/** 抽屉内操作完成后刷新抽屉 + 通知列表 */
+async function refresh() {
+  await load();
+  emit('updated');
+}
 
 async function load() {
   if (!props.customerId) return;
   loading.value = true;
   try {
     detail.value = await getCustomerDetail(props.customerId);
+    // 股东 / 董事并行拉取（Tab 懒数据，失败不影响主信息）
+    const [shareholders, directors] = await Promise.all([
+      listShareholders(props.customerId).catch(() => []),
+      listDirectors(props.customerId).catch(() => []),
+    ]);
+    shareholderList.value = shareholders;
+    directorList.value = directors;
+  } catch {
+    // 详情拉取失败：自动关闭抽屉 + 错误提示，避免页面挂死
+    open.value = false;
+    detail.value = null;
+    message.error('客户详情加载失败');
   } finally {
     loading.value = false;
   }
@@ -57,6 +94,96 @@ watch(
     if (visible) load();
   },
 );
+
+// ===== 编辑（CustomerUpdate，所有字段直接生效） =====
+const { hasAccessByCodes } = useAccess();
+const canUpdate = computed(() => hasAccessByCodes(['customer:update']));
+
+const editVisible = ref(false);
+const editLoading = ref(false);
+const regionTreeData = ref<any[]>([]);
+const industryTreeData = ref<any[]>([]);
+const editForm = reactive({
+  name: '',
+  short_name: '',
+  credit_amount: undefined as number | undefined,
+  managementor_id: undefined as number | undefined,
+  contact_addr: '',
+  linkman: '',
+  contact_num: '',
+  region_id: undefined as number | undefined,
+  industry_id: undefined as number | undefined,
+});
+
+function toTreeData(nodes: any[]): any[] {
+  return (nodes ?? []).map((n) => ({
+    key: n.id,
+    title: n.name,
+    value: n.id,
+    children: toTreeData(n.children),
+  }));
+}
+
+async function openEdit() {
+  if (!detail.value) return;
+  // 编辑需要区域 / 行业树（仅首次加载）
+  if (!regionTreeData.value.length) {
+    const [regions, industries] = await Promise.all([
+      getRegionTree(),
+      getIndustryTree(),
+    ]);
+    regionTreeData.value = toTreeData(regions);
+    industryTreeData.value = toTreeData(industries);
+  }
+  Object.assign(editForm, {
+    name: detail.value.name ?? '',
+    short_name: detail.value.short_name ?? '',
+    credit_amount: detail.value.credit_amount ?? undefined,
+    managementor_id: undefined, // 留空保持不变
+    contact_addr: (detail.value as any).contact_addr ?? '',
+    linkman: (detail.value as any).linkman ?? '',
+    contact_num: (detail.value as any).contact_num ?? '',
+    region_id: undefined, // 留空保持不变（后端 exclude_unset）
+    industry_id: undefined,
+  });
+  editVisible.value = true;
+}
+
+/** 留空转 undefined 不序列化 */
+const opt = (v: string | undefined | null) =>
+  v && v.trim() ? v.trim() : undefined;
+
+async function submitEdit() {
+  if (!detail.value) return;
+  editLoading.value = true;
+  try {
+    await updateCustomer(detail.value.id, {
+      name: opt(editForm.name),
+      short_name: opt(editForm.short_name),
+      credit_amount: editForm.credit_amount,
+      managementor_id: editForm.managementor_id,
+      contact_addr: opt(editForm.contact_addr),
+      linkman: opt(editForm.linkman),
+      contact_num: opt(editForm.contact_num),
+      region_id: editForm.region_id,
+      industry_id: editForm.industry_id,
+    });
+    message.success('客户信息已更新');
+    editVisible.value = false;
+    await refresh();
+  } finally {
+    editLoading.value = false;
+  }
+}
+
+// ===== 注销（收纳在抽屉内） =====
+async function onDelete() {
+  if (!detail.value) return;
+  await deleteCustomer(detail.value.id);
+  message.success('客户已注销');
+  open.value = false;
+  emit('updated');
+}
 
 // ===== 股东 / 董事快速添加 =====
 const shareholderForm = reactive({
@@ -71,8 +198,7 @@ async function submitShareholder() {
   await addShareholder(detail.value.id, { ...shareholderForm });
   Object.assign(shareholderForm, { shareholder_name: '', invested_amount: 0, shareholding_ratio: 0 });
   message.success('股东已添加');
-  await load();
-  emit('updated');
+  await refresh();
 }
 
 async function submitDirector() {
@@ -80,7 +206,21 @@ async function submitDirector() {
   await addDirector(detail.value.id, directorName.value);
   directorName.value = '';
   message.success('董事已添加');
-  await load();
+  await refresh();
+}
+
+async function onDeleteShareholder(record: any) {
+  if (!detail.value) return;
+  await deleteShareholder(detail.value.id, record.id);
+  message.success('股东已删除');
+  await refresh();
+}
+
+async function onDeleteDirector(record: any) {
+  if (!detail.value) return;
+  await deleteDirector(detail.value.id, record.id);
+  message.success('董事已删除');
+  await refresh();
 }
 
 // ===== 核心企业额度 =====
@@ -98,41 +238,44 @@ async function submitLimit() {
   await addCoreLimit(detail.value.id, { ...limitForm });
   Object.assign(limitForm, { credit_amount: 0, valid_begin_date: '', valid_end_date: '' });
   message.success('额度已创建（旧额度自动失效）');
-  await load();
+  await refresh();
 }
 </script>
 
 <template>
-  <Drawer v-model:open="open" :title="detail?.name ?? '客户详情'" width="760">
+  <Drawer v-model:open="open" :title="detail?.name ?? '客户详情'" width="66%">
     <div v-if="detail" class="space-y-4">
-      <!-- 待审批横幅 -->
-      <Alert
-        v-if="detail.pending_requests?.length"
-        :message="`存在 ${detail.pending_requests.length} 条待审批变更`"
-        type="warning"
-        show-icon
-      >
-        <template #description>
-          <div v-for="r in detail.pending_requests" :key="r.id">{{ r.summary }}</div>
-        </template>
-      </Alert>
-
       <Card size="small" title="基本信息">
+        <template #extra>
+          <div class="flex gap-2">
+            <!-- 编辑按钮：必备，置于首位 -->
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="openEdit">编辑</Button>
+            </AccessControl>
+            <AccessControl :codes="['customer:delete']" type="code">
+              <Popconfirm title="确认注销该客户？" @confirm="onDelete">
+                <Button danger size="small">注销</Button>
+              </Popconfirm>
+            </AccessControl>
+          </div>
+        </template>
         <Descriptions :column="2" size="small">
-          <DescriptionsItem label="客户名称">{{ detail.name }}</DescriptionsItem>
-          <DescriptionsItem label="简称">{{ detail.short_name }}</DescriptionsItem>
+          <DescriptionsItem label="客户名称">{{ dash(detail.name) }}</DescriptionsItem>
+          <DescriptionsItem label="简称">{{ dash(detail.short_name) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ detail.genre === 1 ? '企业' : '个人' }}</DescriptionsItem>
           <DescriptionsItem label="五级分类">
             <Tag :color="classificationColor(detail.classification)">
-              {{ detail.classification_display }}
+              {{ dash(detail.classification_display) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="管护经理">{{ detail.managementor_name }}</DescriptionsItem>
-          <DescriptionsItem label="风控专员">{{ detail.controler_name }}</DescriptionsItem>
+          <DescriptionsItem label="管护经理">{{ dash(detail.managementor_name) }}</DescriptionsItem>
+          <DescriptionsItem label="风控专员">{{ dash(detail.controler_name) }}</DescriptionsItem>
+          <DescriptionsItem label="联系人">{{ dash((detail as any).linkman) }}</DescriptionsItem>
+          <DescriptionsItem label="联系电话">{{ dash((detail as any).contact_num) }}</DescriptionsItem>
           <DescriptionsItem label="授信额度">{{ detail.credit_amount.toLocaleString() }}</DescriptionsItem>
           <DescriptionsItem label="在保余额">{{ detail.amount.toLocaleString() }}</DescriptionsItem>
-          <DescriptionsItem label="所属集团">{{ detail.group_name || '—' }}</DescriptionsItem>
-          <DescriptionsItem label="授信区域">{{ detail.credit_region_name || '—' }}</DescriptionsItem>
+          <DescriptionsItem label="所属集团">{{ dash(detail.group_name) }}</DescriptionsItem>
+          <DescriptionsItem label="授信区域">{{ dash(detail.credit_region_name) }}</DescriptionsItem>
           <DescriptionsItem v-if="detail.is_core" label="核心企业">
             <Tag color="purple">是</Tag>
           </DescriptionsItem>
@@ -146,11 +289,11 @@ async function submitLimit() {
         <!-- 企业扩展 -->
         <TabPane v-if="detail.company" key="company" tab="企业信息">
           <Descriptions :column="2" size="small">
-            <DescriptionsItem label="统一社会信用代码">{{ detail.company.credit_code }}</DescriptionsItem>
-            <DescriptionsItem label="法定代表人">{{ detail.company.representative }}</DescriptionsItem>
-            <DescriptionsItem label="注册资本">{{ detail.company.capital?.toLocaleString() }}</DescriptionsItem>
-            <DescriptionsItem label="实收资本">{{ detail.company.paid_capital?.toLocaleString() }}</DescriptionsItem>
-            <DescriptionsItem label="注册地址" :span="2">{{ detail.company.registered_addr }}</DescriptionsItem>
+            <DescriptionsItem label="统一社会信用代码">{{ dash(detail.company.credit_code) }}</DescriptionsItem>
+            <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
+            <DescriptionsItem label="注册资本">{{ detail.company.capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="实收资本">{{ detail.company.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="注册地址" :span="2">{{ dash(detail.company.registered_addr) }}</DescriptionsItem>
           </Descriptions>
           <div v-if="detail.latest_extend" class="mt-3">
             <Card size="small" title="最新经营快照">
@@ -166,18 +309,20 @@ async function submitLimit() {
         <!-- 个人扩展 -->
         <TabPane v-if="detail.personal" key="personal" tab="个人信息">
           <Descriptions :column="2" size="small">
-            <DescriptionsItem label="证件号码">{{ detail.personal.license_num }}</DescriptionsItem>
-            <DescriptionsItem label="户籍地址">{{ detail.personal.license_addr }}</DescriptionsItem>
+            <DescriptionsItem label="证件号码">{{ dash(detail.personal.license_num) }}</DescriptionsItem>
+            <DescriptionsItem label="户籍地址">{{ dash(detail.personal.license_addr) }}</DescriptionsItem>
           </Descriptions>
         </TabPane>
 
-        <!-- 股东 -->
-        <TabPane v-if="detail.genre === 1" key="shareholders" :tab="`股东（${detail.shareholder_count}）`">
+        <!-- 股东（独立 API 拉取） -->
+        <TabPane v-if="detail.genre === 1" key="shareholders" :tab="`股东（${shareholderList.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <Input v-model:value="shareholderForm.shareholder_name" placeholder="股东名称" style="width: 140px" />
             <InputNumber v-model:value="shareholderForm.invested_amount" placeholder="投资额" style="width: 120px" />
             <InputNumber v-model:value="shareholderForm.shareholding_ratio" placeholder="持股% (≤100)" style="width: 120px" />
-            <Button size="small" type="primary" @click="submitShareholder">添加</Button>
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="submitShareholder">添加</Button>
+            </AccessControl>
           </div>
           <Table
             :columns="[
@@ -186,49 +331,54 @@ async function submitLimit() {
               { title: '持股比例(%)', dataIndex: 'shareholding_ratio' },
               { title: '操作', key: 'op', width: 70 },
             ]"
-            :data-source="(detail as any).shareholders ?? []"
+            :data-source="shareholderList"
             :pagination="false"
             row-key="id"
             size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'op'">
-                <Popconfirm @confirm="async () => {
-                  await deleteShareholder(detail!.id, record.id);
-                  await load();
-                  emit('updated');
-                }">
-                  <Button danger size="small" type="link">删除</Button>
-                </Popconfirm>
+              <template v-if="column.dataIndex === 'shareholder_name'">
+                {{ dash(record.shareholder_name) }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['customer:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteShareholder(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
               </template>
             </template>
           </Table>
         </TabPane>
 
-        <!-- 董事 -->
-        <TabPane v-if="detail.genre === 1" key="directors" :tab="`董事（${detail.director_count}）`">
+        <!-- 董事（独立 API 拉取） -->
+        <TabPane v-if="detail.genre === 1" key="directors" :tab="`董事（${directorList.length}）`">
           <div class="mb-2 flex items-center gap-2">
             <Input v-model:value="directorName" placeholder="董事姓名" style="width: 160px" />
-            <Button size="small" type="primary" @click="submitDirector">添加</Button>
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="submitDirector">添加</Button>
+            </AccessControl>
           </div>
           <Table
             :columns="[
               { title: '姓名', dataIndex: 'director_name' },
               { title: '操作', key: 'op', width: 70 },
             ]"
-            :data-source="(detail as any).directors ?? []"
+            :data-source="directorList"
             :pagination="false"
             row-key="id"
             size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'op'">
-                <Popconfirm @confirm="async () => {
-                  await deleteDirector(detail!.id, record.id);
-                  await load();
-                }">
-                  <Button danger size="small" type="link">删除</Button>
-                </Popconfirm>
+              <template v-if="column.dataIndex === 'director_name'">
+                {{ dash(record.director_name) }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['customer:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteDirector(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
               </template>
             </template>
           </Table>
@@ -244,9 +394,11 @@ async function submitLimit() {
           </div>
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <InputNumber v-model:value="limitForm.credit_amount" placeholder="额度" style="width: 130px" />
-            <Input v-model:value="limitForm.valid_begin_date" placeholder="生效日 2026-01-01" style="width: 140px" />
-            <Input v-model:value="limitForm.valid_end_date" placeholder="到期日 2027-12-31" style="width: 140px" />
-            <Button size="small" type="primary" @click="submitLimit">新增额度</Button>
+            <DatePicker v-model:value="limitForm.valid_begin_date" value-format="YYYY-MM-DD" placeholder="生效日" style="width: 150px" />
+            <DatePicker v-model:value="limitForm.valid_end_date" value-format="YYYY-MM-DD" placeholder="到期日" style="width: 150px" />
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="submitLimit">新增额度</Button>
+            </AccessControl>
           </div>
           <Table
             :columns="[
@@ -275,5 +427,64 @@ async function submitLimit() {
         </TabPane>
       </Tabs>
     </div>
+
+    <!-- 客户编辑 Modal（字段对齐后端 CustomerUpdate，留空表示保持不变） -->
+    <Modal
+      v-model:open="editVisible"
+      :confirm-loading="editLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="编辑客户"
+      @ok="submitEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Alert banner class="mb-3" message="留空字段保持原值不变" type="info" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="客户名称">
+          <Input v-model:value="editForm.name" :disabled="!canUpdate" placeholder="留空保持不变" />
+        </FormItem>
+        <FormItem label="简称">
+          <Input v-model:value="editForm.short_name" :disabled="!canUpdate" placeholder="留空保持不变" />
+        </FormItem>
+        <FormItem label="授信额度">
+          <InputNumber v-model:value="editForm.credit_amount" :disabled="!canUpdate" :min="0" :precision="2" class="!w-full" placeholder="留空保持不变" />
+        </FormItem>
+        <FormItem label="联系人">
+          <Input v-model:value="editForm.linkman" :disabled="!canUpdate" />
+        </FormItem>
+        <FormItem label="联系电话">
+          <Input v-model:value="editForm.contact_num" :disabled="!canUpdate" />
+        </FormItem>
+        <FormItem label="联系地址">
+          <Input v-model:value="editForm.contact_addr" :disabled="!canUpdate" />
+        </FormItem>
+        <FormItem label="行政区域">
+          <TreeSelect
+            show-search
+            :filter-option="filterOption"
+            v-model:value="editForm.region_id"
+            :disabled="!canUpdate"
+            :field-names="{ label: 'title', value: 'value', children: 'children' }"
+            :tree-data="regionTreeData"
+            allow-clear
+            placeholder="留空保持不变"
+            tree-default-expand-all
+          />
+        </FormItem>
+        <FormItem label="行业分类">
+          <TreeSelect
+            show-search
+            :filter-option="filterOption"
+            v-model:value="editForm.industry_id"
+            :disabled="!canUpdate"
+            :field-names="{ label: 'title', value: 'value', children: 'children' }"
+            :tree-data="industryTreeData"
+            allow-clear
+            placeholder="留空保持不变"
+            tree-default-expand-all
+          />
+        </FormItem>
+      </Form>
+    </Modal>
   </Drawer>
 </template>
+

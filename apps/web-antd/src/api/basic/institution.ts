@@ -125,6 +125,25 @@ export function addContact(id: number, data: { name: string; phone?: string }) {
   return requestClient.post(`/institutions/${id}/contacts`, data);
 }
 
+/** 联系人 PATCH 自由字段（留空不序列化，保持原值） */
+export function updateContact(
+  id: number,
+  contactId: number,
+  data: {
+    email?: string;
+    is_primary?: boolean;
+    job?: string;
+    name?: string;
+    phone?: string;
+    remark?: string;
+  },
+) {
+  return requestClient.request(`/institutions/${id}/contacts/${contactId}`, {
+    data,
+    method: 'PATCH',
+  });
+}
+
 export function deleteContact(id: number, contactId: number) {
   return requestClient.delete(`/institutions/${id}/contacts/${contactId}`);
 }
@@ -140,6 +159,23 @@ export function addBranch(
   data: { branch_addr?: string; name: string; short_name?: string },
 ) {
   return requestClient.post(`/institutions/${id}/branches`, data);
+}
+
+/** 分支机构 PATCH 自由字段（留空不序列化，保持原值） */
+export function updateBranch(
+  id: number,
+  branchId: number,
+  data: {
+    branch_addr?: string;
+    contact_num?: string;
+    name?: string;
+    short_name?: string;
+  },
+) {
+  return requestClient.request(`/institutions/${id}/branches/${branchId}`, {
+    data,
+    method: 'PATCH',
+  });
 }
 
 export function deleteBranch(id: number, branchId: number) {
@@ -163,6 +199,25 @@ export function addAgreement(
   },
 ) {
   return requestClient.post(`/institutions/${id}/agreements`, data);
+}
+
+/** 授信协议 PATCH 自由字段（留空不序列化，保持原值） */
+export function updateAgreement(
+  id: number,
+  agreementId: number,
+  data: {
+    back_credit?: number;
+    back_limit?: number;
+    flow_credit?: number;
+    flow_limit?: number;
+    remark?: string;
+    valid_end_date?: string;
+  },
+) {
+  return requestClient.request(
+    `/institutions/${id}/agreements/${agreementId}`,
+    { data, method: 'PATCH' },
+  );
 }
 
 export function deleteAgreement(id: number, agreementId: number) {

@@ -124,6 +124,18 @@ export function deleteWarrant(id: number) {
   return requestClient.delete(`/warrants/${id}`);
 }
 
+/** 修改所有权人（OwnershipUpdate 自由字段，留空不序列化保持原值） */
+export function updateWarrantOwner(
+  id: number,
+  ownerRowId: number,
+  data: { ownership_num?: string; share_ratio?: number },
+) {
+  return requestClient.request(`/warrants/${id}/owners/${ownerRowId}`, {
+    data,
+    method: 'PATCH',
+  });
+}
+
 // ===== 出入库 / 评估 =====
 
 export function addStorage(
