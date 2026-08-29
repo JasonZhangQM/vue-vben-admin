@@ -22,12 +22,13 @@ import {
   message,
   Modal,
   Popconfirm,
-  Select,
   Space,
   Switch,
   Table,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { createDept, deleteDept, getDeptTree, updateDept } from '#/api/system/org';
 
@@ -294,8 +295,7 @@ onMounted(loadTree);
             disabled
             value="（顶级）"
           />
-          <Select
-            show-search
+          <SearchSelect
             v-else
             v-model:value="editForm.parent_id"
             :options="flattenForParent(tree, editForm.id)"

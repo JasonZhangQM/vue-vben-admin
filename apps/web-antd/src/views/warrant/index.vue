@@ -20,10 +20,11 @@ import {
   InputNumber,
   message,
   Modal,
-  Select,
   Table,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
 import { createWarrant, getWarrantList } from '#/api/basic/warrant';
@@ -379,16 +380,14 @@ onMounted(() => {
           style="width: 200px"
           @press-enter="() => { query.page = 1; loadList(); }"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.warrant_type"
           :options="TYPE_OPTIONS"
           allow-clear
           placeholder="类型"
           style="width: 120px"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.warrant_state"
           :options="STATE_OPTIONS"
           allow-clear
@@ -466,7 +465,7 @@ onMounted(() => {
           <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
         </FormItem>
         <FormItem label="权证类型" required>
-          <Select v-model:value="createForm.warrant_type" show-search :options="TYPE_OPTIONS" />
+          <SearchSelect v-model:value="createForm.warrant_type" :options="TYPE_OPTIONS" />
         </FormItem>
 
         <!-- 房产扩展（1:N 房产包） -->
@@ -475,16 +474,14 @@ onMounted(() => {
           <div v-for="(h, i) in houseRows" :key="i" class="mb-3 border-l-2 border-blue-100 pl-3">
             <div class="flex flex-wrap items-center gap-2">
               <Input v-model:value="h.house_locate" placeholder="坐落地址" style="width: 200px" />
-              <Select
-                show-search
+              <SearchSelect
                 v-model:value="h.house_app"
                 :options="houseAppOptions"
-                option-filter-prop="label"
                 placeholder="用途分类"
                 style="width: 130px"
               />
               <InputNumber v-model:value="h.house_area" placeholder="面积㎡" style="width: 100px" />
-              <Select v-model:value="h.house_usage" show-search :options="HOUSE_USAGE_OPTIONS" style="width: 90px" />
+              <SearchSelect v-model:value="h.house_usage" :options="HOUSE_USAGE_OPTIONS" style="width: 90px" />
               <InputNumber v-model:value="h.house_build_year" placeholder="建成年份" style="width: 100px" />
               <Button v-if="houseRows.length > 1" danger size="small" @click="removeHouseRow(i)">删行</Button>
             </div>
@@ -512,7 +509,7 @@ onMounted(() => {
         <template v-else-if="createForm.warrant_type === 31">
           <Divider class="my-3 text-xs">票据信息</Divider>
           <FormItem label="票据主类型" required>
-            <Select v-model:value="createForm.draft_type" show-search :options="DRAFT_MAIN_TYPE_OPTIONS" />
+            <SearchSelect v-model:value="createForm.draft_type" :options="DRAFT_MAIN_TYPE_OPTIONS" />
           </FormItem>
           <FormItem label="面额" required>
             <InputNumber v-model:value="createForm.denomination" :min="0.01" placeholder="元" />
@@ -548,8 +545,7 @@ onMounted(() => {
         <template v-else-if="createForm.warrant_type === 51">
           <Divider class="my-3 text-xs">动产信息</Divider>
           <FormItem label="动产类型">
-            <Select
-            show-search
+            <SearchSelect
               v-model:value="createForm.chattel_type"
               :options="[
                 { label: '存货', value: 10 },
@@ -568,8 +564,7 @@ onMounted(() => {
         <template v-else-if="createForm.warrant_type === 55">
           <Divider class="my-3 text-xs">其他权证</Divider>
           <FormItem label="类型">
-            <Select
-            show-search
+            <SearchSelect
               v-model:value="createForm.other_type"
               :options="[
                 { label: '购房合同', value: 10 },
@@ -591,11 +586,9 @@ onMounted(() => {
         <Divider class="my-3 text-xs">所有权人（统一中间表，支持共有）</Divider>
         <div v-for="(o, i) in ownerRows" :key="i" class="mb-3 border-l-2 border-green-100 pl-3">
           <div class="flex flex-wrap items-center gap-2">
-            <Select
-              show-search
+            <SearchSelect
               v-model:value="o.owner_id"
               :options="customerOptions"
-              option-filter-prop="label"
               placeholder="选择客户"
               style="width: 220px"
             />

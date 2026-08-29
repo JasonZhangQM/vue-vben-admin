@@ -15,12 +15,12 @@ import {
   Input,
   message,
   Modal,
-  Select,
-  SelectOption,
   Table,
   Tag,
   Textarea,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
   createUser,
@@ -179,8 +179,7 @@ onMounted(async () => {
           style="width: 220px"
           @press-enter="() => { query.page = 1; loadList(); }"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.status"
           :options="statusDict"
           allow-clear
@@ -263,15 +262,18 @@ onMounted(async () => {
           <Input v-model:value="createForm.phone" />
         </FormItem>
         <FormItem label="性别">
-          <Select v-model:value="createForm.gender" style="width: 100px" show-search>
-            <SelectOption :value="0">未知</SelectOption>
-            <SelectOption :value="1">男</SelectOption>
-            <SelectOption :value="2">女</SelectOption>
-          </Select>
+          <SearchSelect
+            v-model:value="createForm.gender"
+            style="width: 100px"
+            :options="[
+              { label: '未知', value: 0 },
+              { label: '男', value: 1 },
+              { label: '女', value: 2 },
+            ]"
+          />
         </FormItem>
         <FormItem label="部门">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="createForm.dept_id"
             :options="deptOptions"
             allow-clear
@@ -282,8 +284,7 @@ onMounted(async () => {
           <Input v-model:value="createForm.position" />
         </FormItem>
         <FormItem label="角色">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="createForm.role_ids"
             :options="roleOptions"
             mode="multiple"

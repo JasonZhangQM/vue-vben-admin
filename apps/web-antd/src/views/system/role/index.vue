@@ -23,7 +23,6 @@ import {
   message,
   Modal,
   Popconfirm,
-  Select,
   Space,
   Table,
   Tabs,
@@ -31,6 +30,8 @@ import {
   Tag,
   Textarea,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
   assignRolePermissions,
@@ -430,7 +431,7 @@ onMounted(async () => {
           <Input v-model:value="createForm.name" />
         </FormItem>
         <FormItem label="数据范围" required>
-          <Select v-model:value="createForm.data_scope" show-search :options="scopeDict" />
+          <SearchSelect v-model:value="createForm.data_scope" :options="scopeDict" />
         </FormItem>
         <FormItem label="描述">
           <Textarea v-model:value="createForm.description" :rows="2" />
@@ -454,7 +455,7 @@ onMounted(async () => {
           <Input v-model:value="editForm.name" />
         </FormItem>
         <FormItem label="数据范围" required>
-          <Select v-model:value="editForm.data_scope" show-search :options="scopeDict" />
+          <SearchSelect v-model:value="editForm.data_scope" :options="scopeDict" />
         </FormItem>
         <FormItem label="描述">
           <Textarea v-model:value="editForm.description" :rows="2" />

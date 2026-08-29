@@ -22,11 +22,12 @@ import {
   Modal,
   RadioButton,
   RadioGroup,
-  Select,
   Table,
   Tag,
   TreeSelect,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
   createCustomer,
@@ -400,24 +401,21 @@ function filterOption(input: string, node: any) {
           style="width: 220px"
           @press-enter="() => { query.page = 1; loadList(); }"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.genre"
           :options="GENRE_OPTIONS"
           allow-clear
           placeholder="类型"
           style="width: 100px"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.classification"
           :options="CLASSIFICATION_OPTIONS"
           allow-clear
           placeholder="五级分类"
           style="width: 110px"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.is_core"
           :options="[
             { label: '核心企业', value: 1 },
@@ -427,8 +425,7 @@ function filterOption(input: string, node: any) {
           placeholder="核心企业"
           style="width: 120px"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.is_acceptor"
           :options="[
             { label: '承兑人', value: 1 },
@@ -543,20 +540,16 @@ function filterOption(input: string, node: any) {
         </FormItem>
 
         <FormItem label="管护经理" required>
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="createForm.managementor_id"
             :options="userOptions"
-            option-filter-prop="label"
             placeholder="客户经理（业务发起人）"
           />
         </FormItem>
         <FormItem label="风控专员" required>
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="createForm.controler_id"
             :options="userOptions"
-            option-filter-prop="label"
             placeholder="风控对接人"
           />
         </FormItem>
@@ -642,10 +635,10 @@ function filterOption(input: string, node: any) {
             <Input v-model:value="createForm.registered_addr" />
           </FormItem>
           <FormItem label="企业性质" required>
-            <Select v-model:value="createForm.custom_nature" show-search :options="CUSTOM_NATURE_OPTIONS" />
+            <SearchSelect v-model:value="createForm.custom_nature" :options="CUSTOM_NATURE_OPTIONS" />
           </FormItem>
           <FormItem label="决策机构" required>
-            <Select v-model:value="createForm.decisionor" show-search :options="DECISIONOR_OPTIONS" />
+            <SearchSelect v-model:value="createForm.decisionor" :options="DECISIONOR_OPTIONS" />
           </FormItem>
         </template>
 
@@ -659,10 +652,10 @@ function filterOption(input: string, node: any) {
             <Input v-model:value="createForm.license_addr" />
           </FormItem>
           <FormItem label="婚姻状况" required>
-            <Select v-model:value="createForm.marital_status" show-search :options="MARITAL_OPTIONS" />
+            <SearchSelect v-model:value="createForm.marital_status" :options="MARITAL_OPTIONS" />
           </FormItem>
           <FormItem label="户籍性质" required>
-            <Select v-model:value="createForm.household_nature" show-search :options="HOUSEHOLD_OPTIONS" />
+            <SearchSelect v-model:value="createForm.household_nature" :options="HOUSEHOLD_OPTIONS" />
           </FormItem>
         </template>
       </Form>

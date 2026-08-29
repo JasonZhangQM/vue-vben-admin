@@ -19,12 +19,12 @@ import {
   message,
   Modal,
   Popconfirm,
-  Select,
-  SelectOption,
   Space,
   Switch,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
   assignUserRoles,
@@ -250,15 +250,18 @@ async function onDelete() {
           <Input v-model:value="editForm.phone" />
         </FormItem>
         <FormItem label="性别">
-          <Select v-model:value="editForm.gender" style="width: 100px" show-search>
-            <SelectOption :value="0">未知</SelectOption>
-            <SelectOption :value="1">男</SelectOption>
-            <SelectOption :value="2">女</SelectOption>
-          </Select>
+          <SearchSelect
+            v-model:value="editForm.gender"
+            style="width: 100px"
+            :options="[
+              { label: '未知', value: 0 },
+              { label: '男', value: 1 },
+              { label: '女', value: 2 },
+            ]"
+          />
         </FormItem>
         <FormItem label="部门">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="editForm.dept_id"
             :options="deptOptions"
             allow-clear
@@ -269,8 +272,7 @@ async function onDelete() {
           <Input v-model:value="editForm.position" />
         </FormItem>
         <FormItem label="角色">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="editForm.role_ids"
             :options="roleOptions"
             mode="multiple"

@@ -22,12 +22,13 @@ import {
   message,
   Modal,
   Popconfirm,
-  Select,
   Table,
   Tabs,
   TabPane,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
   addEvaluate,
@@ -338,8 +339,7 @@ async function submitEvaluate() {
         <!-- 出入库记录 -->
         <TabPane key="storages" :tab="`出入库（${detail.storages.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
-            <Select
-            show-search
+            <SearchSelect
               v-model:value="storageForm.storage_type"
               :options="STORAGE_TYPE_OPTIONS"
               size="small"
@@ -376,8 +376,7 @@ async function submitEvaluate() {
         <!-- 评估记录 -->
         <TabPane key="evaluates" :tab="`评估（${detail.evaluates.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
-            <Select
-            show-search
+            <SearchSelect
               v-model:value="evaluateForm.evaluate_method"
               :options="EVALUATE_METHOD_OPTIONS"
               size="small"
@@ -427,8 +426,7 @@ async function submitEvaluate() {
       <Alert banner class="mb-3" message="评估日期 / 评估公司留空表示保持不变" type="info" />
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
         <FormItem label="评估方式">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="editForm.evaluate_method"
             :disabled="!canUpdate"
             :options="EVALUATE_METHOD_OPTIONS"

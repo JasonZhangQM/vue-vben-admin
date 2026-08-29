@@ -15,10 +15,11 @@ import {
   DescriptionsItem,
   Drawer,
   Input,
-  Select,
   Table,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { getOperationLogs } from '#/api/system/log';
 
@@ -99,8 +100,7 @@ onMounted(loadList);
           style="width: 160px"
           @press-enter="() => { query.page = 1; loadList(); }"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.module"
           :options="moduleOptions"
           allow-clear

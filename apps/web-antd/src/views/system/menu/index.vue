@@ -22,12 +22,12 @@ import {
   message,
   Modal,
   Popconfirm,
-  Select,
-  SelectOption,
   Space,
   Table,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { createMenu, deleteMenu, getMenuList, updateMenu } from '#/api/system/org';
 
@@ -319,8 +319,7 @@ onMounted(loadTree);
     >
       <Form :label-col="{ span: 5 }" :model="editForm" :wrapper-col="{ span: 17 }">
         <FormItem label="上级">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="editForm.parent_id"
             :options="flattenForParent(tree)"
             placeholder="顶级（parent_id=0）"
@@ -331,11 +330,14 @@ onMounted(loadTree);
           <Input v-model:value="editForm.caption" />
         </FormItem>
         <FormItem label="类型">
-          <Select v-model:value="editForm.type" show-search>
-            <SelectOption :value="10">目录</SelectOption>
-            <SelectOption :value="20">菜单</SelectOption>
-            <SelectOption :value="30">按钮</SelectOption>
-          </Select>
+          <SearchSelect
+            v-model:value="editForm.type"
+            :options="[
+              { label: '目录', value: 10 },
+              { label: '菜单', value: 20 },
+              { label: '按钮', value: 30 },
+            ]"
+          />
         </FormItem>
         <FormItem label="路由路径">
           <Input v-model:value="editForm.path" placeholder="如 /system/users" />

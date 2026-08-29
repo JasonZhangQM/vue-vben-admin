@@ -22,7 +22,6 @@ import {
   message,
   Modal,
   Popconfirm,
-  Select,
   Space,
   Switch,
   Table,
@@ -30,6 +29,8 @@ import {
   TabPane,
   Tag,
 } from 'ant-design-vue';
+
+import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
   addAgreement,
@@ -501,16 +502,14 @@ onMounted(loadList);
           style="width: 200px"
           @press-enter="() => { query.page = 1; loadList(); }"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.institution_type"
           :options="TYPE_OPTIONS"
           allow-clear
           placeholder="类型"
           style="width: 120px"
         />
-        <Select
-            show-search
+        <SearchSelect
           v-model:value="query.status"
           :options="STATUS_OPTIONS"
           allow-clear
@@ -586,11 +585,10 @@ onMounted(loadList);
           <Input v-model:value="createForm.short_name" />
         </FormItem>
         <FormItem label="机构类型" required>
-          <Select v-model:value="createForm.institution_type" show-search :options="TYPE_OPTIONS" />
+          <SearchSelect v-model:value="createForm.institution_type" :options="TYPE_OPTIONS" />
         </FormItem>
         <FormItem v-if="createForm.institution_type === 10" label="银行子类" required>
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="createForm.institution_subtype"
             :options="SUBTYPE_OPTIONS"
             placeholder="银行类必选"
@@ -733,7 +731,7 @@ onMounted(loadList);
           <!-- 授信协议 Tab -->
           <TabPane key="agreements" :tab="`授信协议（${detail.agreements.length}）`">
             <div class="mb-2 flex flex-wrap items-center gap-2">
-              <Select v-model:value="agreementForm.agreement_type" show-search :options="AGREEMENT_TYPE_OPTIONS" size="small" style="width: 110px" />
+              <SearchSelect v-model:value="agreementForm.agreement_type" :options="AGREEMENT_TYPE_OPTIONS" size="small" style="width: 110px" />
               <InputNumber v-model:value="agreementForm.flow_credit" placeholder="流量额度" style="width: 130px" />
               <InputNumber v-model:value="agreementForm.back_credit" placeholder="保函额度" style="width: 130px" />
               <DatePicker v-model:value="agreementForm.valid_begin_date" value-format="YYYY-MM-DD" placeholder="生效日" style="width: 150px" />
@@ -796,8 +794,7 @@ onMounted(loadList);
           <Input v-model:value="editForm.short_name" :disabled="!canUpdate" />
         </FormItem>
         <FormItem label="银行子类">
-          <Select
-            show-search
+          <SearchSelect
             v-model:value="editForm.institution_subtype"
             :disabled="!canUpdate"
             :options="SUBTYPE_OPTIONS"
