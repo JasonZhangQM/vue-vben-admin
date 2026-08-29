@@ -36,6 +36,7 @@ import {
   getMyTasks,
   withdrawInstance,
 } from '#/api/basic/approval';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 
 // 实例状态（与后端 approval/enums.py 对齐）
@@ -100,6 +101,9 @@ const {
   rowClassName: mineRowClassName,
   highlight: highlightMine,
 } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 // ================= 实例详情（摘要列链接 = 唯一入口） =================
 const detailVisible = ref(false);
@@ -327,7 +331,7 @@ onMounted(() => {
               </Popconfirm>
             </div>
           </template>
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="流程">{{ detail.flow_name }}</DescriptionsItem>
             <DescriptionsItem label="状态">
               <Tag :color="STATUS_COLOR[detail.status]">{{ detail.status_display }}</Tag>
@@ -336,7 +340,7 @@ onMounted(() => {
             <DescriptionsItem label="提交时间">{{ detail.submitted_at }}</DescriptionsItem>
             <DescriptionsItem label="完成时间">{{ detail.finished_at ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="当前节点">第 {{ detail.current_step }} 步</DescriptionsItem>
-            <DescriptionsItem label="摘要" :span="2">{{ detail.summary }}</DescriptionsItem>
+            <DescriptionsItem label="摘要" :span="detailColumns">{{ detail.summary }}</DescriptionsItem>
           </Descriptions>
         </Card>
 

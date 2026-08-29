@@ -29,6 +29,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash, opt } from '#/utils/format';
 
 import {
@@ -42,6 +43,9 @@ import {
 
 const props = defineProps<{ warrantId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | WarrantDetail>(null);
@@ -260,7 +264,7 @@ async function submitEvaluate() {
             </AccessControl>
           </div>
         </template>
-        <Descriptions :column="2" size="small">
+        <Descriptions :column="detailColumns" size="small">
           <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ TYPE_LABELS[detail.warrant_type] ?? detail.warrant_type }}</DescriptionsItem>
           <DescriptionsItem label="状态">

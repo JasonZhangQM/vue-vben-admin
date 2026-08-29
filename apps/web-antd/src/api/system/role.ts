@@ -11,6 +11,7 @@ export interface RoleListItem {
   name: string;
   permission_count: number;
   user_count: number;
+  created_by_name: string;
 }
 
 export interface RoleDetail extends RoleListItem {

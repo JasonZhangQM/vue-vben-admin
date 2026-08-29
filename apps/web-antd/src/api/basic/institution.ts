@@ -15,6 +15,7 @@ export interface InstitutionListItem {
   status: number;
   used_flow: number;
   used_back: number;
+  created_by_name: string;
 }
 
 export interface ContactItem {

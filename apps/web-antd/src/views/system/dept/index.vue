@@ -29,6 +29,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import { createDept, deleteDept, getDeptTree, updateDept } from '#/api/system/org';
@@ -60,6 +61,9 @@ const detailOpen = ref(false);
 const detailNode = ref<null | DeptNode>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 function openDetail(row: any) {
   highlightRow(row); // 打开详情即高亮该行
@@ -180,6 +184,7 @@ const columns: TableColumnType[] = [
   { title: '排序', dataIndex: 'ordery', ellipsis: true },
   { title: '人数', dataIndex: 'member_count', ellipsis: true },
   { title: '状态', dataIndex: 'status', ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(loadTree);
@@ -222,6 +227,9 @@ onMounted(loadTree);
               {{ record.status === 10 ? '启用' : '停用' }}
             </Tag>
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ record.created_by_name || '—' }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -258,7 +266,7 @@ onMounted(loadTree);
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="部门名称">{{ detailNode.name }}</DescriptionsItem>
             <DescriptionsItem label="上级部门">{{ parentName(detailNode) }}</DescriptionsItem>
             <DescriptionsItem label="排序">{{ detailNode.ordery }}</DescriptionsItem>

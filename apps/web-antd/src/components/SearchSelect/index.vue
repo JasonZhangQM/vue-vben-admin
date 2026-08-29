@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 全局搜索下拉组件：内置 show-search + label/value 双匹配 filter-option。
  *
  * 两类用法：
@@ -70,7 +70,11 @@ function filterOption(input: any, option: any) {
   return labelStr.includes(kw) || value.includes(kw);
 }
 
-/** 远程搜索防抖 */
+/** 远程搜索防抖。
+ * 注意：remote 模式下 filter-option 必须传 false（见模板），
+ * 传 undefined 会落回 AntD 默认按 value（数字ID）本地过滤，
+ * 中文关键字会把远程返回的选项全部滤掉（下拉显示"暂无数据"）。
+ */
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 function onRemoteSearch(val: string) {
   if (debounceTimer) clearTimeout(debounceTimer);
@@ -87,7 +91,7 @@ function onRemoteSearch(val: string) {
     :placeholder="placeholder"
     :size="size"
     :style="style"
-    :filter-option="remote ? undefined : filterOption"
+    :filter-option="remote ? false : filterOption"
     @change="emit('change', $event)"
     @dropdown-visible-change="emit('dropdown-visible-change', $event)"
     v-bind="remote ? { ...$attrs, onSearch: onRemoteSearch } : $attrs"

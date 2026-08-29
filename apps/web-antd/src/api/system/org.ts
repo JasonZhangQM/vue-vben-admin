@@ -11,6 +11,7 @@ export interface DeptNode {
   ordery: number;
   parent_id: number;
   status: number;
+  created_by_name: string;
 }
 
 export interface DeptCreateParams {
@@ -36,6 +37,7 @@ export interface MenuNode {
   redirect: null | string;
   type: number;
   visible: boolean;
+  created_by_name: string;
 }
 
 /** 部门树 */

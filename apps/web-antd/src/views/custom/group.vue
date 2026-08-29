@@ -41,6 +41,7 @@ import {
 } from '#/api/basic/customer';
 import type { GroupDetail, GroupTreeNode } from '#/api/basic/customer';
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store/dict';
 import { dash, filterTreeOption, formatAmount, opt, toTreeData } from '#/utils/format';
@@ -49,6 +50,9 @@ const dictStore = useDictStore();
 
 // 表格行点击高亮（全局共享 composable）
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 // ================= 树列表 =================
 const loading = ref(false);
@@ -132,6 +136,7 @@ const columns: TableColumnType[] = [
   { title: '成员数', dataIndex: 'member_count', width: 90, ellipsis: true },
   { title: '在保汇总', dataIndex: 'total_insure_amount', width: 140, ellipsis: true },
   { title: '授信额度', dataIndex: 'credit_amount', width: 140, ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 // ================= 客户远程搜索（母公司 / 添加成员共用） =================
@@ -176,6 +181,7 @@ function openCreate() {
   });
   customerOptions.value = [];
   createVisible.value = true;
+  searchCustomers(''); // 预加载企业客户：不输关键字也有默认选项
 }
 
 async function submitCreate() {
@@ -291,6 +297,7 @@ function openMemberAdd() {
   memberAddIds.value = [];
   customerOptions.value = [];
   memberAddVisible.value = true;
+  searchCustomers(''); // 预加载企业客户
 }
 
 async function submitMemberAdd() {
@@ -436,6 +443,9 @@ onMounted(() => {
           <template v-else-if="column.dataIndex === 'credit_amount'">
             {{ formatAmount(record.credit_amount) }}
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ dash(record.created_by_name) }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -506,7 +516,7 @@ onMounted(() => {
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="名称">{{ dash(detail.name) }}</DescriptionsItem>
             <DescriptionsItem label="编码">{{ dash(detail.code) }}</DescriptionsItem>
             <DescriptionsItem label="母公司">
@@ -524,7 +534,7 @@ onMounted(() => {
             <DescriptionsItem label="创建人 / 时间">
               {{ dash(detail.created_by_name) }} / {{ detail.created_at }}
             </DescriptionsItem>
-            <DescriptionsItem label="描述" :span="2">
+            <DescriptionsItem label="描述" :span="detailColumns">
               {{ dash(detail.description) }}
             </DescriptionsItem>
           </Descriptions>

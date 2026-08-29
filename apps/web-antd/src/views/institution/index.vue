@@ -31,6 +31,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash, opt } from '#/utils/format';
 
@@ -85,6 +86,9 @@ const statusColor = (s: number) => ({ 10: 'green', 20: 'red', 90: 'default' })[s
 
 // 表格行点击高亮（useRowHighlight composable 全局共享）
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 const loading = ref(false);
 const list = ref<InstitutionListItem[]>([]);
 const total = ref(0);
@@ -470,6 +474,7 @@ const columns: TableColumnType[] = [
   { title: '类型', dataIndex: 'institution_type', ellipsis: true },
   { title: '法定代表人', dataIndex: 'legal_representative', ellipsis: true },
   { title: '状态', dataIndex: 'status', ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(loadList);
@@ -552,6 +557,9 @@ onMounted(loadList);
               {{ record.status === 10 ? '正常' : record.status === 90 ? '注销' : '停用' }}
             </Tag>
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ dash(record.created_by_name) }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -608,7 +616,7 @@ onMounted(loadList);
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small" bordered>
+          <Descriptions :column="detailColumns" size="small" bordered>
             <DescriptionsItem label="名称">{{ dash(detail.name) }}</DescriptionsItem>
             <DescriptionsItem label="简称">{{ dash(detail.short_name) }}</DescriptionsItem>
             <DescriptionsItem label="类型">
@@ -625,7 +633,7 @@ onMounted(loadList);
             <DescriptionsItem label="联系人 / 分支">
               {{ detail.contact_count }} / {{ detail.branch_count }}
             </DescriptionsItem>
-            <DescriptionsItem label="注册地址" :span="2">{{ dash(detail.registered_addr) }}</DescriptionsItem>
+            <DescriptionsItem label="注册地址" :span="detailColumns">{{ dash(detail.registered_addr) }}</DescriptionsItem>
             <DescriptionsItem label="联系地址">{{ dash(detail.contact_addr) }}</DescriptionsItem>
             <DescriptionsItem label="联系电话">{{ dash(detail.contact_num) }}</DescriptionsItem>
             <DescriptionsItem label="邮箱">{{ dash(detail.email) }}</DescriptionsItem>

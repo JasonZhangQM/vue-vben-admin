@@ -150,6 +150,7 @@ const columns: TableColumnType[] = [
   { title: '角色', dataIndex: 'role_names', ellipsis: true },
   { title: '状态', dataIndex: 'status', ellipsis: true },
   { title: '最近登录', dataIndex: 'last_login_at', ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(async () => {
@@ -228,6 +229,9 @@ onMounted(async () => {
           </template>
           <template v-else-if="column.dataIndex === 'last_login_at'">
             {{ record.last_login_at ?? '—' }}
+          </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ record.created_by_name || '—' }}
           </template>
         </template>
       </Table>

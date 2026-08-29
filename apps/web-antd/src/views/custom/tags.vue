@@ -27,6 +27,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash } from '#/utils/format';
 
@@ -54,6 +55,9 @@ const CLASSIFICATION_COLORS: Record<number, string> = {
 
 // ============ 列表 ============
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 const loading = ref(false);
 const allTags = ref<ExtraTag[]>([]);
 
@@ -114,6 +118,7 @@ const columns: TableColumnType[] = [
   { title: '标签名称', dataIndex: 'name' },
   { title: '类型', dataIndex: 'type', width: 110, ellipsis: true },
   { title: '使用中', dataIndex: 'in_use', width: 100, ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 // ============ 详情抽屉 ============
@@ -320,6 +325,9 @@ onMounted(loadList);
               {{ record.in_use ? '使用中' : '未使用' }}
             </Tag>
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ dash(record.created_by_name) }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -350,7 +358,7 @@ onMounted(loadList);
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="标签名称">
               {{ dash(detail.name) }}
             </DescriptionsItem>

@@ -180,21 +180,27 @@ const createForm = reactive({
   household_nature: undefined as number | undefined,
 });
 
-// 下拉数据源
-const userOptions = ref<{ label: string; value: number }[]>([]);
+// 下拉数据源（管护经理=pm 角色，风控专员=controler 角色，分开加载）
+const pmOptions = ref<{ label: string; value: number }[]>([]);
+const controlerOptions = ref<{ label: string; value: number }[]>([]);
 const industryTreeData = ref<any[]>([]);
 const creditRegionTreeData = ref<any[]>([]);
 const groupTreeData = ref<any[]>([]);
 
 async function loadOptions() {
-  // 用户下拉（管护经理 / 风控专员共用）；区域懒加载/搜索已封装进 RegionTreeSelect 组件
-  const [users, industries, creditRegions, groups] = await Promise.all([
-    getUserList({ page: 1, page_size: 200 }),
+  // 区域懒加载/搜索已封装进 RegionTreeSelect 组件
+  const [pms, controlers, industries, creditRegions, groups] = await Promise.all([
+    getUserList({ page: 1, page_size: 200, role: 'pm' }),
+    getUserList({ page: 1, page_size: 200, role: 'controler' }),
     getIndustryTree(),
     getCreditRegionTree(),
     getGroupTree(),
   ]);
-  userOptions.value = users.items.map((u) => ({ label: u.name, value: u.id }));
+  pmOptions.value = pms.items.map((u) => ({ label: u.name, value: u.id }));
+  controlerOptions.value = controlers.items.map((u) => ({
+    label: u.name,
+    value: u.id,
+  }));
   industryTreeData.value = toTreeData(industries);
   creditRegionTreeData.value = toTreeData(creditRegions);
   groupTreeData.value = toTreeData(groups);
@@ -314,6 +320,7 @@ const columns: TableColumnType[] = [
   { title: '授信额度', dataIndex: 'credit_amount', ellipsis: true },
   { title: '在保余额', dataIndex: 'amount', ellipsis: true },
   { title: '标记', key: 'flags', ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(() => {
@@ -434,6 +441,9 @@ onMounted(() => {
             <Tag v-if="record.is_acceptor" color="cyan">承兑</Tag>
             <span v-if="!record.is_core && !record.is_acceptor">—</span>
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ dash(record.created_by_name) }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -477,14 +487,14 @@ onMounted(() => {
         <FormItem label="管护经理" required>
           <SearchSelect
             v-model:value="createForm.managementor_id"
-            :options="userOptions"
+            :options="pmOptions"
             placeholder="客户经理（业务发起人）"
           />
         </FormItem>
         <FormItem label="风控专员" required>
           <SearchSelect
             v-model:value="createForm.controler_id"
-            :options="userOptions"
+            :options="controlerOptions"
             placeholder="风控对接人"
           />
         </FormItem>

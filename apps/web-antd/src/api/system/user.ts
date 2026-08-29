@@ -24,6 +24,7 @@ export interface UserListItem {
   role_names: string[];
   status: number;
   username: string;
+  created_by_name: string;
 }
 
 export interface UserDetail extends UserListItem {
@@ -57,6 +58,8 @@ export interface UserListParams {
   page_size?: number;
   position?: string;
   q?: string;
+  /** 角色 code（如 pm/controler），按拥有该角色过滤 */
+  role?: string;
   status?: number;
 }
 

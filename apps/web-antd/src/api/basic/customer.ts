@@ -24,6 +24,7 @@ export interface CustomerListItem {
   name: string;
   region_name: null | string;
   short_name: string;
+  created_by_name: string;
 }
 
 export interface CustomerDetail extends CustomerListItem {
@@ -254,6 +255,7 @@ export interface GroupTreeNode {
   parent_customer_name: null | string;
   parent_id: null | number;
   total_insure_amount: number;
+  created_by_name: string;
 }
 
 export interface GroupMemberItem {
@@ -363,6 +365,7 @@ export interface ExtraTag {
   name: string;
   type: number;       // 10 行业标签 / 20 业务标签
   in_use: boolean;    // 是否已被客户引用
+  created_by_name: string;
 }
 
 /** 标签类型枚举（与后端 customer 模型对齐） */

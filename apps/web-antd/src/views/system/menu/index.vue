@@ -28,6 +28,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import { createMenu, deleteMenu, getMenuList, updateMenu } from '#/api/system/org';
@@ -72,6 +73,9 @@ const detailOpen = ref(false);
 const detailNode = ref<null | MenuNode>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 function openDetail(row: any) {
   highlightRow(row); // 打开详情即高亮该行
@@ -200,6 +204,7 @@ const columns: TableColumnType[] = [
   { title: '组件', dataIndex: 'component', ellipsis: true },
   { title: '权限码', dataIndex: 'permission_code', ellipsis: true },
   { title: '排序', dataIndex: 'ordery', ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(loadTree);
@@ -252,6 +257,9 @@ onMounted(loadTree);
             <code v-if="record.permission_code">{{ record.permission_code }}</code>
             <span v-else class="text-gray-400">—</span>
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ record.created_by_name || '—' }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -280,7 +288,7 @@ onMounted(loadTree);
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="标题">{{ detailNode.caption }}</DescriptionsItem>
             <DescriptionsItem label="类型">
               <Tag :color="typeLabels[detailNode.type]?.color">
@@ -293,7 +301,7 @@ onMounted(loadTree);
             <DescriptionsItem label="组件路径">{{ detailNode.component ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="重定向">{{ detailNode.redirect ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="图标">{{ detailNode.icon ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="权限码" :span="2">
+            <DescriptionsItem label="权限码" :span="detailColumns">
               <code v-if="detailNode.permission_code">{{ detailNode.permission_code }}</code>
               <span v-else>—</span>
             </DescriptionsItem>

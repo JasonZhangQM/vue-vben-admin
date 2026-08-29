@@ -25,6 +25,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash } from '#/utils/format';
 
 import {
@@ -40,6 +41,9 @@ import { getRoleList } from '#/api/system/role';
 
 const props = defineProps<{ userId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | UserDetail>(null);
@@ -205,7 +209,7 @@ async function onDelete() {
             </AccessControl>
           </Space>
         </template>
-        <Descriptions :column="2" size="small">
+        <Descriptions :column="detailColumns" size="small">
           <DescriptionsItem label="用户名">{{ dash(detail.username) }}</DescriptionsItem>
           <DescriptionsItem label="姓名">{{ dash(detail.name) }}</DescriptionsItem>
           <DescriptionsItem label="状态">
@@ -216,7 +220,7 @@ async function onDelete() {
           <DescriptionsItem label="手机号">{{ dash(detail.phone) }}</DescriptionsItem>
           <DescriptionsItem label="部门">{{ dash(detail.dept_name) }}</DescriptionsItem>
           <DescriptionsItem label="职务">{{ dash(detail.position) }}</DescriptionsItem>
-          <DescriptionsItem label="角色" :span="2">
+          <DescriptionsItem label="角色" :span="detailColumns">
             {{ detail.roles.length ? detail.roles.map((r) => r.name).join('、') : '—' }}
           </DescriptionsItem>
           <DescriptionsItem label="最近登录">{{ dash(detail.last_login_at) }}</DescriptionsItem>

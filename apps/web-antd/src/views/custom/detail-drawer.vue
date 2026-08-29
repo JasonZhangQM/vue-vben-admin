@@ -45,12 +45,16 @@ import {
   updateCustomerTags,
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
 
 import { getIndustryTree } from '#/api/basic/dict';
 
 const props = defineProps<{ customerId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | CustomerDetail>(null);
@@ -319,7 +323,7 @@ async function saveTags() {
             </AccessControl>
           </div>
         </template>
-        <Descriptions :column="2" size="small">
+        <Descriptions :column="detailColumns" size="small">
           <DescriptionsItem label="客户名称">{{ dash(detail.name) }}</DescriptionsItem>
           <DescriptionsItem label="简称">{{ dash(detail.short_name) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ detail.genre === 1 ? '企业' : '个人' }}</DescriptionsItem>
@@ -348,16 +352,16 @@ async function saveTags() {
       <Tabs>
         <!-- 企业扩展 -->
         <TabPane v-if="detail.company" key="company" tab="企业信息">
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="统一社会信用代码">{{ dash(detail.company.credit_code) }}</DescriptionsItem>
             <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
             <DescriptionsItem label="注册资本">{{ detail.company.capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="实收资本">{{ detail.company.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="注册地址" :span="2">{{ dash(detail.company.registered_addr) }}</DescriptionsItem>
+            <DescriptionsItem label="注册地址" :span="detailColumns">{{ dash(detail.company.registered_addr) }}</DescriptionsItem>
           </Descriptions>
           <div v-if="detail.latest_extend" class="mt-3">
             <Card size="small" title="最新经营快照">
-              <Descriptions :column="3" size="small">
+              <Descriptions :column="detailColumns" size="small">
                 <DescriptionsItem label="营业收入">{{ detail.latest_extend.sales_revenue.toLocaleString() }}</DescriptionsItem>
                 <DescriptionsItem label="总资产">{{ detail.latest_extend.total_assets.toLocaleString() }}</DescriptionsItem>
                 <DescriptionsItem label="从业人数">{{ detail.latest_extend.people_engaged }}</DescriptionsItem>
@@ -368,7 +372,7 @@ async function saveTags() {
 
         <!-- 个人扩展 -->
         <TabPane v-if="detail.personal" key="personal" tab="个人信息">
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="证件号码">{{ dash(detail.personal.license_num) }}</DescriptionsItem>
             <DescriptionsItem label="户籍地址">{{ dash(detail.personal.license_addr) }}</DescriptionsItem>
           </Descriptions>
@@ -447,7 +451,7 @@ async function saveTags() {
         <!-- 核心企业额度 -->
         <TabPane v-if="detail.is_core" key="core-limits" tab="核心企业额度">
           <div v-if="detail.core_info" class="mb-3">
-            <Descriptions :column="3" size="small">
+            <Descriptions :column="detailColumns" size="small">
               <DescriptionsItem label="核心占比">{{ detail.core_info.core_rate ?? '—' }}%</DescriptionsItem>
               <DescriptionsItem label="累计已用">{{ detail.core_info.total_used_amount.toLocaleString() }}</DescriptionsItem>
             </Descriptions>

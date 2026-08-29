@@ -349,8 +349,8 @@ const columns: TableColumnType[] = [
   { title: '类型', dataIndex: 'warrant_type', ellipsis: true },
   { title: '状态', dataIndex: 'warrant_state', ellipsis: true },
   { title: '评估值', dataIndex: 'evaluate_value', ellipsis: true },
-  { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
   { title: '登记时间', dataIndex: 'created_at', ellipsis: true },
+  { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(() => {

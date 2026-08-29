@@ -32,6 +32,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import {
@@ -66,6 +67,9 @@ const detailLoading = ref(false);
 const detail = ref<null | RoleDetail>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
+// 详情基本信息响应式列数（视口越宽列越多）
+const { columns: detailColumns } = useDetailColumns();
 
 function openDetail(row: any) {
   highlightRow(row); // 打开详情即高亮该行
@@ -258,6 +262,7 @@ const columns: TableColumnType[] = [
   { title: '权限数', dataIndex: 'permission_count', ellipsis: true },
   { title: '类型', dataIndex: 'is_builtin', ellipsis: true },
   { title: '描述', dataIndex: 'description', ellipsis: true },
+  { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
 onMounted(async () => {
@@ -307,6 +312,9 @@ onMounted(async () => {
           <template v-else-if="column.dataIndex === 'description'">
             {{ record.description ?? '—' }}
           </template>
+          <template v-else-if="column.dataIndex === 'created_by_name'">
+            {{ record.created_by_name || '—' }}
+          </template>
         </template>
       </Table>
     </Card>
@@ -336,7 +344,7 @@ onMounted(async () => {
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small">
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="角色标识">{{ detail.code }}</DescriptionsItem>
             <DescriptionsItem label="角色名称">{{ detail.name }}</DescriptionsItem>
             <DescriptionsItem label="数据范围">
@@ -348,7 +356,7 @@ onMounted(async () => {
             </DescriptionsItem>
             <DescriptionsItem label="用户数">{{ detail.user_count }}</DescriptionsItem>
             <DescriptionsItem label="权限数">{{ detail.permission_count }}</DescriptionsItem>
-            <DescriptionsItem label="描述" :span="2">{{ detail.description ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="描述" :span="detailColumns">{{ detail.description ?? '—' }}</DescriptionsItem>
           </Descriptions>
         </Card>
 
