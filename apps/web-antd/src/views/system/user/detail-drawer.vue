@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 用户详情抽屉：基本信息全字段 + 操作（编辑 / 启停 / 重置密码 / 删除）收纳在 #extra。 */
 
 import type { UserDetail } from '#/api/system/user';
@@ -25,6 +25,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { dash } from '#/utils/format';
 
 import {
   assignUserRoles,
@@ -53,10 +54,6 @@ function statusLabel(status: number) {
 function genderLabel(g: number) {
   return { 0: '未知', 1: '男', 2: '女' }[g] ?? g;
 }
-
-/** 空值文案兜底 */
-const dash = (v: unknown) =>
-  v === null || v === undefined || v === '' ? '—' : String(v);
 
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
 async function refresh() {

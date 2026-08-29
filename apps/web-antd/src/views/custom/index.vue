@@ -43,6 +43,10 @@ import { getUserList } from '#/api/system/user';
 
 import DetailDrawer from './detail-drawer.vue';
 
+// 全局共享工具：行高亮 composable + 格式化函数（消除重复定义）
+import { useRowHighlight } from '#/composables/useRowHighlight';
+import { dash, filterTreeOption, toTreeData } from '#/utils/format';
+
 // 客户枚举（与后端 customer/enums.py 对齐）
 const GENRE_OPTIONS = [
   { label: '企业', value: 1 },
@@ -135,7 +139,7 @@ const detailOpen = ref(false);
 const detailCustomerId = ref<null | number>(null);
 
 function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row); // 打开详情即高亮该行
   detailCustomerId.value = row.id;
   detailOpen.value = true;
 }
@@ -181,16 +185,6 @@ const userOptions = ref<{ label: string; value: number }[]>([]);
 const industryTreeData = ref<any[]>([]);
 const creditRegionTreeData = ref<any[]>([]);
 const groupTreeData = ref<any[]>([]);
-
-/** 后端全量树节点 → AntD TreeSelect treeData（行业/授信区域/集团用） */
-function toTreeData(nodes: any[]): any[] {
-  return (nodes ?? []).map((n) => ({
-    key: n.id,
-    title: n.name,
-    value: n.id,
-    children: toTreeData(n.children),
-  }));
-}
 
 async function loadOptions() {
   // 用户下拉（管护经理 / 风控专员共用）；区域懒加载/搜索已封装进 RegionTreeSelect 组件
@@ -307,19 +301,8 @@ async function submitCreate() {
   }
 }
 
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
-
-/** 空值文案兜底 */
-const dash = (v: unknown) =>
-  v === null || v === undefined || v === '' ? '—' : String(v);
+// 表格行点击高亮（useRowHighlight composable 全局共享）
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 const columns: TableColumnType[] = [
   { title: '客户名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
@@ -338,11 +321,6 @@ onMounted(() => {
   loadOptions();
 });
 
-/** TreeSelect 按 title 搜索（支持输入实时过滤） */
-function filterOption(input: string, node: any) {
-  const title = String(node?.title ?? node?.label ?? '').toLowerCase();
-  return title.includes(input.toLowerCase());
-}
 </script>
 
 <template>
@@ -516,7 +494,7 @@ function filterOption(input: string, node: any) {
         <FormItem label="行业分类" required>
           <TreeSelect
             show-search
-            :filter-tree-node="filterOption"
+            :filter-tree-node="filterTreeOption"
             v-model:value="createForm.industry_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="industryTreeData"
@@ -527,7 +505,7 @@ function filterOption(input: string, node: any) {
         <FormItem label="授信区域">
           <TreeSelect
             show-search
-            :filter-tree-node="filterOption"
+            :filter-tree-node="filterTreeOption"
             v-model:value="createForm.credit_region_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="creditRegionTreeData"
@@ -539,7 +517,7 @@ function filterOption(input: string, node: any) {
         <FormItem label="所属集团">
           <TreeSelect
             show-search
-            :filter-tree-node="filterOption"
+            :filter-tree-node="filterTreeOption"
             v-model:value="createForm.group_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="groupTreeData"
@@ -614,13 +592,5 @@ function filterOption(input: string, node: any) {
     <DetailDrawer v-model:open="detailOpen" :customer-id="detailCustomerId" @updated="loadList" />
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
 
 

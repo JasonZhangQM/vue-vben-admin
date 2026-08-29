@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 审批中心：待我审批 / 我的申请；摘要列为详情入口，审批动作收纳在详情抽屉内。 */
 
 import type {
@@ -36,6 +36,7 @@ import {
   getMyTasks,
   withdrawInstance,
 } from '#/api/basic/approval';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 
 // 实例状态（与后端 approval/enums.py 对齐）
 const STATUS_COLOR: Record<number, string> = {
@@ -88,23 +89,17 @@ async function loadMine() {
 }
 
 // ================= 行点击高亮（各 Tab 独立记录） =================
-const tasksActiveKey = ref<number>();
-const tasksCustomRow = (record: any) => ({
-  onClick: () => {
-    tasksActiveKey.value = record.id;
-  },
-});
-const tasksRowClassName = (record: any) =>
-  record.id === tasksActiveKey.value ? 'row-active' : '';
+const {
+  customRow: tasksCustomRow,
+  rowClassName: tasksRowClassName,
+  highlight: highlightTasks,
+} = useRowHighlight();
 
-const mineActiveKey = ref<number>();
-const mineCustomRow = (record: any) => ({
-  onClick: () => {
-    mineActiveKey.value = record.id;
-  },
-});
-const mineRowClassName = (record: any) =>
-  record.id === mineActiveKey.value ? 'row-active' : '';
+const {
+  customRow: mineCustomRow,
+  rowClassName: mineRowClassName,
+  highlight: highlightMine,
+} = useRowHighlight();
 
 // ================= 实例详情（摘要列链接 = 唯一入口） =================
 const detailVisible = ref(false);
@@ -139,8 +134,8 @@ async function loadDetail(id: number) {
 }
 
 function openDetail(record: any, fromTasks: boolean) {
-  if (fromTasks) tasksActiveKey.value = record.id;
-  else mineActiveKey.value = record.id;
+  if (fromTasks) highlightTasks(record);
+  else highlightMine(record);
   currentTaskId.value = record.current_task_id ?? null;
   detailVisible.value = true;
   detail.value = null;
@@ -381,11 +376,3 @@ onMounted(() => {
     </Drawer>
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>

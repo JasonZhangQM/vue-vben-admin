@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { InstitutionListItem } from '#/api/basic/institution';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -31,6 +31,8 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useRowHighlight } from '#/composables/useRowHighlight';
+import { dash, opt } from '#/utils/format';
 
 import {
   addAgreement,
@@ -80,11 +82,9 @@ const AGREEMENT_TYPE_OPTIONS = [
 
 const typeLabel = (v: number) => TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v;
 const statusColor = (s: number) => ({ 10: 'green', 20: 'red', 90: 'default' })[s] ?? 'default';
-/** 空值文案兜底 */
-const dash = (v: unknown) =>
-  v === null || v === undefined || v === '' ? '—' : String(v);
 
-// ================= 列表 =================
+// 表格行点击高亮（useRowHighlight composable 全局共享）
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 const loading = ref(false);
 const list = ref<InstitutionListItem[]>([]);
 const total = ref(0);
@@ -115,16 +115,6 @@ function resetQuery() {
   query.page = 1;
   loadList();
 }
-
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
 
 // ================= 新建 =================
 const createVisible = ref(false);
@@ -190,7 +180,7 @@ async function reloadDetail() {
 }
 
 async function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row);
   detailVisible.value = true;
   detailLoading.value = true;
   try {
@@ -239,10 +229,6 @@ function openEdit() {
   });
   editVisible.value = true;
 }
-
-/** 留空转 undefined 不序列化（后端 exclude_unset 保持原值） */
-const opt = (v: string | undefined | null) =>
-  v && v.trim() ? v.trim() : undefined;
 
 async function submitEdit() {
   if (!detail.value) return;
@@ -928,12 +914,4 @@ onMounted(loadList);
     </Modal>
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
 

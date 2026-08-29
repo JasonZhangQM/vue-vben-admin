@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 权证管理：列表 / 创建（主表 + 类型扩展 + 所有权人）/ 详情抽屉。 */
 
 import type { CustomerDictItem } from '#/api/basic/dict';
@@ -25,6 +25,9 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+
+import { useRowHighlight } from '#/composables/useRowHighlight';
+import { dash } from '#/utils/format';
 
 import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
 import { createWarrant, getWarrantList } from '#/api/basic/warrant';
@@ -105,18 +108,11 @@ function resetQuery() {
 const detailOpen = ref(false);
 const detailWarrantId = ref<null | number>(null);
 
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
+// 表格行点击高亮（useRowHighlight composable 全局共享）
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row); // 打开详情即高亮该行
   detailWarrantId.value = row.id;
   detailOpen.value = true;
 }
@@ -347,10 +343,6 @@ async function submitCreate() {
     createLoading.value = false;
   }
 }
-
-/** 空值文案兜底 */
-const dash = (v: unknown) =>
-  v === null || v === undefined || v === '' ? '—' : String(v);
 
 const columns: TableColumnType[] = [
   { title: '权证号', dataIndex: 'warrant_num' }, // 详情入口链接列：不加 ellipsis
@@ -607,12 +599,4 @@ onMounted(() => {
     <DetailDrawer v-model:open="detailOpen" :warrant-id="detailWarrantId" @updated="loadList" />
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
 

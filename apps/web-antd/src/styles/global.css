@@ -1,0 +1,13 @@
+/* ============================================================
+ * whdb3 业务全局样式（非 vben 框架样式）
+ * 所有页面共享的样式片段在此维护，避免 10+ 个文件重复写 scoped style
+ * ============================================================ */
+
+/* ---------- 表格行点击高亮（列表页通用） ----------
+ * 同时覆盖普通态与 hover 态（穿透 antd 内部 CSS-in-JS 运行时样式）
+ * 选择器精确匹配：.row-active 类名由 useRowHighlight composable 的 rowClassName 注入
+ */
+.ant-table-tbody > tr.row-active > td,
+.ant-table-tbody > tr.row-active > td.ant-table-cell-row-hover {
+  background-color: #e6f4ff;
+}

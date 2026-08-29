@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 菜单管理：树形表格，标题列为详情入口；编辑/删除/加子级收纳在详情抽屉。 */
 
 import type { MenuNode } from '#/api/system/org';
@@ -28,6 +28,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import { createMenu, deleteMenu, getMenuList, updateMenu } from '#/api/system/org';
 
@@ -70,18 +71,10 @@ const typeLabels: Record<number, { color: string; text: string }> = {
 const detailOpen = ref(false);
 const detailNode = ref<null | MenuNode>(null);
 
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row); // 打开详情即高亮该行
   detailNode.value = row;
   detailOpen.value = true;
 }
@@ -364,12 +357,4 @@ onMounted(loadTree);
     </Modal>
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
 

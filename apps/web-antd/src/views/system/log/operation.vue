@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 操作日志：动作列为详情入口；纯只读审计，无操作按钮。 */
 
 import type { OperationLogItem } from '#/api/system/log';
@@ -20,6 +20,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import { getOperationLogs } from '#/api/system/log';
 
@@ -58,18 +59,10 @@ function resetQuery() {
 const detailVisible = ref(false);
 const current = ref<OperationLogItem | null>(null);
 
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row); // 打开详情即高亮该行
   current.value = row;
   detailVisible.value = true;
 }
@@ -174,12 +167,4 @@ onMounted(loadList);
     </Drawer>
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
 

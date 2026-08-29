@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-/** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度。 */
+/** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度 / 客户标签。 */
 
-import type { CustomerDetail } from '#/api/basic/customer';
+import type { CustomerDetail, ExtraTag } from '#/api/basic/customer';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -11,6 +11,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   DatePicker,
   Drawer,
   Descriptions,
@@ -37,11 +38,14 @@ import {
   deleteDirector,
   deleteShareholder,
   getCustomerDetail,
+  getTagList,
   listDirectors,
   listShareholders,
   updateCustomer,
+  updateCustomerTags,
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
+import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
 
 import { getIndustryTree } from '#/api/basic/dict';
 
@@ -58,10 +62,6 @@ const directorList = ref<any[]>([]);
 
 const classificationColor = (c: number) =>
   ({ 10: 'green', 20: 'blue', 30: 'orange', 40: 'red', 50: 'red' })[c] ?? 'default';
-/** 空值文案兜底 */
-const dash = (v: unknown) =>
-  v === null || v === undefined || v === '' ? '—' : String(v);
-
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
 async function refresh() {
   await load();
@@ -116,21 +116,6 @@ const editForm = reactive({
   industry_id: undefined as number | undefined,
 });
 
-function toTreeData(nodes: any[]): any[] {
-  return (nodes ?? []).map((n) => ({
-    key: n.id,
-    title: n.name,
-    value: n.id,
-    children: toTreeData(n.children),
-  }));
-}
-
-/** TreeSelect 按 title 搜索（本地过滤，行业等） */
-function filterOption(input: string, node: any) {
-  const title = String(node?.title ?? node?.label ?? '').toLowerCase();
-  return title.includes(input.toLowerCase());
-}
-
 async function openEdit() {
   if (!detail.value) return;
   // 编辑需要行业全量（仅首次加载）；区域懒加载/搜索已封装进 RegionTreeSelect 组件
@@ -150,10 +135,6 @@ async function openEdit() {
   });
   editVisible.value = true;
 }
-
-/** 留空转 undefined 不序列化 */
-const opt = (v: string | undefined | null) =>
-  v && v.trim() ? v.trim() : undefined;
 
 async function submitEdit() {
   if (!detail.value) return;
@@ -241,6 +222,84 @@ async function submitLimit() {
   Object.assign(limitForm, { credit_amount: 0, valid_begin_date: '', valid_end_date: '' });
   message.success('额度已创建（旧额度自动失效）');
   await refresh();
+}
+
+// ===== 客户标签（参照 system/roles 权限配置：分组多选 + 保存） =====
+const allTags = ref<ExtraTag[]>([]);
+const checkedTagIds = ref<number[]>([]);
+const tagSaving = ref(false);
+const tagsTabLoaded = ref(false);
+
+/** 标签类型 -> 分组标题 */
+const TAG_TYPE_LABELS: Record<number, string> = { 10: '行业标签', 20: '业务标签' };
+
+/** 按类型分组渲染可选标签（仅启用状态可选，停用标签仅在被引用时保留勾选回显） */
+const groupedTags = computed(() => {
+  const selectable = allTags.value.filter((t) => t.status === 10);
+  const groups = new Map<number, ExtraTag[]>();
+  for (const t of selectable) {
+    const arr = groups.get(t.type) ?? [];
+    arr.push(t);
+    groups.set(t.type, arr);
+  }
+  return [...groups.entries()].map(([type, items]) => ({
+    type,
+    label: TAG_TYPE_LABELS[type] ?? `类型${type}`,
+    allChecked: items.every((i) => checkedTagIds.value.includes(i.id)),
+    items,
+  }));
+});
+
+/** 抽屉打开时加载标签清单并回显客户已选 */
+watch(
+  () => detail.value,
+  async (val) => {
+    if (!val) {
+      tagsTabLoaded.value = false;
+      return;
+    }
+    if (!tagsTabLoaded.value) {
+      tagsTabLoaded.value = true;
+      allTags.value = await getTagList().catch(() => []);
+    }
+    checkedTagIds.value = val.tags ?? [];
+  },
+);
+
+function toggleTagGroup(type: number, checked: boolean) {
+  const group = groupedTags.value.find((g) => g.type === type);
+  if (!group) return;
+  const set = new Set(checkedTagIds.value);
+  for (const item of group.items) {
+    if (checked) {
+      set.add(item.id);
+    } else {
+      set.delete(item.id);
+    }
+  }
+  checkedTagIds.value = [...set];
+}
+
+function toggleTag(tagId: number, checked: boolean) {
+  const set = new Set(checkedTagIds.value);
+  if (checked) {
+    set.add(tagId);
+  } else {
+    set.delete(tagId);
+  }
+  checkedTagIds.value = [...set];
+}
+
+async function saveTags() {
+  if (!detail.value) return;
+  tagSaving.value = true;
+  try {
+    await updateCustomerTags(detail.value.id, checkedTagIds.value);
+    message.success('标签已更新');
+    await refresh();
+  } finally {
+    tagSaving.value = false;
+  }
 }
 </script>
 
@@ -427,6 +486,41 @@ async function submitLimit() {
             </template>
           </Table>
         </TabPane>
+        <!-- 客户标签（参照 system/roles 权限配置：分组多选 + 保存） -->
+        <TabPane key="tags" :tab="`客户标签（${checkedTagIds.length}）`">
+          <div class="mb-2 flex justify-end">
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button :loading="tagSaving" size="small" type="primary" @click="saveTags">
+                保存标签
+              </Button>
+            </AccessControl>
+          </div>
+          <div
+            v-for="group in groupedTags"
+            :key="group.type"
+            class="mb-3 rounded border border-gray-200 p-3"
+          >
+            <Checkbox
+              :checked="group.allChecked"
+              class="mb-2 font-medium"
+              @change="(e: any) => toggleTagGroup(group.type, e.target.checked)"
+            >
+              {{ group.label }}
+            </Checkbox>
+            <!-- 不用 CheckboxGroup：多个 Group 绑同一数组会互相覆盖，改为独立 Checkbox 手动维护 -->
+            <div class="flex flex-wrap gap-y-1">
+              <Checkbox
+                v-for="t in group.items"
+                :key="t.id"
+                :checked="checkedTagIds.includes(t.id)"
+                @change="(e: any) => toggleTag(t.id, e.target.checked)"
+              >
+                {{ t.name }}
+              </Checkbox>
+            </div>
+          </div>
+          <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签（请先在客户标签页启用或创建）</div>
+        </TabPane>
       </Tabs>
     </div>
 
@@ -470,7 +564,7 @@ async function submitLimit() {
         <FormItem label="行业分类">
           <TreeSelect
             show-search
-            :filter-tree-node="filterOption"
+            :filter-tree-node="filterTreeOption"
             v-model:value="editForm.industry_id"
             :disabled="!canUpdate"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"

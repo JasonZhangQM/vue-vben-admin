@@ -261,3 +261,64 @@ export function getCustomerOverview() {
     total_credit_amount: number;
   }>('/customers/stats/overview');
 }
+
+// ===== 标签（ExtraTag） =====
+
+export interface ExtraTag {
+  id: number;
+  name: string;
+  type: number;       // 10 行业标签 / 20 业务标签
+  status: number;     // 10 启用 / 20 停用
+  in_use: boolean;    // 是否已被客户引用
+}
+
+/** 标签类型枚举（与后端 customer 模型对齐） */
+export const TAG_TYPE_OPTIONS = [
+  { label: '行业标签', value: 10 },
+  { label: '业务标签', value: 20 },
+];
+
+export const TAG_STATUS_OPTIONS = [
+  { label: '启用', value: 10 },
+  { label: '停用', value: 20 },
+];
+
+export function getTagList() {
+  return requestClient.get<ExtraTag[]>('/dicts/tags');
+}
+
+/** 标签下的客户（详情抽屉 Tab 用） */
+export interface TagCustomer {
+  id: number;
+  name: string;
+  short_name: string;
+  genre: number;            // 1 企业 / 2 个人
+  custom_state: number;     // 10 正常 20 反担保 30 小贷 90 注销
+  classification: number;   // 五级分类
+  managementor_name: string;
+}
+
+export function getTagCustomers(tagId: number) {
+  return requestClient.get<TagCustomer[]>(`/dicts/tags/${tagId}/customers`);
+}
+
+/** 移除 标签↔客户 关联（标签详情抽屉操作列） */
+export function removeTagCustomer(tagId: number, customerId: number) {
+  return requestClient.delete(`/dicts/tags/${tagId}/customers/${customerId}`);
+}
+
+export function createTag(data: { name: string; type: number }) {
+  return requestClient.post<{ id: number }>('/dicts/tags', data);
+}
+
+export function updateTag(tagId: number, data: { name?: string; type?: number }) {
+  return requestClient.put(`/dicts/tags/${tagId}`, data);
+}
+
+export function deleteTag(tagId: number) {
+  return requestClient.delete(`/dicts/tags/${tagId}`);
+}
+
+export function toggleTagStatus(tagId: number, target: number) {
+  return requestClient.patch(`/dicts/tags/${tagId}/status`, { target });
+}

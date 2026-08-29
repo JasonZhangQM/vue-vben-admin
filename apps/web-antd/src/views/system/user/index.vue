@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { UserListItem } from '#/api/system/user';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -21,6 +21,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import {
   createUser,
@@ -69,18 +70,10 @@ function statusColor(status: number) {
 const detailOpen = ref(false);
 const detailUserId = ref<null | number>(null);
 
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row); // 打开详情即高亮该行
   detailUserId.value = row.id;
   detailOpen.value = true;
 }
@@ -305,12 +298,4 @@ onMounted(async () => {
     <DetailDrawer v-model:open="detailOpen" :user-id="detailUserId" @updated="loadList" />
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
 

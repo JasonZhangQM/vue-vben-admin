@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库（联动状态）/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
@@ -29,6 +29,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { dash, opt } from '#/utils/format';
 
 import {
   addEvaluate,
@@ -77,10 +78,6 @@ const EVALUATE_METHOD_OPTIONS = [
   { label: '其他', value: 90 },
 ];
 const USAGE_LABELS: Record<number, string> = { 10: '自用', 20: '出租', 30: '空置' };
-
-/** 空值文案兜底 */
-const dash = (v: unknown) =>
-  v === null || v === undefined || v === '' ? '—' : String(v);
 
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
 async function refresh() {
@@ -133,10 +130,6 @@ function openEdit() {
   });
   editVisible.value = true;
 }
-
-/** 留空转 undefined 不序列化 */
-const opt = (v: string | undefined | null) =>
-  v && v.trim() ? v.trim() : undefined;
 
 async function submitEdit() {
   if (!detail.value) return;

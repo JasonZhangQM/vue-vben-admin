@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 角色管理：角色名称列为详情入口；编辑/删除/权限配置收纳在详情抽屉。 */
 
 import type { PermissionItem, RoleDetail, RoleListItem } from '#/api/system/role';
@@ -32,6 +32,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import {
   assignRolePermissions,
@@ -64,18 +65,10 @@ const detailOpen = ref(false);
 const detailLoading = ref(false);
 const detail = ref<null | RoleDetail>(null);
 
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: any) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: any) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 function openDetail(row: any) {
-  activeRowKey.value = row.id; // 打开详情即高亮该行
+  highlightRow(row); // 打开详情即高亮该行
   detailOpen.value = true;
   detail.value = null;
   loadDetail(row.id);
@@ -258,8 +251,8 @@ async function submitCreate() {
 }
 
 const columns: TableColumnType[] = [
-  { title: '角色标识', dataIndex: 'code', ellipsis: true },
   { title: '角色名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
+  { title: '角色标识', dataIndex: 'code', ellipsis: true },
   { title: '数据范围', dataIndex: 'data_scope', ellipsis: true },
   { title: '用户数', dataIndex: 'user_count', ellipsis: true },
   { title: '权限数', dataIndex: 'permission_count', ellipsis: true },
@@ -464,11 +457,3 @@ onMounted(async () => {
     </Modal>
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>

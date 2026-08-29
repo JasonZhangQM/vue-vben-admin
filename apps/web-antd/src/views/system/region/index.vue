@@ -9,6 +9,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { Page } from '@vben/common-ui';
 
 import { Button, Card, Form, FormItem, Input, Table, Tag } from 'ant-design-vue';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 
 import { getRegionChildren, getRegionRoots, searchRegions } from '#/api/system/org';
 
@@ -88,15 +89,7 @@ async function onReset() {
 }
 
 // ================= 表格 =================
-// 行点击高亮：记录当前行 key
-const activeRowKey = ref<number>();
-const customRow = (record: RegionNode) => ({
-  onClick: () => {
-    activeRowKey.value = record.id;
-  },
-});
-const rowClassName = (record: RegionNode) =>
-  record.id === activeRowKey.value ? 'row-active' : '';
+const { customRow, rowClassName } = useRowHighlight();
 
 const LEVEL_LABELS: Record<number, string> = {
   10: '省',
@@ -173,11 +166,3 @@ onMounted(loadRoots);
     </Card>
   </Page>
 </template>
-
-<style scoped>
-/* 行点击高亮：同时覆盖普通态与 hover 态（穿透 antd 内部样式） */
-:deep(.ant-table-tbody > tr.row-active) > td,
-:deep(.ant-table-tbody > tr.row-active) > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
-}
-</style>
