@@ -69,15 +69,30 @@ const query = reactive({
   status: undefined as number | undefined,
 });
 
-/** 前端过滤 + 分页（后端返回全量数组） */
+/** 过滤快照：仅点击"查询/重置"或回车时从 query 拷贝，避免输入即过滤 */
+const applied = reactive({
+  q: '',
+  type: undefined as number | undefined,
+  status: undefined as number | undefined,
+});
+
+/** 提交筛选（查询按钮 / 回车 / 重置时调用） */
+function applyQuery() {
+  applied.q = query.q.trim();
+  applied.type = query.type;
+  applied.status = query.status;
+  query.page = 1;
+}
+
+/** 前端过滤 + 分页（后端返回全量数组，基于 applied 快照） */
 const filteredList = computed(() => {
   let arr = allTags.value;
-  if (query.q.trim()) {
-    const kw = query.q.trim().toLowerCase();
+  if (applied.q) {
+    const kw = applied.q.toLowerCase();
     arr = arr.filter((t) => t.name.toLowerCase().includes(kw));
   }
-  if (query.type !== undefined) arr = arr.filter((t) => t.type === query.type);
-  if (query.status !== undefined) arr = arr.filter((t) => t.status === query.status);
+  if (applied.type !== undefined) arr = arr.filter((t) => t.type === applied.type);
+  if (applied.status !== undefined) arr = arr.filter((t) => t.status === applied.status);
   return arr;
 });
 const pagedList = computed(() => {
@@ -99,7 +114,7 @@ function resetQuery() {
   query.q = '';
   query.type = undefined;
   query.status = undefined;
-  query.page = 1;
+  applyQuery();
 }
 
 const typeLabel = (v: number) => TAG_TYPE_OPTIONS.find((o) => o.value === v)?.label ?? dash(v);
@@ -278,7 +293,7 @@ onMounted(loadList);
           allow-clear
           placeholder="标签名称"
           style="width: 200px"
-          @press-enter="() => { query.page = 1; }"
+          @press-enter="applyQuery"
         />
         <SearchSelect
           v-model:value="query.type"
@@ -294,7 +309,7 @@ onMounted(loadList);
           placeholder="状态"
           style="width: 110px"
         />
-        <Button type="primary" @click="query.page = 1">查询</Button>
+        <Button type="primary" @click="applyQuery">查询</Button>
         <Button @click="resetQuery">重置</Button>
         <div class="flex-1" />
         <AccessControl :codes="['customer:create']" type="code">
