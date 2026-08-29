@@ -233,11 +233,10 @@ const tagsTabLoaded = ref(false);
 /** 标签类型 -> 分组标题 */
 const TAG_TYPE_LABELS: Record<number, string> = { 10: '行业标签', 20: '业务标签' };
 
-/** 按类型分组渲染可选标签（仅启用状态可选，停用标签仅在被引用时保留勾选回显） */
+/** 按类型分组渲染可选标签 */
 const groupedTags = computed(() => {
-  const selectable = allTags.value.filter((t) => t.status === 10);
   const groups = new Map<number, ExtraTag[]>();
-  for (const t of selectable) {
+  for (const t of allTags.value) {
     const arr = groups.get(t.type) ?? [];
     arr.push(t);
     groups.set(t.type, arr);
@@ -519,7 +518,7 @@ async function saveTags() {
               </Checkbox>
             </div>
           </div>
-          <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签（请先在客户标签页启用或创建）</div>
+          <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签（请先在客户标签页创建）</div>
         </TabPane>
       </Tabs>
     </div>

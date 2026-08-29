@@ -8,7 +8,6 @@ import { AccessControl } from '@vben/access';
 import { Page } from '@vben/common-ui';
 
 import {
-  Alert,
   Button,
   Card,
   Descriptions,
@@ -21,7 +20,6 @@ import {
   Modal,
   Popconfirm,
   Space,
-  Switch,
   Table,
   TabPane,
   Tabs,
@@ -38,9 +36,7 @@ import {
   getTagCustomers,
   getTagList,
   removeTagCustomer,
-  TAG_STATUS_OPTIONS,
   TAG_TYPE_OPTIONS,
-  toggleTagStatus,
   updateTag,
 } from '#/api/basic/customer';
 
@@ -66,21 +62,18 @@ const query = reactive({
   page_size: 20,
   q: '',
   type: undefined as number | undefined,
-  status: undefined as number | undefined,
 });
 
 /** 过滤快照：仅点击"查询/重置"或回车时从 query 拷贝，避免输入即过滤 */
 const applied = reactive({
   q: '',
   type: undefined as number | undefined,
-  status: undefined as number | undefined,
 });
 
 /** 提交筛选（查询按钮 / 回车 / 重置时调用） */
 function applyQuery() {
   applied.q = query.q.trim();
   applied.type = query.type;
-  applied.status = query.status;
   query.page = 1;
 }
 
@@ -92,7 +85,6 @@ const filteredList = computed(() => {
     arr = arr.filter((t) => t.name.toLowerCase().includes(kw));
   }
   if (applied.type !== undefined) arr = arr.filter((t) => t.type === applied.type);
-  if (applied.status !== undefined) arr = arr.filter((t) => t.status === applied.status);
   return arr;
 });
 const pagedList = computed(() => {
@@ -113,7 +105,6 @@ async function loadList() {
 function resetQuery() {
   query.q = '';
   query.type = undefined;
-  query.status = undefined;
   applyQuery();
 }
 
@@ -122,7 +113,6 @@ const typeLabel = (v: number) => TAG_TYPE_OPTIONS.find((o) => o.value === v)?.la
 const columns: TableColumnType[] = [
   { title: '标签名称', dataIndex: 'name' },
   { title: '类型', dataIndex: 'type', width: 110, ellipsis: true },
-  { title: '状态', dataIndex: 'status', width: 110, ellipsis: true },
   { title: '使用中', dataIndex: 'in_use', width: 100, ellipsis: true },
 ];
 
@@ -161,20 +151,6 @@ async function refreshDrawer() {
     tagCustomers.value = await getTagCustomers(detail.value.id);
   } finally {
     customersLoading.value = false;
-  }
-}
-
-// 抽屉内启停用
-async function onToggleStatus() {
-  if (!detail.value) return;
-  const target = detail.value.status === 10 ? 20 : 10;
-  try {
-    await toggleTagStatus(detail.value.id, target);
-    message.success(target === 10 ? '已启用' : '已停用');
-    await loadList();
-    await refreshDrawer();
-  } catch {
-    // 状态由数据源驱动，刷新后自动回滚
   }
 }
 
@@ -302,13 +278,6 @@ onMounted(loadList);
           placeholder="类型"
           style="width: 120px"
         />
-        <SearchSelect
-          v-model:value="query.status"
-          :options="TAG_STATUS_OPTIONS"
-          allow-clear
-          placeholder="状态"
-          style="width: 110px"
-        />
         <Button type="primary" @click="applyQuery">查询</Button>
         <Button @click="resetQuery">重置</Button>
         <div class="flex-1" />
@@ -346,11 +315,6 @@ onMounted(loadList);
           <template v-else-if="column.dataIndex === 'type'">
             {{ typeLabel(record.type) }}
           </template>
-          <template v-else-if="column.dataIndex === 'status'">
-            <Tag :color="record.status === 10 ? 'green' : 'default'">
-              {{ record.status === 10 ? '启用' : '停用' }}
-            </Tag>
-          </template>
           <template v-else-if="column.dataIndex === 'in_use'">
             <Tag :color="record.in_use ? 'green' : 'default'">
               {{ record.in_use ? '使用中' : '未使用' }}
@@ -384,27 +348,14 @@ onMounted(loadList);
                   <Button danger :disabled="detail.in_use">删除</Button>
                 </Popconfirm>
               </AccessControl>
-              <AccessControl :codes="['customer:update']" type="code">
-                <Switch
-                  :checked="detail.status === 10"
-                  checked-children="启用"
-                  un-checked-children="停用"
-                  @change="onToggleStatus"
-                />
-              </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="2" size="small" bordered>
+          <Descriptions :column="2" size="small">
             <DescriptionsItem label="标签名称">
               {{ dash(detail.name) }}
             </DescriptionsItem>
             <DescriptionsItem label="标签类型">
               {{ typeLabel(detail.type) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="状态">
-              <Tag :color="detail.status === 10 ? 'green' : 'default'">
-                {{ detail.status === 10 ? '启用' : '停用' }}
-              </Tag>
             </DescriptionsItem>
             <DescriptionsItem label="使用中">
               <Tag :color="detail.in_use ? 'green' : 'default'">
@@ -417,13 +368,6 @@ onMounted(loadList);
         <!-- 关联数据：客户 Tab -->
         <Tabs class="mt-3" size="small">
           <TabPane :tab="`客户（${tagCustomers.length}）`" key="customers">
-            <Alert
-              v-if="detail.status === 20"
-              class="mb-2"
-              message="该标签已停用，仅历史引用可见，不再参与新选择"
-              show-icon
-              type="warning"
-            />
             <Table
               :columns="customerColumns"
               :data-source="tagCustomers"

@@ -242,11 +242,105 @@ export function addCoreLimit(
 
 // ===== 集团 =====
 
-/** 集团树（新建客户表单 / 筛选用） */
+/** 集团树节点（成员数/在保汇均为合并口径：本集团 + 全部子集团） */
+export interface GroupTreeNode {
+  children: GroupTreeNode[];
+  code: string;
+  credit_amount: number;
+  id: number;
+  member_count: number;
+  name: string;
+  parent_customer_id: null | number;
+  parent_customer_name: null | string;
+  parent_id: null | number;
+  total_insure_amount: number;
+}
+
+export interface GroupMemberItem {
+  amount: number;
+  classification: number;
+  credit_amount: number;
+  custom_state: number;
+  genre: number;
+  id: number;
+  is_acceptor: boolean;
+  is_core: boolean;
+  managementor_name: string;
+  name: string;
+  short_name: string;
+}
+
+export interface GroupDetail extends GroupTreeNode {
+  created_at: string;
+  created_by_name: string;
+  description: null | string;
+  members: GroupMemberItem[];
+}
+
+export interface GroupCreateParams {
+  code: string;
+  credit_amount?: number;
+  description?: string;
+  name: string;
+  parent_customer_id: number;
+  parent_id?: number;
+}
+
+/** GroupUpdate：name/credit_amount/description 全字段提交，parent 两项可空表示不修改 */
+export interface GroupUpdateParams {
+  credit_amount: number;
+  description?: string;
+  name: string;
+  parent_customer_id?: number;
+  parent_id?: number;
+}
+
+/** 集团树（集团管理列表 / 新建客户表单 / 筛选用） */
 export function getGroupTree() {
-  return requestClient.get<
-    { children: unknown[]; code: string; id: number; name: string }[]
-  >('/customer-groups');
+  return requestClient.get<GroupTreeNode[]>('/customer-groups');
+}
+
+/** 新建集团（必须指定母公司，母公司自动加入成员） */
+export function createGroup(data: GroupCreateParams) {
+  return requestClient.post<{ id: number }>('/customer-groups', data);
+}
+
+/** 集团详情（基本信息 + 直接成员 Top20 + 合并汇总） */
+export function getGroupDetail(id: number) {
+  return requestClient.get<GroupDetail>(`/customer-groups/${id}`);
+}
+
+/** 修改集团（可换父集团/换母公司，后端拦截成环与停用冲突） */
+export function updateGroup(id: number, data: GroupUpdateParams) {
+  return requestClient.request(`/customer-groups/${id}`, {
+    data,
+    method: 'PATCH',
+  });
+}
+
+/** 删除集团（拦截：仍有成员或子集团） */
+export function deleteGroup(id: number) {
+  return requestClient.delete(`/customer-groups/${id}`);
+}
+
+/** 集团成员分页列表（直接成员，不含子集团） */
+export function listGroupMembers(id: number, params: { page: number; page_size: number }) {
+  return requestClient.get<PageResult<GroupMemberItem>>(
+    `/customer-groups/${id}/members`,
+    { params },
+  );
+}
+
+/** 批量加入成员企业（拦截：非企业客户/已属其他集团） */
+export function addGroupMembers(id: number, customerIds: number[]) {
+  return requestClient.post<{ added: number }>(`/customer-groups/${id}/members`, {
+    customer_ids: customerIds,
+  });
+}
+
+/** 移除成员企业（母公司不可移除，后端拦截） */
+export function removeGroupMember(id: number, customerId: number) {
+  return requestClient.delete(`/customer-groups/${id}/members/${customerId}`);
 }
 
 // ===== 统计 =====
@@ -268,7 +362,6 @@ export interface ExtraTag {
   id: number;
   name: string;
   type: number;       // 10 行业标签 / 20 业务标签
-  status: number;     // 10 启用 / 20 停用
   in_use: boolean;    // 是否已被客户引用
 }
 
@@ -276,11 +369,6 @@ export interface ExtraTag {
 export const TAG_TYPE_OPTIONS = [
   { label: '行业标签', value: 10 },
   { label: '业务标签', value: 20 },
-];
-
-export const TAG_STATUS_OPTIONS = [
-  { label: '启用', value: 10 },
-  { label: '停用', value: 20 },
 ];
 
 export function getTagList() {
@@ -317,8 +405,4 @@ export function updateTag(tagId: number, data: { name?: string; type?: number })
 
 export function deleteTag(tagId: number) {
   return requestClient.delete(`/dicts/tags/${tagId}`);
-}
-
-export function toggleTagStatus(tagId: number, target: number) {
-  return requestClient.patch(`/dicts/tags/${tagId}/status`, { target });
 }
