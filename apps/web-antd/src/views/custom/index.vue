@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 客户管理：列表（data_scope 过滤）/ 新建（直落库）/ 详情抽屉。 */
 
 import type { CustomerListItem } from '#/api/basic/customer';
@@ -27,6 +27,7 @@ import {
   TreeSelect,
 } from 'ant-design-vue';
 
+import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import {
@@ -37,8 +38,6 @@ import {
 import {
   getCreditRegionTree,
   getIndustryTree,
-  getRegionChildren,
-  getRegionRoots,
 } from '#/api/basic/dict';
 import { getUserList } from '#/api/system/user';
 
@@ -179,7 +178,6 @@ const createForm = reactive({
 
 // 下拉数据源
 const userOptions = ref<{ label: string; value: number }[]>([]);
-const regionTreeData = ref<any[]>([]);
 const industryTreeData = ref<any[]>([]);
 const creditRegionTreeData = ref<any[]>([]);
 const groupTreeData = ref<any[]>([]);
@@ -194,56 +192,15 @@ function toTreeData(nodes: any[]): any[] {
   }));
 }
 
-/** 区域懒加载节点 → AntD TreeSelect treeData（初始 roots / 子级追加通用）
- * 有子级的节点必须同时设 children: [] + isLeaf: false：
- * - children: [] 空数组占位，让 TreeSelect 知道此节点有子级容器
- * - isLeaf: false 显式告诉 Tree 这不是叶子节点（空数组 .length=0 → falsy，
- *   单靠 children 无法通过 expandable 判断）
- */
-function toRegionNodes(nodes: any[]): any[] {
-  return (nodes ?? []).map((n) => ({
-    key: n.id,
-    title: n.name,
-    value: n.id,
-    children: n.has_children ? [] : undefined,
-    isLeaf: !n.has_children,
-  }));
-}
-
-/** 在 treeData 中递归查找指定 key 的节点（引用原对象，Vue 响应式生效） */
-function findNodeInTree(nodes: any[], key: number): any | null {
-  for (const n of nodes) {
-    if (n.key === key) return n;
-    if (n.children?.length) {
-      const hit = findNodeInTree(n.children, key);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
-
-/** 区域 TreeSelect 异步懒加载：在 regionTreeData 中找到节点并替换 children */
-async function loadRegionChildren(node: any) {
-  const children = await getRegionChildren(node.key);
-  const target = findNodeInTree(regionTreeData.value, node.key);
-  if (target) {
-    target.children = toRegionNodes(children);
-    // 有子级但没更多孙子 → 展开箭头消失正确
-  }
-}
-
 async function loadOptions() {
-  // 用户下拉（管护经理 / 风控专员共用）
-  // 区域只加载省级 roots（懒加载）；行业/授信区域/集团全量
-  const [users, regionRoots, industries, creditRegions, groups] = await Promise.all([
+  // 用户下拉（管护经理 / 风控专员共用）；区域懒加载/搜索已封装进 RegionTreeSelect 组件
+  const [users, industries, creditRegions, groups] = await Promise.all([
     getUserList({ page: 1, page_size: 200 }),
-    getRegionRoots(),
     getIndustryTree(),
     getCreditRegionTree(),
     getGroupTree(),
   ]);
   userOptions.value = users.items.map((u) => ({ label: u.name, value: u.id }));
-  regionTreeData.value = toRegionNodes(regionRoots);
   industryTreeData.value = toTreeData(industries);
   creditRegionTreeData.value = toTreeData(creditRegions);
   groupTreeData.value = toTreeData(groups);
@@ -554,20 +511,12 @@ function filterOption(input: string, node: any) {
           />
         </FormItem>
         <FormItem label="行政区域" required>
-          <TreeSelect
-            show-search
-            :filter-option="filterOption"
-            v-model:value="createForm.region_id"
-            :field-names="{ label: 'title', value: 'value', children: 'children' }"
-            :tree-data="regionTreeData"
-            :load-data="loadRegionChildren"
-            placeholder="行政区划（展开加载子级）"
-          />
+          <RegionTreeSelect v-model:value="createForm.region_id" />
         </FormItem>
         <FormItem label="行业分类" required>
           <TreeSelect
             show-search
-            :filter-option="filterOption"
+            :filter-tree-node="filterOption"
             v-model:value="createForm.industry_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="industryTreeData"
@@ -578,7 +527,7 @@ function filterOption(input: string, node: any) {
         <FormItem label="授信区域">
           <TreeSelect
             show-search
-            :filter-option="filterOption"
+            :filter-tree-node="filterOption"
             v-model:value="createForm.credit_region_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="creditRegionTreeData"
@@ -590,7 +539,7 @@ function filterOption(input: string, node: any) {
         <FormItem label="所属集团">
           <TreeSelect
             show-search
-            :filter-option="filterOption"
+            :filter-tree-node="filterOption"
             v-model:value="createForm.group_id"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="groupTreeData"

@@ -13,7 +13,8 @@ import { $t, setupI18n } from '#/locales';
 
 import { useDictStore } from '#/store';
 
-import SearchSelect from '#/components/SearchSelect.vue';
+import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
+import SearchSelect from '#/components/SearchSelect/index.vue';
 import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
@@ -49,8 +50,9 @@ async function bootstrap(namespace: string) {
   // 配置 pinia-tore
   await initStores(app, { namespace });
 
-  // 全局注册业务通用组件
+  // 全局注册业务通用组件（页面直接使用，无需 import）
   app.component('SearchSelect', SearchSelect);
+  app.component('RegionTreeSelect', RegionTreeSelect);
 
   // 启动时预加载全部枚举字典（后端 GET /api/v1/dicts，公开接口无需登录）
   // 拉取失败不阻断启动，字典会在首次访问业务页面时按需再试

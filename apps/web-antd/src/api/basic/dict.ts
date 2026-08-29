@@ -62,6 +62,16 @@ export function getRegionChildren(parentId: number) {
   return requestClient.get<RegionTreeNode[]>(`/regions/${parentId}/children`);
 }
 
+/** 行政区域搜索（远程搜索，返回平铺结果带完整路径） */
+export function searchRegions(q: string) {
+  return requestClient.get<(RegionTreeNode & { path: string })[]>('/regions/search', { params: { q } });
+}
+
+/** 行政区域单节点详情（带完整路径，编辑回显用） */
+export function getRegionDetail(id: number) {
+  return requestClient.get<RegionTreeNode & { path: string }>(`/regions/${id}`);
+}
+
 /** 行业分类树 */
 export function getIndustryTree() {
   return requestClient.get<TreeNode[]>('/dicts/industries/tree');

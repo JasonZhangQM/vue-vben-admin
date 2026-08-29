@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度。 */
 
 import type { CustomerDetail } from '#/api/basic/customer';
@@ -41,7 +41,9 @@ import {
   listShareholders,
   updateCustomer,
 } from '#/api/basic/customer';
-import { getIndustryTree, getRegionChildren, getRegionRoots } from '#/api/basic/dict';
+import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
+
+import { getIndustryTree } from '#/api/basic/dict';
 
 const props = defineProps<{ customerId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -101,7 +103,6 @@ const canUpdate = computed(() => hasAccessByCodes(['customer:update']));
 
 const editVisible = ref(false);
 const editLoading = ref(false);
-const regionTreeData = ref<any[]>([]);
 const industryTreeData = ref<any[]>([]);
 const editForm = reactive({
   name: '',
@@ -124,48 +125,17 @@ function toTreeData(nodes: any[]): any[] {
   }));
 }
 
-/** 区域懒加载节点：has_children=true 需同时设 children: [] + isLeaf: false */
-function toRegionNodes(nodes: any[]): any[] {
-  return (nodes ?? []).map((n) => ({
-    key: n.id,
-    title: n.name,
-    value: n.id,
-    children: n.has_children ? [] : undefined,
-    isLeaf: !n.has_children,
-  }));
-}
-
-/** 在 treeData 中递归查找指定 key 的节点（引用原对象，Vue 响应式生效） */
-function findNodeInTree(nodes: any[], key: number): any | null {
-  for (const n of nodes) {
-    if (n.key === key) return n;
-    if (n.children?.length) {
-      const hit = findNodeInTree(n.children, key);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
-
-/** 区域 TreeSelect 异步懒加载：修改 regionTreeData 原对象触发 Vue 响应式 */
-async function loadRegionChildren(node: any) {
-  const children = await getRegionChildren(node.key);
-  const target = findNodeInTree(regionTreeData.value, node.key);
-  if (target) {
-    target.children = toRegionNodes(children);
-  }
+/** TreeSelect 按 title 搜索（本地过滤，行业等） */
+function filterOption(input: string, node: any) {
+  const title = String(node?.title ?? node?.label ?? '').toLowerCase();
+  return title.includes(input.toLowerCase());
 }
 
 async function openEdit() {
   if (!detail.value) return;
-  // 编辑需要区域 roots（懒加载）/ 行业全量（仅首次加载）
-  if (!regionTreeData.value.length) {
-    const [regionRoots, industries] = await Promise.all([
-      getRegionRoots(),
-      getIndustryTree(),
-    ]);
-    regionTreeData.value = toRegionNodes(regionRoots);
-    industryTreeData.value = toTreeData(industries);
+  // 编辑需要行业全量（仅首次加载）；区域懒加载/搜索已封装进 RegionTreeSelect 组件
+  if (!industryTreeData.value.length) {
+    industryTreeData.value = toTreeData(await getIndustryTree());
   }
   Object.assign(editForm, {
     name: detail.value.name ?? '',
@@ -490,14 +460,9 @@ async function submitLimit() {
           <Input v-model:value="editForm.contact_addr" :disabled="!canUpdate" />
         </FormItem>
         <FormItem label="行政区域">
-          <TreeSelect
-            show-search
-            :filter-option="filterOption"
+          <RegionTreeSelect
             v-model:value="editForm.region_id"
             :disabled="!canUpdate"
-            :field-names="{ label: 'title', value: 'value', children: 'children' }"
-            :tree-data="regionTreeData"
-            :load-data="loadRegionChildren"
             allow-clear
             placeholder="留空保持不变"
           />
@@ -505,7 +470,7 @@ async function submitLimit() {
         <FormItem label="行业分类">
           <TreeSelect
             show-search
-            :filter-option="filterOption"
+            :filter-tree-node="filterOption"
             v-model:value="editForm.industry_id"
             :disabled="!canUpdate"
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
