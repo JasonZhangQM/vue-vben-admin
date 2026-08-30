@@ -324,28 +324,63 @@ async function saveTags() {
           </div>
         </template>
         <Descriptions :column="detailColumns" size="small">
+          <!-- 基础标识 -->
           <DescriptionsItem label="客户名称">{{ dash(detail.name) }}</DescriptionsItem>
           <DescriptionsItem label="简称">{{ dash(detail.short_name) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ detail.genre === 1 ? '企业' : '个人' }}</DescriptionsItem>
+          <DescriptionsItem label="业务分类">{{ dash(detail.custom_typ) }}</DescriptionsItem>
+          <DescriptionsItem label="客户状态">
+            <Tag v-if="detail.custom_state === 10" color="green">正常</Tag>
+            <Tag v-else-if="detail.custom_state === 20" color="orange">反担保</Tag>
+            <Tag v-else-if="detail.custom_state === 30" color="cyan">小贷</Tag>
+            <Tag v-else-if="detail.custom_state === 90" color="red">注销</Tag>
+            <span v-else>{{ dash(detail.custom_state) }}</span>
+          </DescriptionsItem>
+
+          <!-- 关联归属 -->
+          <DescriptionsItem label="管护经理">{{ dash(detail.managementor_name) }}</DescriptionsItem>
+          <DescriptionsItem label="风控专员">{{ dash(detail.controler_name) }}</DescriptionsItem>
+          <DescriptionsItem label="所属集团">{{ dash(detail.group_name) }}</DescriptionsItem>
+          <DescriptionsItem label="授信区域">{{ dash(detail.credit_region_name) }}</DescriptionsItem>
+          <DescriptionsItem label="行政区域">{{ dash((detail as any).region_name) }}</DescriptionsItem>
+          <DescriptionsItem label="行业分类">{{ dash((detail as any).industry_name) }}</DescriptionsItem>
+
+          <!-- 联系人 -->
+          <DescriptionsItem label="联系人">{{ dash(detail.linkman) }}</DescriptionsItem>
+          <DescriptionsItem label="联系电话">{{ dash(detail.contact_num) }}</DescriptionsItem>
+          <DescriptionsItem label="联系地址" :span="detailColumns">{{ dash(detail.contact_addr) }}</DescriptionsItem>
+
+          <!-- 状态/分类 -->
           <DescriptionsItem label="五级分类">
             <Tag :color="classificationColor(detail.classification)">
               {{ dash(detail.classification_display) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="管护经理">{{ dash(detail.managementor_name) }}</DescriptionsItem>
-          <DescriptionsItem label="风控专员">{{ dash(detail.controler_name) }}</DescriptionsItem>
-          <DescriptionsItem label="联系人">{{ dash((detail as any).linkman) }}</DescriptionsItem>
-          <DescriptionsItem label="联系电话">{{ dash((detail as any).contact_num) }}</DescriptionsItem>
-          <DescriptionsItem label="授信额度">{{ detail.credit_amount.toLocaleString() }}</DescriptionsItem>
-          <DescriptionsItem label="在保余额">{{ detail.amount.toLocaleString() }}</DescriptionsItem>
-          <DescriptionsItem label="所属集团">{{ dash(detail.group_name) }}</DescriptionsItem>
-          <DescriptionsItem label="授信区域">{{ dash(detail.credit_region_name) }}</DescriptionsItem>
           <DescriptionsItem v-if="detail.is_core" label="核心企业">
             <Tag color="purple">是</Tag>
           </DescriptionsItem>
           <DescriptionsItem v-if="detail.is_acceptor" label="承兑人">
             <Tag color="cyan">是</Tag>
           </DescriptionsItem>
+          <DescriptionsItem v-if="detail.core_rate" label="核心占比">{{ detail.core_rate }}%</DescriptionsItem>
+
+          <!-- 金额/汇总 -->
+          <DescriptionsItem label="授信额度">{{ detail.credit_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="在保余额">{{ detail.amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="流贷余额">{{ (detail as any).custom_flow?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="担保余额">{{ (detail as any).custom_accept?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="反担保余额">{{ (detail as any).custom_back?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="委托贷款">{{ (detail as any).entrusted_loan?.toLocaleString() ?? '—' }}</DescriptionsItem>
+
+          <!-- 时间 -->
+          <DescriptionsItem label="最近放款">{{ dash((detail as any).last_provide_date) }}</DescriptionsItem>
+          <DescriptionsItem label="最近评审">{{ dash((detail as any).last_review_date) }}</DescriptionsItem>
+          <DescriptionsItem label="授信到期天数">{{ (detail as any).day_space ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="数据同步时间">{{ dash((detail as any).last_synced_at) }}</DescriptionsItem>
+
+          <!-- 审计信息 -->
+          <DescriptionsItem label="创建人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
+          <DescriptionsItem label="创建时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
       </Card>
 

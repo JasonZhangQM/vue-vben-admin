@@ -616,7 +616,7 @@ onMounted(loadList);
               </AccessControl>
             </Space>
           </template>
-          <Descriptions :column="detailColumns" size="small" bordered>
+          <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="名称">{{ dash(detail.name) }}</DescriptionsItem>
             <DescriptionsItem label="简称">{{ dash(detail.short_name) }}</DescriptionsItem>
             <DescriptionsItem label="类型">

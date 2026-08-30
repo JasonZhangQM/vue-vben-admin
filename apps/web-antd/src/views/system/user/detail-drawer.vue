@@ -210,20 +210,35 @@ async function onDelete() {
           </Space>
         </template>
         <Descriptions :column="detailColumns" size="small">
+          <!-- 基础标识 -->
           <DescriptionsItem label="用户名">{{ dash(detail.username) }}</DescriptionsItem>
           <DescriptionsItem label="姓名">{{ dash(detail.name) }}</DescriptionsItem>
-          <DescriptionsItem label="状态">
-            <Tag :color="statusColor(detail.status)">{{ statusLabel(detail.status) }}</Tag>
+          <DescriptionsItem v-if="detail.is_super_admin" label="超管">
+            <Tag color="red">超级管理员</Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="性别">{{ genderLabel(detail.gender) }}</DescriptionsItem>
-          <DescriptionsItem label="邮箱">{{ dash(detail.email) }}</DescriptionsItem>
-          <DescriptionsItem label="手机号">{{ dash(detail.phone) }}</DescriptionsItem>
-          <DescriptionsItem label="部门">{{ dash(detail.dept_name) }}</DescriptionsItem>
+
+          <!-- 关联归属 -->
+          <DescriptionsItem label="部门">{{ dash((detail as any).dept_path_name) }}</DescriptionsItem>
           <DescriptionsItem label="职务">{{ dash(detail.position) }}</DescriptionsItem>
           <DescriptionsItem label="角色" :span="detailColumns">
             {{ detail.roles.length ? detail.roles.map((r) => r.name).join('、') : '—' }}
           </DescriptionsItem>
+
+          <!-- 状态/分类 -->
+          <DescriptionsItem label="状态">
+            <Tag :color="statusColor(detail.status)">{{ dash((detail as any).status_display) }}</Tag>
+          </DescriptionsItem>
+          <DescriptionsItem label="性别">{{ genderLabel(detail.gender) }}</DescriptionsItem>
+
+          <!-- 联系方式 -->
+          <DescriptionsItem label="邮箱">{{ dash(detail.email) }}</DescriptionsItem>
+          <DescriptionsItem label="手机号">{{ dash(detail.phone) }}</DescriptionsItem>
+
+          <!-- 时间 -->
           <DescriptionsItem label="最近登录">{{ dash(detail.last_login_at) }}</DescriptionsItem>
+
+          <!-- 审计信息 -->
+          <DescriptionsItem label="创建人">{{ dash((detail as any).created_by_name) }}</DescriptionsItem>
           <DescriptionsItem label="创建时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
       </Card>

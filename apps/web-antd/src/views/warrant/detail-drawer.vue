@@ -265,16 +265,46 @@ async function submitEvaluate() {
           </div>
         </template>
         <Descriptions :column="detailColumns" size="small">
+          <!-- 基础标识 -->
           <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
-          <DescriptionsItem label="类型">{{ TYPE_LABELS[detail.warrant_type] ?? detail.warrant_type }}</DescriptionsItem>
-          <DescriptionsItem label="状态">
-            <Tag :color="STATE_COLOR[detail.warrant_state] ?? 'default'">
-              {{ STATE_LABELS[detail.warrant_state] ?? detail.warrant_state }}
+          <DescriptionsItem label="类型">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
+          <DescriptionsItem label="所有权人" :span="detailColumns">
+            {{ (detail.owner_names as string[])?.join('、') || '—' }}
+          </DescriptionsItem>
+
+          <!-- 状态/分类 -->
+          <DescriptionsItem label="权证状态">
+            <Tag :color="STATE_COLOR[(detail as any).warrant_state] ?? 'default'">
+              {{ dash((detail as any).warrant_state_display) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="评估值">
-            {{ detail.evaluate_value?.toLocaleString() ?? '—' }}
+          <DescriptionsItem label="拍卖状态">
+            <Tag :color="STATE_COLOR[(detail as any).auction_state] ?? 'default'">
+              {{ dash((detail as any).auction_state_display) }}
+            </Tag>
           </DescriptionsItem>
+
+          <!-- 评估信息 -->
+          <DescriptionsItem label="评估方式">{{ dash((detail as any).evaluate_method_display) }}</DescriptionsItem>
+          <DescriptionsItem label="评估值">{{ (detail.evaluate_value as number)?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="评估日期">{{ dash((detail as any).evaluate_date) }}</DescriptionsItem>
+          <DescriptionsItem label="评估机构">{{ dash((detail as any).evaluate_company) }}</DescriptionsItem>
+          <DescriptionsItem label="评估说明" :span="detailColumns">{{ dash((detail as any).evaluate_explain) }}</DescriptionsItem>
+
+          <!-- 流转时间 -->
+          <DescriptionsItem label="入库会议">{{ dash((detail as any).meeting_date) }}</DescriptionsItem>
+          <DescriptionsItem label="询价日期">{{ dash((detail as any).inquiry_date) }}</DescriptionsItem>
+          <DescriptionsItem label="拍卖日期">{{ dash((detail as any).auction_date) }}</DescriptionsItem>
+          <DescriptionsItem label="交易日期">{{ dash((detail as any).transaction_date) }}</DescriptionsItem>
+
+          <!-- 拍卖金额 -->
+          <DescriptionsItem label="起拍价">{{ (detail as any).listing_price?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="成交价">{{ (detail as any).auction_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="拍卖说明" :span="detailColumns">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
+          <DescriptionsItem label="入库说明" :span="detailColumns">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
+          <DescriptionsItem label="询价详情" :span="detailColumns">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
+
+          <!-- 审计信息 -->
           <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
           <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
