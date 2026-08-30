@@ -85,7 +85,7 @@ const projectItems: WorkbenchProjectItem[] = [
   },
 ];
 
-// 同样，这里的 url 也可以使用以 http 开头的外部链接
+// 快捷导航指向已实现的业务模块（原 vben 演示链接已随 demos 路由删除）
 const quickNavItems: WorkbenchQuickNavItem[] = [
   {
     color: '#1fdaca',
@@ -95,33 +95,33 @@ const quickNavItems: WorkbenchQuickNavItem[] = [
   },
   {
     color: '#bf0c2c',
-    icon: 'ion:grid-outline',
-    title: '仪表盘',
-    url: '/dashboard',
+    icon: 'ion:people-outline',
+    title: '客户管理',
+    url: '/customer',
   },
   {
     color: '#e18525',
     icon: 'ion:layers-outline',
-    title: '组件',
-    url: '/demos/features/icons',
+    title: '权证管理',
+    url: '/warrant',
   },
   {
     color: '#3fb27f',
-    icon: 'ion:settings-outline',
-    title: '系统管理',
-    url: '/demos/features/login-expired', // 这里的 URL 是示例，实际项目中需要根据实际情况进行调整
+    icon: 'ion:business-outline',
+    title: '机构管理',
+    url: '/institution',
   },
   {
     color: '#4daf1bc9',
     icon: 'ion:key-outline',
-    title: '权限管理',
-    url: '/demos/access/page-control',
+    title: '审批中心',
+    url: '/approval',
   },
   {
     color: '#00d8ff',
-    icon: 'ion:bar-chart-outline',
-    title: '图表',
-    url: '/analytics',
+    icon: 'ion:settings-outline',
+    title: '系统管理',
+    url: '/system',
   },
 ];
 

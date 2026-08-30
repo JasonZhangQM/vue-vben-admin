@@ -83,8 +83,9 @@ function onRemoteSearch(val: string) {
 </script>
 
 <template>
+  <!-- value 绑定不经 v-model 声明：父组件 v-model:value 经 inheritAttrs=false
+       落入 $attrs，由下方 v-bind 整体透传给 Select（remote 分支追加 onSearch） -->
   <Select
-    v-model:value="$modelValue"
     show-search
     :allow-clear="allowClear"
     :disabled="disabled"

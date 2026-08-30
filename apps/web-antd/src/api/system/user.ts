@@ -25,11 +25,27 @@ export interface UserListItem {
   status: number;
   username: string;
   created_by_name: string;
+  // ---- 后端 UserListItem 实际出参补充 ----
+  avatar_url: null | string;
+  status_display: string;
+  is_super_admin: boolean;
+}
+
+/** 操作日志摘要（用户详情 recent_logs） */
+export interface OperationLogBrief {
+  id: number;
+  module: string;
+  action: string;
+  target_name: null | string;
+  status: number;
+  created_at: string;
 }
 
 export interface UserDetail extends UserListItem {
-  data_scope: number;
+  dept_path_name: null | string;
   roles: { code: string; data_scope: number; id: number; name: string }[];
+  permission_count: number;
+  recent_logs: OperationLogBrief[];
 }
 
 export interface UserCreateParams {

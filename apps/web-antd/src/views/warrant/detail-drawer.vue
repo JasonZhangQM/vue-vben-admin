@@ -30,6 +30,7 @@ import {
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
+import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
 
 import {
@@ -46,42 +47,17 @@ const emit = defineEmits<{ updated: [] }>();
 
 // 详情基本信息响应式列数（视口越宽列越多）
 const { columns: detailColumns } = useDetailColumns();
+const dictStore = useDictStore();
 
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | WarrantDetail>(null);
 const loading = ref(false);
 
-// 枚举（与后端 warrant/enums.py 对齐）
-const TYPE_LABELS: Record<number, string> = {
-  1: '房产', 5: '土地', 6: '在建工程', 11: '应收账款', 21: '股权',
-  31: '票据', 41: '车辆', 51: '动产', 55: '其他', 99: '他权',
-};
+// 状态 → Tag 颜色映射（颜色不由后端控制，但集中维护）
 const STATE_COLOR: Record<number, string> = {
   10: 'default', 20: 'green', 30: 'blue', 60: 'default',
   110: 'orange', 210: 'orange', 310: 'red', 410: 'purple', 990: 'red',
 };
-const STATE_LABELS: Record<number, string> = {
-  10: '未入库', 20: '已入库', 30: '已加保', 60: '无需入库',
-  110: '已借出', 210: '已借出', 310: '解保出库', 410: '已移交', 990: '已注销',
-};
-const STORAGE_TYPE_OPTIONS = [
-  { label: '入库', value: 10 },
-  { label: '续抵出库', value: 20 },
-  { label: '已加保', value: 30 },
-  { label: '无需入库', value: 60 },
-  { label: '借出', value: 110 },
-  { label: '归还', value: 120 },
-  { label: '解保出库', value: 310 },
-  { label: '移交', value: 410 },
-];
-const EVALUATE_METHOD_OPTIONS = [
-  { label: '成本法', value: 10 },
-  { label: '市场法', value: 20 },
-  { label: '收益法', value: 30 },
-  { label: '假设开发法', value: 40 },
-  { label: '其他', value: 90 },
-];
-const USAGE_LABELS: Record<number, string> = { 10: '自用', 20: '出租', 30: '空置' };
 
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
 async function refresh() {
@@ -354,7 +330,7 @@ async function submitEvaluate() {
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'house_usage'">
-                {{ USAGE_LABELS[record.house_usage] ?? record.house_usage }}
+                {{ dictStore.labelOf('warrant.house_usage', record.house_usage) }}
               </template>
               <template v-else-if="column.dataIndex === 'house_build_year'">
                 {{ record.house_build_year ?? '—' }}
@@ -363,12 +339,131 @@ async function submitEvaluate() {
           </Table>
         </TabPane>
 
+        <!-- 土地（type=5） -->
+        <TabPane v-if="detail.ground" key="ground" tab="土地信息">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="坐落">{{ dash(detail.ground.ground_locate) }}</DescriptionsItem>
+            <DescriptionsItem label="用途">{{ dash(detail.ground.ground_app) }}</DescriptionsItem>
+            <DescriptionsItem label="面积(㎡)">{{ detail.ground.ground_area ?? '—' }}</DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 在建工程（type=6） -->
+        <TabPane v-if="detail.construction" key="construction" tab="在建工程">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="坐落">{{ dash(detail.construction.construct_locate) }}</DescriptionsItem>
+            <DescriptionsItem label="用途">{{ dash(detail.construction.construct_app) }}</DescriptionsItem>
+            <DescriptionsItem label="面积(㎡)">{{ detail.construction.construct_area ?? '—' }}</DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 应收（type=11） -->
+        <TabPane v-if="detail.receivable" key="receivable" tab="应收账款">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="说明" :span="2">{{ dash(detail.receivable.receivable_detail) }}</DescriptionsItem>
+            <DescriptionsItem label="应收单位" :span="2">
+              {{ (detail.receivable.receive_units ?? []).join('、') || '—' }}
+            </DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 股权（type=21） -->
+        <TabPane v-if="detail.stock" key="stock" tab="股权信息">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="标的公司">{{ dash(detail.stock.target) }}</DescriptionsItem>
+            <DescriptionsItem label="股权类型">{{ dash(detail.stock.stock_type_display) }}</DescriptionsItem>
+            <DescriptionsItem label="持股(%)">{{ detail.stock.ratio ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="注册资本">{{ detail.stock.registered_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="实缴资本">{{ detail.stock.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="备注">{{ dash(detail.stock.remark) }}</DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 票据主表（type=31） -->
+        <TabPane v-if="detail.draft" key="draft" tab="票据信息">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="票据类型">{{ dash(detail.draft.draft_type_display) }}</DescriptionsItem>
+            <DescriptionsItem label="票面总额">{{ detail.draft.denomination?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="票面信息" :span="2">{{ dash(detail.draft.draft_detail) }}</DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 票据明细（type=31 的子表） -->
+        <TabPane
+          v-if="detail.draft_extends && detail.draft_extends.length"
+          :key="`draft-extends-${detail.id}`"
+          :tab="`票据明细（${detail.draft_extends.length}）`"
+        >
+          <Table
+            :columns="[
+              { title: '票据号', dataIndex: 'draft_num', ellipsis: true },
+              { title: '类型', dataIndex: 'draft_type' },
+              { title: '承兑人', dataIndex: 'acceptor_name' },
+              { title: '核心企业', dataIndex: 'core_name' },
+              { title: '金额', dataIndex: 'draft_amount' },
+              { title: '出票日', dataIndex: 'issue_date' },
+              { title: '到期日', dataIndex: 'due_date' },
+              { title: '状态', dataIndex: 'draft_state' },
+            ]"
+            :data-source="detail.draft_extends"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'draft_amount'">
+                {{ record.draft_amount?.toLocaleString() ?? '—' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'acceptor_name' || column.dataIndex === 'core_name'">
+                {{ dash(record[column.dataIndex]) }}
+              </template>
+            </template>
+          </Table>
+        </TabPane>
+
+        <!-- 车辆（type=41） -->
+        <TabPane v-if="detail.vehicle" key="vehicle" tab="车辆信息">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="车架号">{{ dash(detail.vehicle.frame_num) }}</DescriptionsItem>
+            <DescriptionsItem label="车牌号">{{ dash(detail.vehicle.plate_num) }}</DescriptionsItem>
+            <DescriptionsItem label="品牌型号" :span="2">{{ dash(detail.vehicle.vehicle_brand) }}</DescriptionsItem>
+            <DescriptionsItem label="备注" :span="2">{{ dash(detail.vehicle.remark) }}</DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 动产（type=51） -->
+        <TabPane v-if="detail.chattel" key="chattel" tab="动产信息">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="动产类型">{{ dash(detail.chattel.chattel_type_display) }}</DescriptionsItem>
+            <DescriptionsItem label="说明" :span="2">{{ dash(detail.chattel.chattel_detail) }}</DescriptionsItem>
+          </Descriptions>
+        </TabPane>
+
+        <!-- 其他（type=55） -->
+        <TabPane v-if="detail.other" key="other" tab="其他权证">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="其他类型">{{ dash(detail.other.other_type_display) }}</DescriptionsItem>
+            <DescriptionsItem label="成本">{{ detail.other.cost?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="说明" :span="2">{{ dash(detail.other.other_detail) }}</DescriptionsItem>
+            <!-- 商标子表（other_type=40） -->
+            <template v-if="detail.other.patent">
+              <DescriptionsItem label="商标名称">{{ dash(detail.other.patent.patent_name) }}</DescriptionsItem>
+              <DescriptionsItem label="注册号">{{ dash(detail.other.patent.reg_num) }}</DescriptionsItem>
+            </template>
+            <!-- 软著子表（other_type=501） -->
+            <template v-if="detail.other.software">
+              <DescriptionsItem label="软件名称">{{ dash(detail.other.software.software_name) }}</DescriptionsItem>
+              <DescriptionsItem label="软著号">{{ dash(detail.other.software.reg_num) }}</DescriptionsItem>
+            </template>
+          </Descriptions>
+        </TabPane>
+
         <!-- 出入库记录 -->
         <TabPane key="storages" :tab="`出入库（${detail.storages.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="storageForm.storage_type"
-              :options="STORAGE_TYPE_OPTIONS"
+              :options="dictStore.get('warrant.storage_type')"
               size="small"
               style="width: 120px"
             />
@@ -391,7 +486,7 @@ async function submitEvaluate() {
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'storage_type'">
-                {{ STORAGE_TYPE_OPTIONS.find((o) => o.value === record.storage_type)?.label ?? record.storage_type }}
+                {{ dictStore.labelOf('warrant.storage_type', record.storage_type) }}
               </template>
               <template v-else-if="column.dataIndex === 'storage_explain'">
                 {{ record.storage_explain ?? '—' }}
@@ -405,7 +500,7 @@ async function submitEvaluate() {
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="evaluateForm.evaluate_method"
-              :options="EVALUATE_METHOD_OPTIONS"
+              :options="dictStore.get('warrant.evaluate_method')"
               size="small"
               style="width: 110px"
             />
@@ -430,7 +525,7 @@ async function submitEvaluate() {
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'evaluate_method'">
-                {{ EVALUATE_METHOD_OPTIONS.find((o) => o.value === record.evaluate_method)?.label ?? record.evaluate_method }}
+                {{ dictStore.labelOf('warrant.evaluate_method', record.evaluate_method) }}
               </template>
               <template v-else-if="column.dataIndex === 'evaluate_company'">
                 {{ record.evaluate_company ?? '—' }}
@@ -454,12 +549,12 @@ async function submitEvaluate() {
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
         <FormItem label="评估方式">
           <SearchSelect
-            v-model:value="editForm.evaluate_method"
-            :disabled="!canUpdate"
-            :options="EVALUATE_METHOD_OPTIONS"
-            allow-clear
-            placeholder="留空保持不变"
-          />
+              v-model:value="editForm.evaluate_method"
+              :disabled="!canUpdate"
+              :options="dictStore.get('warrant.evaluate_method')"
+              allow-clear
+              placeholder="留空保持不变"
+            />
         </FormItem>
         <FormItem label="评估值">
           <InputNumber

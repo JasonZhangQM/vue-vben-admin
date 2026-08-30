@@ -5,13 +5,27 @@ import type { PageResult } from '#/api/system/user';
 import { requestClient } from '#/api/request';
 
 export interface WarrantListItem {
+  auction_state?: null | number;
+  auction_state_display?: null | string;
   created_at: string;
   created_by_name: string;
+  evaluate_method?: null | number;
+  evaluate_method_display?: null | string;
   evaluate_value: null | number;
   id: number;
+  owner_names?: string[];
+  storage_latest?: null | {
+    id: number;
+    storage_type: number;
+    storage_type_display: string;
+    storage_explain: null | string;
+    storage_date: string;
+  };
   warrant_num: string;
   warrant_state: number;
+  warrant_state_display?: string;
   warrant_type: number;
+  warrant_type_display?: string;
 }
 
 export interface HouseItem {
@@ -60,18 +74,45 @@ export interface DraftExtendItem {
 }
 
 export interface WarrantDetail {
+  auction_amount?: null | number;
+  auction_date?: null | string;
+  auction_remark?: null | string;
+  auction_state?: null | number;
+  auction_state_display?: null | string;
+  chattel?: null | { chattel_type: number; chattel_type_display: string; chattel_detail: string };
+  construction?: null | { construct_locate: string; construct_app: string; construct_area: number };
   created_at: string;
   created_by_name: string;
-  evaluate_method: null | number;
-  evaluate_value: null | number;
+  draft?: null | { id: number; draft_type: number; draft_type_display: string; denomination: number; draft_detail: string };
+  draft_extends?: DraftExtendItem[];
   evaluates: EvaluateItem[];
+  evaluate_company?: null | string;
+  evaluate_date?: null | string;
+  evaluate_explain?: null | string;
+  evaluate_method?: null | number;
+  evaluate_method_display?: null | string;
+  evaluate_value: null | number;
+  ground?: null | { ground_locate: string; ground_app: string; ground_area: number };
   houses: HouseItem[];
   id: number;
+  inquiry_date?: null | string;
+  inquiry_detail?: null | string;
+  listing_price?: null | number;
+  meeting_date?: null | string;
+  other?: null | { other_type: number; other_type_display: string; cost: number; other_detail: string; patent?: any; software?: any };
   owners: OwnerItem[];
+  owner_names?: string[];
+  receivable?: null | { id: number; receivable_detail: string; receive_units: string[] };
+  stock?: null | { stock_type: number; stock_type_display: string; target: string; ratio: number; registered_capital: number; paid_capital: number; remark?: null | string };
+  storage_explain?: null | string;
   storages: StorageItem[];
+  transaction_date?: null | string;
+  vehicle?: null | { frame_num: string; plate_num: string; vehicle_brand: string; remark?: null | string };
   warrant_num: string;
   warrant_state: number;
+  warrant_state_display?: string;
   warrant_type: number;
+  warrant_type_display?: string;
 }
 
 export interface WarrantListParams {
@@ -86,10 +127,23 @@ export interface WarrantListParams {
 }
 
 export interface WarrantCreateParams {
+  chattel?: { chattel_type: number; chattel_detail: string };
+  construction?: { construct_locate: string; construct_app: string; construct_area: number };
   draft?: { denomination: number; draft_detail: string; draft_type: number };
   ground?: { ground_app: string; ground_area: number; ground_locate: string };
   houses?: HouseItem[];
+  other?: { other_type: number; cost?: number; other_detail: string; patent?: any; software?: any };
   owners: { owner_id: number; ownership_num: string; share_ratio?: number }[];
+  receivable?: { receivable_detail: string; receive_units?: string[] };
+  stock?: {
+    stock_type: number;
+    target: string;
+    ratio: number;
+    registered_capital?: number;
+    paid_capital?: number;
+    remark?: string;
+  };
+  vehicle?: { frame_num: string; plate_num: string; vehicle_brand: string; remark?: string };
   warrant_num: string;
   warrant_type: number;
 }
@@ -179,7 +233,8 @@ export function addDraftExtend(
 
 // ===== 批量操作 =====
 
-export function batchTransfer(data: { reason: string; to_conservator_id: number; warrant_ids: number[] }) {
+// 命名带 Warrant 后缀，避免与客户模块 batchTransfer 的桶导出冲突
+export function batchTransferWarrants(data: { reason: string; to_conservator_id: number; warrant_ids: number[] }) {
   return requestClient.post<{ count: number }>('/warrants/batch/transfer', data);
 }
 

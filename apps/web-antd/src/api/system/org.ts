@@ -87,32 +87,4 @@ export function deleteMenu(id: number) {
   return requestClient.delete(`/menus/${id}`);
 }
 
-/** ================= 行政区划（user 模块基础数据，只读树） ================= */
-
-/** 行政区划节点（懒加载子级接口返回，has_children 供前端渲染展开箭头） */
-export interface RegionNode {
-  children?: RegionNode[];
-  code: string;
-  has_children: boolean;
-  id: number;
-  level: number;
-  level_display?: string;
-  name: string;
-  parent_id: number;
-  status: number;
-}
-
-/** 顶层省级列表（树形表格首屏） */
-export function getRegionRoots() {
-  return requestClient.get<RegionNode[]>('/regions/roots');
-}
-
-/** 指定节点直接下级（展开懒加载） */
-export function getRegionChildren(parentId: number) {
-  return requestClient.get<RegionNode[]>(`/regions/${parentId}/children`);
-}
-
-/** 按名称/代码搜索（限 50 条平铺结果） */
-export function searchRegions(q: string) {
-  return requestClient.get<RegionNode[]>('/regions/search', { params: { q } });
-}
+// 行政区划接口统一收敛在 api/basic/dict.ts（与 RegionTreeSelect 共用，避免桶导出重名冲突）

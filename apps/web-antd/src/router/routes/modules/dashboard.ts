@@ -12,16 +12,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Dashboard',
     path: '/dashboard',
     children: [
-      {
-        name: 'Analytics',
-        path: 'analytics',
-        component: () => import('#/views/dashboard/analytics/index.vue'),
-        meta: {
-          affixTab: true,
-          icon: 'lucide:area-chart',
-          title: $t('page.dashboard.analytics'),
-        },
-      },
+      // analytics 演示页已删除（无后端接口支撑）；workspace 为 seed 菜单首页
       {
         name: 'Workspace',
         path: 'workspace',

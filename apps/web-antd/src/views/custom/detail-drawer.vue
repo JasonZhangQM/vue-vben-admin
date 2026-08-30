@@ -342,8 +342,8 @@ async function saveTags() {
           <DescriptionsItem label="风控专员">{{ dash(detail.controler_name) }}</DescriptionsItem>
           <DescriptionsItem label="所属集团">{{ dash(detail.group_name) }}</DescriptionsItem>
           <DescriptionsItem label="授信区域">{{ dash(detail.credit_region_name) }}</DescriptionsItem>
-          <DescriptionsItem label="行政区域">{{ dash((detail as any).region_name) }}</DescriptionsItem>
-          <DescriptionsItem label="行业分类">{{ dash((detail as any).industry_name) }}</DescriptionsItem>
+          <DescriptionsItem label="行政区域">{{ dash(detail.region_name) }}</DescriptionsItem>
+          <DescriptionsItem label="行业分类">{{ dash(detail.industry_name) }}</DescriptionsItem>
 
           <!-- 联系人 -->
           <DescriptionsItem label="联系人">{{ dash(detail.linkman) }}</DescriptionsItem>
@@ -367,16 +367,16 @@ async function saveTags() {
           <!-- 金额/汇总 -->
           <DescriptionsItem label="授信额度">{{ detail.credit_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
           <DescriptionsItem label="在保余额">{{ detail.amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="流贷余额">{{ (detail as any).custom_flow?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="担保余额">{{ (detail as any).custom_accept?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="反担保余额">{{ (detail as any).custom_back?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="委托贷款">{{ (detail as any).entrusted_loan?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="流贷余额">{{ detail.custom_flow?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="担保余额">{{ detail.custom_accept?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="反担保余额">{{ detail.custom_back?.toLocaleString() ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="委托贷款">{{ detail.entrusted_loan?.toLocaleString() ?? '—' }}</DescriptionsItem>
 
           <!-- 时间 -->
-          <DescriptionsItem label="最近放款">{{ dash((detail as any).last_provide_date) }}</DescriptionsItem>
-          <DescriptionsItem label="最近评审">{{ dash((detail as any).last_review_date) }}</DescriptionsItem>
-          <DescriptionsItem label="授信到期天数">{{ (detail as any).day_space ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="数据同步时间">{{ dash((detail as any).last_synced_at) }}</DescriptionsItem>
+          <DescriptionsItem label="最近放款">{{ dash(detail.last_provide_date) }}</DescriptionsItem>
+          <DescriptionsItem label="最近评审">{{ dash(detail.last_review_date) }}</DescriptionsItem>
+          <DescriptionsItem label="授信到期天数">{{ detail.day_space ?? '—' }}</DescriptionsItem>
+          <DescriptionsItem label="数据同步时间">{{ dash(detail.last_synced_at) }}</DescriptionsItem>
 
           <!-- 审计信息 -->
           <DescriptionsItem label="创建人">{{ dash(detail.created_by_name) }}</DescriptionsItem>

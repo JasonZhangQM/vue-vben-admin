@@ -315,7 +315,7 @@ onMounted(loadList);
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            <a @click="openDetail(record)">{{ record.name }}</a>
+            <a @click="openDetail(record as ExtraTag)">{{ record.name }}</a>
           </template>
           <template v-else-if="column.dataIndex === 'type'">
             {{ typeLabel(record.type) }}
@@ -407,7 +407,7 @@ onMounted(loadList);
                   <AccessControl :codes="['customer:update']" type="code">
                     <Popconfirm
                       :title="`确认移除 ${record.name} 与该标签的关联？`"
-                      @confirm="onRemoveRelation(record)"
+                      @confirm="onRemoveRelation(record as TagCustomer)"
                     >
                       <Button danger size="small" type="link">移除</Button>
                     </Popconfirm>

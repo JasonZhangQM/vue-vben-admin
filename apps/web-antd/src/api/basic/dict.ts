@@ -35,8 +35,10 @@ export interface EvaluateCompanyItem {
   name: string;
 }
 
-/** 行政区域树节点（懒加载接口返回，has_children 供前端渲染展开箭头） */
+/** 行政区域树节点（懒加载接口返回，has_children 供前端渲染展开箭头；
+ *  children 仅前端懒加载填充，接口不返回） */
 export interface RegionTreeNode {
+  children?: RegionTreeNode[];
   code: string;
   has_children: boolean;
   id: number;
@@ -82,15 +84,7 @@ export function getTags() {
   return requestClient.get<TagItem[]>('/dicts/tags');
 }
 
-/** 新增标签 */
-export function createTag(data: { name: string; type: number }) {
-  return requestClient.post<{ id: number }>('/dicts/tags', data);
-}
-
-/** 删除标签 */
-export function deleteTag(id: number) {
-  return requestClient.delete(`/dicts/tags/${id}`);
-}
+// createTag/deleteTag 统一在 api/basic/customer.ts（标签管理页引用，避免桶导出重名冲突）
 
 /** 客户下拉字典（表单选择用） */
 export function getCustomerDict(params?: {

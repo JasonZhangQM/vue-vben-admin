@@ -52,9 +52,6 @@ const loading = ref(false);
 function statusColor(status: number) {
   return { 10: 'green', 20: 'red', 30: 'default' }[status] ?? 'default';
 }
-function statusLabel(status: number) {
-  return { 10: '在职', 20: '停用', 30: '离职' }[status] ?? status;
-}
 function genderLabel(g: number) {
   return { 0: '未知', 1: '男', 2: '女' }[g] ?? g;
 }
@@ -218,7 +215,7 @@ async function onDelete() {
           </DescriptionsItem>
 
           <!-- 关联归属 -->
-          <DescriptionsItem label="部门">{{ dash((detail as any).dept_path_name) }}</DescriptionsItem>
+          <DescriptionsItem label="部门">{{ dash(detail.dept_path_name) }}</DescriptionsItem>
           <DescriptionsItem label="职务">{{ dash(detail.position) }}</DescriptionsItem>
           <DescriptionsItem label="角色" :span="detailColumns">
             {{ detail.roles.length ? detail.roles.map((r) => r.name).join('、') : '—' }}
@@ -226,7 +223,7 @@ async function onDelete() {
 
           <!-- 状态/分类 -->
           <DescriptionsItem label="状态">
-            <Tag :color="statusColor(detail.status)">{{ dash((detail as any).status_display) }}</Tag>
+            <Tag :color="statusColor(detail.status)">{{ dash(detail.status_display) }}</Tag>
           </DescriptionsItem>
           <DescriptionsItem label="性别">{{ genderLabel(detail.gender) }}</DescriptionsItem>
 
@@ -238,7 +235,7 @@ async function onDelete() {
           <DescriptionsItem label="最近登录">{{ dash(detail.last_login_at) }}</DescriptionsItem>
 
           <!-- 审计信息 -->
-          <DescriptionsItem label="创建人">{{ dash((detail as any).created_by_name) }}</DescriptionsItem>
+          <DescriptionsItem label="创建人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
           <DescriptionsItem label="创建时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
       </Card>

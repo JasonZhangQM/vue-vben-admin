@@ -61,6 +61,20 @@ export interface CustomerDetail extends CustomerListItem {
   shareholder_count: number;
   tags: null | number[];
   entrusted_loan: number;
+  // ---- 以下与后端 get_detail 实际响应逐字段对齐 ----
+  linkman: null | string;
+  contact_num: null | string;
+  contact_addr: null | string;
+  core_rate: null | number;
+  core_remark: null | string;
+  industry_name: null | string;
+  last_provide_date: null | string;
+  last_review_date: null | string;
+  last_synced_at: null | string;
+  g_radio: number;
+  v_radio: number;
+  pending_requests: null | Record<string, any>[];
+  created_at: string;
 }
 
 export interface CustomerCreateParams {
