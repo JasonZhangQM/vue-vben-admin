@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 所有权人)+ 真实校验 + 类型切换保护。
  *
  * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
@@ -149,9 +149,9 @@ const houseColumns: TableColumnType[] = [
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 const ownerColumns: TableColumnType[] = [
-  { title: '客户 *', dataIndex: 'owner_id' },
-  { title: '权证编号 *', dataIndex: 'ownership_num' },
-  { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 160 },
+  { title: '客户 *', dataIndex: 'owner_id', width: 280 },
+  { title: '产权证编号 *', dataIndex: 'ownership_num', width: 220 },
+  { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 140 },
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 
@@ -472,8 +472,51 @@ onMounted(() => {
         </Form>
       </Card>
 
-      <!-- 分区二：类型扩展(标题随类型变化；房产为可编辑表格，其余为两列表单) -->
+      <!-- 分区二：所有权人(可编辑表格)——提到类型扩展之前，业务上应先明确"是谁的证" -->
+      <Card size="small" title="所有权人(统一中间表，支持共有)">
+        <template #extra>
+          <Button size="small" type="link" @click="addOwnerRow">+ 增加</Button>
+        </template>
+        <Table
+          :columns="ownerColumns"
+          :data-source="ownerRows"
+          :pagination="false"
+          :row-key="(r: any) => r._key"
+          size="small"
+        >
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.dataIndex === 'owner_id'">
+              <SearchSelect
+                v-model:value="record.owner_id"
+                :options="customerOptions"
+                :status="attempted && !record.owner_id ? 'error' : undefined"
+                placeholder="选择客户"
+                style="width: 100%"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === 'ownership_num'">
+              <Input
+                v-model:value="record.ownership_num"
+                :status="attempted && !record.ownership_num ? 'error' : undefined"
+                placeholder="产权证编号"
+                style="width: 100%"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === 'share_ratio'">
+              <InputNumber v-model:value="record.share_ratio" :max="100" :min="0" placeholder="可空=共有" style="width: 100%" />
+            </template>
+            <template v-else-if="column.dataIndex === '_op'">
+              <Button v-if="ownerRows.length > 1" danger size="small" type="link" @click="removeOwnerRow(index)">删除</Button>
+            </template>
+          </template>
+        </Table>
+      </Card>
+
+      <!-- 分区三：类型扩展(标题随类型变化；房产为可编辑表格，其余为两列表单) -->
       <Card size="small" :title="extTitle">
+        <template #extra>
+          <Button v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE" size="small" type="link" @click="addHouseRow">+ 增加</Button>
+        </template>
         <!-- 房产：1:N 房产包，可编辑表格 -->
         <template v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE">
           <Table
@@ -489,6 +532,7 @@ onMounted(() => {
                   v-model:value="record.house_locate"
                   placeholder="坐落地址"
                   :status="attempted && !record.house_locate ? 'error' : undefined"
+                  style="width: 100%"
                 />
               </template>
               <template v-else-if="column.dataIndex === 'house_app'">
@@ -497,6 +541,7 @@ onMounted(() => {
                   :options="houseAppOptions"
                   :status="attempted && !record.house_app ? 'error' : undefined"
                   placeholder="用途"
+                  style="width: 100%"
                 />
               </template>
               <template v-else-if="column.dataIndex === 'house_area'">
@@ -509,7 +554,7 @@ onMounted(() => {
                 />
               </template>
               <template v-else-if="column.dataIndex === 'house_usage'">
-                <SearchSelect v-model:value="record.house_usage" :options="dictStore.get('warrant.house_usage')" />
+                <SearchSelect v-model:value="record.house_usage" :options="dictStore.get('warrant.house_usage')" style="width: 100%" />
               </template>
               <template v-else-if="column.dataIndex === 'house_build_year'">
                 <InputNumber v-model:value="record.house_build_year" placeholder="年份" style="width: 100%" />
@@ -519,7 +564,6 @@ onMounted(() => {
               </template>
             </template>
           </Table>
-          <Button block class="mt-2" size="small" @click="addHouseRow">+ 添加房产</Button>
         </template>
 
         <!-- 其余类型：两列表单 -->
@@ -627,42 +671,6 @@ onMounted(() => {
             </template>
           </div>
         </Form>
-      </Card>
-
-      <!-- 分区三：所有权人(可编辑表格) -->
-      <Card size="small" title="所有权人(统一中间表，支持共有)">
-        <Table
-          :columns="ownerColumns"
-          :data-source="ownerRows"
-          :pagination="false"
-          :row-key="(r: any) => r._key"
-          size="small"
-        >
-          <template #bodyCell="{ column, record, index }">
-            <template v-if="column.dataIndex === 'owner_id'">
-              <SearchSelect
-                v-model:value="record.owner_id"
-                :options="customerOptions"
-                :status="attempted && !record.owner_id ? 'error' : undefined"
-                placeholder="选择客户"
-              />
-            </template>
-            <template v-else-if="column.dataIndex === 'ownership_num'">
-              <Input
-                v-model:value="record.ownership_num"
-                :status="attempted && !record.ownership_num ? 'error' : undefined"
-                placeholder="权证编号"
-              />
-            </template>
-            <template v-else-if="column.dataIndex === 'share_ratio'">
-              <InputNumber v-model:value="record.share_ratio" :max="100" :min="0" placeholder="可空=共有" style="width: 100%" />
-            </template>
-            <template v-else-if="column.dataIndex === '_op'">
-              <Button v-if="ownerRows.length > 1" danger size="small" type="link" @click="removeOwnerRow(index)">删除</Button>
-            </template>
-          </template>
-        </Table>
-        <Button block class="mt-2" size="small" @click="addOwnerRow">+ 添加所有权人</Button>
       </Card>
     </div>
 
