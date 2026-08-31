@@ -38,8 +38,10 @@ const props = withDefaults(
     size?: 'small' | 'middle' | 'large';
     /** 透传：是否禁用 */
     disabled?: boolean;
-    /** 透传：宽度 */
+    /** 透传：宽度/内联样式 */
     style?: Record<string, any>;
+    /** 内联模式：不强制 width:100%，按内容自适应(用于表格行) */
+    inline?: boolean;
   }>(),
   {
     debounce: 300,
@@ -91,7 +93,7 @@ function onRemoteSearch(val: string) {
     :disabled="disabled"
     :placeholder="placeholder"
     :size="size"
-    :style="{ width: '100%', ...(style ?? {}) }"
+    :style="{ ...(props.inline ? {} : { width: '100%' }), ...(style ?? {}) }"
     :filter-option="remote ? false : filterOption"
     @change="emit('change', $event)"
     @dropdown-visible-change="emit('dropdown-visible-change', $event)"

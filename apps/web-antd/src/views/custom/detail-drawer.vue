@@ -414,7 +414,7 @@ async function saveTags() {
         <TabPane v-if="detail.personal" key="personal" tab="个人信息">
           <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="证件号码">{{ dash(detail.personal.license_num) }}</DescriptionsItem>
-            <DescriptionsItem label="户籍地址">{{ dash(detail.personal.license_addr) }}</DescriptionsItem>
+            <DescriptionsItem label="户籍地址" :span="detailColumns">{{ dash(detail.personal.license_addr) }}</DescriptionsItem>
           </Descriptions>
         </TabPane>
 

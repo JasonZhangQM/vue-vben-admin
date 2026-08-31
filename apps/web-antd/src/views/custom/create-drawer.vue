@@ -7,7 +7,8 @@
  * - watch(open) → resetAll 打开即重置
  *
  * 紧凑布局策略：
- * - 两列 grid（与权证 create-drawer.vue 对齐），长地址类字段 col-span-2 占满整行
+ * - 响应式 grid：由 useFormColumns composable 提供(AntD 断点口径，与详情页 useDetailColumns 对齐)；
+ *   ≥1200px 4 列 → ≥768px 3 列 → ≥576px 2 列 → 更窄 1 列；整行字段用 fullSpanClass 响应式跨列
  * - 窄 Card(客户标记/个人扩展)用 2 列 grid，字段少则自适应
  * - label-col span 8 + wrapper-col span 16
  * - gap-x-3 gap-y-2 缩小行列间距
@@ -43,12 +44,16 @@ import { createCustomer, getGroupTree } from '#/api/basic/customer';
 import { getCreditRegionTree, getEmployeeDict, getIndustryTree } from '#/api/basic/dict';
 
 import { filterTreeOption, toTreeData } from '#/utils/format';
+import { useFormColumns } from '#/composables/useFormColumns';
 
 const emit = defineEmits<{ created: [] }>();
 const open = defineModel<boolean>('open', { default: false });
 
 const userStore = useUserStore();
 const dictStore = useDictStore();
+
+// 表单响应式列数(AntD 断点口径，与 useDetailColumns 对齐)
+const { gridColsClass, fullSpanClass } = useFormColumns();
 
 // ================= 下拉数据 =================
 const pmOptions = ref<{ label: string; value: number }[]>([]);
@@ -364,7 +369,7 @@ watch(open, (val) => {
           :rules="formRules as any"
           :wrapper-col="{ span: 16 }"
         >
-          <div class="grid grid-cols-2 gap-x-6">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
             <FormItem label="客户类型">
               <RadioGroup v-model:value="createForm.genre">
                 <RadioButton :value="1">企业</RadioButton>
@@ -383,8 +388,8 @@ watch(open, (val) => {
             <FormItem name="contact_num" label="联系电话">
               <Input v-model:value="createForm.contact_num" />
             </FormItem>
-            <!-- 联系地址跨 2 列 -->
-            <FormItem name="contact_addr" label="联系地址">
+            <!-- 联系地址：长字段跨满整行 -->
+            <FormItem :class="fullSpanClass" name="contact_addr" label="联系地址">
               <Input v-model:value="createForm.contact_addr" />
             </FormItem>
           </div>
@@ -394,7 +399,7 @@ watch(open, (val) => {
       <!-- 分区二：关联归属(4 列 grid) -->
       <Card size="small" title="关联归属">
         <Form :label-col="{ span: 8 }" :model="createForm" :rules="formRules as any" :wrapper-col="{ span: 16 }">
-          <div class="grid grid-cols-2 gap-x-6">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
             <FormItem name="managementor_id" label="管护经理">
               <SearchSelect
                 v-model:value="createForm.managementor_id"
@@ -448,8 +453,8 @@ watch(open, (val) => {
       <!-- 分区三：客户标记(2 列，字段少) -->
       <Card size="small" title="客户标记">
         <Form :label-col="{ span: 8 }" :model="createForm" :wrapper-col="{ span: 16 }">
-          <div class="grid grid-cols-2 gap-x-6">
-            <FormItem class="col-span-2" label="客户标记">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
+            <FormItem :class="fullSpanClass" label="客户标记">
               <div class="flex flex-wrap items-center gap-4">
                 <Checkbox v-model:checked="createForm.is_core">核心企业</Checkbox>
                 <Checkbox v-model:checked="createForm.is_acceptor">承兑人</Checkbox>
@@ -480,7 +485,7 @@ watch(open, (val) => {
       <!-- 分区四：扩展信息(4 列，字段多；注册/户籍地址跨 2 列) -->
       <Card size="small" :title="createForm.genre === 1 ? '企业信息' : '个人信息'">
         <Form :label-col="{ span: 8 }" :model="createForm" :rules="formRules as any" :wrapper-col="{ span: 16 }">
-          <div class="grid grid-cols-2 gap-x-6">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
             <!-- 企业扩展 -->
             <template v-if="createForm.genre === 1">
               <FormItem name="credit_code" label="统一社会信用代码">
@@ -507,7 +512,7 @@ watch(open, (val) => {
               <FormItem label="实收资本">
                 <InputNumber v-model:value="createForm.paid_capital" :min="0" class="w-full" placeholder="万元" />
               </FormItem>
-              <FormItem name="registered_addr" label="注册地址">
+              <FormItem :class="fullSpanClass" name="registered_addr" label="注册地址">
                 <Input v-model:value="createForm.registered_addr" />
               </FormItem>
             </template>
@@ -529,7 +534,7 @@ watch(open, (val) => {
                   :options="dictStore.get('customer.household_nature')"
                 />
               </FormItem>
-              <FormItem class="col-span-2" name="license_addr" label="户籍地址">
+              <FormItem :class="fullSpanClass" name="license_addr" label="户籍地址">
                 <Input v-model:value="createForm.license_addr" />
               </FormItem>
             </template>

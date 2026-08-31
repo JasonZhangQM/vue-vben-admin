@@ -341,24 +341,54 @@ async function submitEvaluate() {
           </Table>
         </TabPane>
 
-        <!-- 土地(type=5) -->
-        <TabPane v-if="detail.ground" key="ground" tab="土地信息">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="行政区域">{{ dash(detail.ground.region_name) }}</DescriptionsItem>
-            <DescriptionsItem label="详细地址">{{ dash(detail.ground.ground_locate) }}</DescriptionsItem>
-            <DescriptionsItem label="用途">{{ dash(detail.ground.ground_app) }}</DescriptionsItem>
-            <DescriptionsItem label="面积(㎡)">{{ detail.ground.ground_area ?? '—' }}</DescriptionsItem>
-          </Descriptions>
+        <!-- 土地包(type=5, 无独立 PATCH 端点，只读展示) -->
+        <TabPane v-if="(detail.grounds?.length ?? 0) > 0" key="grounds" :tab="`土地(${detail.grounds?.length ?? 0})`">
+          <Table
+            :columns="[
+              { title: '行政区域', dataIndex: 'region_name', width: 180 },
+              { title: '详细地址', dataIndex: 'ground_locate', ellipsis: true },
+              { title: '面积(㎡)', dataIndex: 'ground_area', width: 90 },
+              { title: '用途', dataIndex: 'ground_app' },
+            ]"
+            :data-source="detail.grounds"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'region_name'">
+                {{ record.region_name || '—' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'ground_app'">
+                {{ record.ground_app || '—' }}
+              </template>
+            </template>
+          </Table>
         </TabPane>
 
-        <!-- 在建工程(type=6) -->
-        <TabPane v-if="detail.construction" key="construction" tab="在建工程">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="行政区域">{{ dash(detail.construction.region_name) }}</DescriptionsItem>
-            <DescriptionsItem label="详细地址">{{ dash(detail.construction.construct_locate) }}</DescriptionsItem>
-            <DescriptionsItem label="用途">{{ dash(detail.construction.construct_app) }}</DescriptionsItem>
-            <DescriptionsItem label="面积(㎡)">{{ detail.construction.construct_area ?? '—' }}</DescriptionsItem>
-          </Descriptions>
+        <!-- 在建工程包(type=6, 无独立 PATCH 端点，只读展示) -->
+        <TabPane v-if="(detail.constructions?.length ?? 0) > 0" key="constructions" :tab="`在建工程(${detail.constructions?.length ?? 0})`">
+          <Table
+            :columns="[
+              { title: '行政区域', dataIndex: 'region_name', width: 180 },
+              { title: '详细地址', dataIndex: 'construct_locate', ellipsis: true },
+              { title: '面积(㎡)', dataIndex: 'construct_area', width: 90 },
+              { title: '用途', dataIndex: 'construct_app' },
+            ]"
+            :data-source="detail.constructions"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'region_name'">
+                {{ record.region_name || '—' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'construct_app'">
+                {{ record.construct_app || '—' }}
+              </template>
+            </template>
+          </Table>
         </TabPane>
 
         <!-- 应收(type=11) -->

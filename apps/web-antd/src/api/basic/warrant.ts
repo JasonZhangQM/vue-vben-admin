@@ -82,7 +82,7 @@ export interface WarrantDetail {
   auction_state?: null | number;
   auction_state_display?: null | string;
   chattel?: null | { chattel_type: number; chattel_type_display: string; chattel_detail: string };
-  construction?: null | { construct_locate: string; construct_app: string; construct_area: number; region_id?: null | number; region_name?: null | string };
+  constructions?: Array<{ id: number; construct_locate: string; construct_app: string; construct_area: number; region_id?: null | number; region_name?: null | string }>;
   created_at: string;
   created_by_name: string;
   draft?: null | { id: number; draft_type: number; draft_type_display: string; denomination: number; draft_detail: string };
@@ -94,7 +94,7 @@ export interface WarrantDetail {
   evaluate_method?: null | number;
   evaluate_method_display?: null | string;
   evaluate_value: null | number;
-  ground?: null | { ground_locate: string; ground_app: string; ground_area: number; region_id?: null | number; region_name?: null | string };
+  grounds?: Array<{ id: number; ground_locate: string; ground_app: string; ground_area: number; region_id?: null | number; region_name?: null | string }>;
   houses: HouseItem[];
   id: number;
   inquiry_date?: null | string;
@@ -130,9 +130,9 @@ export interface WarrantListParams {
 
 export interface WarrantCreateParams {
   chattel?: { chattel_type: number; chattel_detail: string };
-  construction?: { construct_locate: string; construct_app: string; construct_area: number; region_id?: number };
+  constructions?: Array<{ construct_locate: string; construct_app: string; construct_area: number; region_id?: number }>;
   draft?: { denomination: number; draft_detail: string; draft_type: number };
-  ground?: { ground_app: string; ground_area: number; ground_locate: string; region_id?: number };
+  grounds?: Array<{ ground_app: string; ground_area: number; ground_locate: string; region_id?: number }>;
   houses?: HouseItem[];
   other?: { other_type: number; cost?: number; other_detail: string; patent?: any; software?: any };
   owners: { owner_id: number; ownership_num: string; share_ratio?: number }[];

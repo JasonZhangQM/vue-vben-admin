@@ -30,11 +30,15 @@ import type { WarrantCreateParams } from '#/api/basic/warrant';
 
 import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
 import { createWarrant } from '#/api/basic/warrant';
+import { useFormColumns } from '#/composables/useFormColumns';
 
 const emit = defineEmits<{ created: [] }>();
 const open = defineModel<boolean>('open', { default: false });
 
 const dictStore = useDictStore();
+
+// 表单响应式列数(与详情页 useDetailColumns 对齐，AntD 断点口径)
+const { gridColsClass } = useFormColumns();
 
 // 枚举值常量(代码判断用，镜像后端 warrant/enums.py)
 const WARRANT_TYPE_HOUSE = 1;
@@ -127,6 +131,22 @@ interface HouseRow {
   _key: number;
 }
 
+interface GroundRow {
+  region_id: number | undefined;
+  ground_locate: string;
+  ground_app: string;
+  ground_area: number | undefined;
+  _key: number;
+}
+
+interface ConstructionRow {
+  region_id: number | undefined;
+  construct_locate: string;
+  construct_app: string;
+  construct_area: number | undefined;
+  _key: number;
+}
+
 let rowKeySeq = 0;
 const nextKey = () => ++rowKeySeq;
 
@@ -154,7 +174,7 @@ const houseColumns: TableColumnType[] = [
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 const ownerColumns: TableColumnType[] = [
-  { title: '所有权人 *', dataIndex: 'owner_id', width: 200 },
+  { title: '所有权人 *', dataIndex: 'owner_id', width: 300 },
   { title: '产权证编号 *', dataIndex: 'ownership_num' },
   { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 140 },
   { title: '操作', dataIndex: '_op', width: 60 },
@@ -166,12 +186,41 @@ function addHouseRow() {
 function removeHouseRow(index: number) {
   houseRows.value.splice(index, 1);
 }
+function emptyGroundRow(): GroundRow {
+  return { region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined, _key: nextKey() };
+}
+function emptyConstructionRow(): ConstructionRow {
+  return { region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined, _key: nextKey() };
+}
+function addGroundRow() { groundRows.value.push(emptyGroundRow()); }
+function removeGroundRow(index: number) { groundRows.value.splice(index, 1); }
+function addConstructionRow() { constructionRows.value.push(emptyConstructionRow()); }
+function removeConstructionRow(index: number) { constructionRows.value.splice(index, 1); }
 function addOwnerRow() {
   ownerRows.value.push(emptyOwnerRow());
 }
 function removeOwnerRow(index: number) {
   ownerRows.value.splice(index, 1);
 }
+
+const groundRows = ref<GroundRow[]>([emptyGroundRow()]);
+const constructionRows = ref<ConstructionRow[]>([emptyConstructionRow()]);
+
+// 可编辑表格列：必填列标题带 *
+const groundColumns: TableColumnType[] = [
+  { title: '行政区域', dataIndex: 'region_id' },
+  { title: '详细地址 *', dataIndex: 'ground_locate' },
+  { title: '面积㎡ *', dataIndex: 'ground_area', width: 130 },
+  { title: '用途', dataIndex: 'ground_app', width: 150 },
+  { title: '操作', dataIndex: '_op', width: 60 },
+];
+const constructionColumns: TableColumnType[] = [
+  { title: '行政区域', dataIndex: 'region_id' },
+  { title: '详细地址 *', dataIndex: 'construct_locate' },
+  { title: '面积㎡ *', dataIndex: 'construct_area', width: 130 },
+  { title: '用途', dataIndex: 'construct_app', width: 150 },
+  { title: '操作', dataIndex: '_op', width: 60 },
+];
 
 // ================= 下拉数据 =================
 
@@ -240,9 +289,13 @@ function isExtDirty(): boolean {
       (h) => h.house_locate || h.house_app || h.house_area || h.house_name || h.house_build_year,
     );
   }
+  if (createForm.warrant_type === WARRANT_TYPE_GROUND) {
+    return groundRows.value.some((g) => g.ground_locate || g.ground_app || g.ground_area);
+  }
+  if (createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION) {
+    return constructionRows.value.some((c) => c.construct_locate || c.construct_app || c.construct_area);
+  }
   const fieldsByType: Record<number, (string | number | undefined)[]> = {
-    5: [createForm.ground_locate, createForm.ground_app, createForm.ground_area],
-    6: [createForm.construct_locate, createForm.construct_app, createForm.construct_area],
     21: [createForm.stock_target, createForm.stock_ratio, createForm.stock_remark],
     31: [createForm.denomination, createForm.draft_detail],
     41: [createForm.frame_num, createForm.plate_num, createForm.vehicle_brand],
@@ -258,8 +311,6 @@ function isExtDirty(): boolean {
 /** 清空全部类型扩展字段(切换确认后调用) */
 function resetExtFields() {
   Object.assign(createForm, {
-    ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
-    construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
     draft_type: 20, denomination: undefined, draft_detail: '',
@@ -268,6 +319,8 @@ function resetExtFields() {
     other_type: 99, other_detail: '', receivable_detail: '',
   });
   houseRows.value = [emptyHouseRow()];
+  groundRows.value = [emptyGroundRow()];
+  constructionRows.value = [emptyConstructionRow()];
 }
 
 // ================= 提交 =================
@@ -275,7 +328,7 @@ function resetExtFields() {
 const extTitle = computed(() => EXT_TITLES[createForm.warrant_type] ?? '类型信息');
 
 /** 校验动态行(可编辑表格无绑定 rules，手动校验 + attempted 标红) */
-function validateExt(): { ext?: object; houses?: object[] } | null {
+function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; constructions?: object[] } | null {
   switch (createForm.warrant_type) {
     case WARRANT_TYPE_HOUSE: {
       const hasAny = houseRows.value.some(
@@ -303,31 +356,43 @@ function validateExt(): { ext?: object; houses?: object[] } | null {
       };
     }
     case WARRANT_TYPE_GROUND: {
-      if (!createForm.ground_locate || !createForm.ground_area) {
-        message.warning('请填写土地详细地址与面积');
+      const hasAny = groundRows.value.some((g) => g.ground_locate || g.ground_area);
+      const valid = groundRows.value.filter((g) => g.ground_locate && g.ground_area);
+      if (valid.length === 0) {
+        message.warning(hasAny ? '土地行信息不完整(详细地址 / 面积均为必填)' : '土地权证需至少填写一宗完整土地');
+        return null;
+      }
+      if (hasAny && valid.length < groundRows.value.filter((g) => g.ground_locate || g.ground_area).length) {
+        message.warning('存在信息不完整的土地行，请补全或删除');
         return null;
       }
       return {
-        ext: {
-          region_id: createForm.ground_region_id ?? undefined,
-          ground_locate: createForm.ground_locate,
-          ground_app: createForm.ground_app,
-          ground_area: createForm.ground_area,
-        },
+        grounds: valid.map((g) => ({
+          region_id: g.region_id ?? undefined,
+          ground_locate: g.ground_locate,
+          ground_app: g.ground_app || undefined,
+          ground_area: g.ground_area,
+        })),
       };
     }
     case WARRANT_TYPE_CONSTRUCTION: {
-      if (!createForm.construct_locate || !createForm.construct_area) {
-        message.warning('请填写在建工程详细地址与面积');
+      const hasAny = constructionRows.value.some((c) => c.construct_locate || c.construct_area);
+      const valid = constructionRows.value.filter((c) => c.construct_locate && c.construct_area);
+      if (valid.length === 0) {
+        message.warning(hasAny ? '在建工程行信息不完整(详细地址 / 面积均为必填)' : '在建工程权证需至少填写一项完整工程');
+        return null;
+      }
+      if (hasAny && valid.length < constructionRows.value.filter((c) => c.construct_locate || c.construct_area).length) {
+        message.warning('存在信息不完整的在建工程行，请补全或删除');
         return null;
       }
       return {
-        ext: {
-          region_id: createForm.construct_region_id ?? undefined,
-          construct_locate: createForm.construct_locate,
-          construct_app: createForm.construct_app,
-          construct_area: createForm.construct_area,
-        },
+        constructions: valid.map((c) => ({
+          region_id: c.region_id ?? undefined,
+          construct_locate: c.construct_locate,
+          construct_app: c.construct_app || undefined,
+          construct_area: c.construct_area,
+        })),
       };
     }
     case WARRANT_TYPE_STOCK: {
@@ -434,9 +499,11 @@ async function onSubmit() {
       share_ratio: o.share_ratio ?? undefined,
     })),
     houses: extResult.houses,
+    grounds: extResult.grounds,
+    constructions: extResult.constructions,
   } as WarrantCreateParams;
   const extKeyByType: Record<number, string> = {
-    5: 'ground', 6: 'construction', 21: 'stock', 31: 'draft',
+    21: 'stock', 31: 'draft',
     41: 'vehicle', 11: 'receivable', 51: 'chattel', 55: 'other',
   };
   const extKey = extKeyByType[createForm.warrant_type];
@@ -491,7 +558,7 @@ onMounted(() => {
       <!-- 分区一：基本信息 -->
       <Card size="small" title="基本信息">
         <Form ref="formRef" :label-col="{ span: 6 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 18 }">
-          <div class="grid grid-cols-3 gap-x-6">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
             <FormItem label="权证号" name="warrant_num">
               <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
             </FormItem>
@@ -527,6 +594,7 @@ onMounted(() => {
                 :status="attempted && !record.owner_id ? 'error' : undefined"
                 placeholder="输入客户名搜索"
                 allow-clear
+                style="width: 100%"
                 @search="onSearchCustomer"
               />
             </template>
@@ -548,10 +616,12 @@ onMounted(() => {
         </Table>
       </Card>
 
-      <!-- 分区三：类型扩展(标题随类型变化；房产为可编辑表格，其余为两列表单) -->
+      <!-- 分区三：类型扩展(标题随类型变化；房产/土地/在建均为可编辑表格，其余为两列表单) -->
       <Card size="small" :title="extTitle">
         <template #extra>
           <Button v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE" size="small" type="link" @click="addHouseRow">+ 增加</Button>
+          <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_GROUND" size="small" type="link" @click="addGroundRow">+ 增加</Button>
+          <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION" size="small" type="link" @click="addConstructionRow">+ 增加</Button>
         </template>
         <!-- 房产：1:N 房产包，可编辑表格 -->
         <template v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE">
@@ -605,43 +675,91 @@ onMounted(() => {
           </Table>
         </template>
 
+        <!-- 土地：1:N 可编辑表格 -->
+        <template v-else-if="createForm.warrant_type === WARRANT_TYPE_GROUND">
+          <Table
+            :columns="groundColumns"
+            :data-source="groundRows"
+            :pagination="false"
+            :row-key="(r: any) => r._key"
+            size="small"
+          >
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'region_id'">
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+              </template>
+              <template v-else-if="column.dataIndex === 'ground_locate'">
+                <Input
+                  v-model:value="record.ground_locate"
+                  placeholder="详细地址"
+                  :status="attempted && !record.ground_locate ? 'error' : undefined"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'ground_area'">
+                <InputNumber
+                  v-model:value="record.ground_area"
+                  :min="0.01"
+                  :status="attempted && !record.ground_area ? 'error' : undefined"
+                  placeholder="面积"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'ground_app'">
+                <Input v-model:value="record.ground_app" placeholder="如：工业用地" style="width: 100%" />
+              </template>
+              <template v-else-if="column.dataIndex === '_op'">
+                <Button v-if="groundRows.length > 1" danger size="small" type="link" @click="removeGroundRow(index)">删除</Button>
+              </template>
+            </template>
+          </Table>
+        </template>
+
+        <!-- 在建工程：1:N 可编辑表格 -->
+        <template v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION">
+          <Table
+            :columns="constructionColumns"
+            :data-source="constructionRows"
+            :pagination="false"
+            :row-key="(r: any) => r._key"
+            size="small"
+          >
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'region_id'">
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+              </template>
+              <template v-else-if="column.dataIndex === 'construct_locate'">
+                <Input
+                  v-model:value="record.construct_locate"
+                  placeholder="详细地址"
+                  :status="attempted && !record.construct_locate ? 'error' : undefined"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'construct_area'">
+                <InputNumber
+                  v-model:value="record.construct_area"
+                  :min="0.01"
+                  :status="attempted && !record.construct_area ? 'error' : undefined"
+                  placeholder="面积"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'construct_app'">
+                <Input v-model:value="record.construct_app" placeholder="如：写字楼/住宅楼" style="width: 100%" />
+              </template>
+              <template v-else-if="column.dataIndex === '_op'">
+                <Button v-if="constructionRows.length > 1" danger size="small" type="link" @click="removeConstructionRow(index)">删除</Button>
+              </template>
+            </template>
+          </Table>
+        </template>
+
         <!-- 其余类型：两列表单 -->
         <Form v-else :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-          <div class="grid grid-cols-3 gap-x-6">
-            <!-- 土地 -->
-            <template v-if="createForm.warrant_type === WARRANT_TYPE_GROUND">
-              <FormItem label="行政区域">
-                <RegionTreeSelect v-model:value="createForm.ground_region_id" allow-clear />
-              </FormItem>
-              <FormItem label="详细地址" required>
-                <Input v-model:value="createForm.ground_locate" placeholder="详细地址" />
-              </FormItem>
-              <FormItem label="面积(㎡)" required>
-                <InputNumber v-model:value="createForm.ground_area" :min="0.01" class="w-full" />
-              </FormItem>
-              <FormItem label="用途">
-                <Input v-model:value="createForm.ground_app" placeholder="如：工业用地" />
-              </FormItem>
-            </template>
-
-            <!-- 在建工程 -->
-            <template v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION">
-              <FormItem label="行政区域">
-                <RegionTreeSelect v-model:value="createForm.construct_region_id" allow-clear />
-              </FormItem>
-              <FormItem label="详细地址" required>
-                <Input v-model:value="createForm.construct_locate" placeholder="详细地址" />
-              </FormItem>
-              <FormItem label="面积(㎡)" required>
-                <InputNumber v-model:value="createForm.construct_area" :min="0.01" class="w-full" />
-              </FormItem>
-              <FormItem label="用途">
-                <Input v-model:value="createForm.construct_app" placeholder="如：写字楼 / 住宅楼" />
-              </FormItem>
-            </template>
-
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
             <!-- 股权 -->
-            <template v-else-if="createForm.warrant_type === WARRANT_TYPE_STOCK">
+            <template v-if="createForm.warrant_type === WARRANT_TYPE_STOCK">
               <FormItem label="标的公司" required>
                 <Input v-model:value="createForm.stock_target" placeholder="公司全称" />
               </FormItem>
