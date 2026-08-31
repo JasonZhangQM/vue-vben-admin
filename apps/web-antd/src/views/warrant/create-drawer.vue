@@ -490,8 +490,8 @@ onMounted(() => {
     <div class="space-y-4">
       <!-- 分区一：基本信息 -->
       <Card size="small" title="基本信息">
-        <Form ref="formRef" :label-col="{ span: 8 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 16 }">
-          <div class="grid grid-cols-2 gap-x-6">
+        <Form ref="formRef" :label-col="{ span: 6 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 18 }">
+          <div class="grid grid-cols-3 gap-x-6">
             <FormItem label="权证号" name="warrant_num">
               <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
             </FormItem>
@@ -606,8 +606,8 @@ onMounted(() => {
         </template>
 
         <!-- 其余类型：两列表单 -->
-        <Form v-else :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
-          <div class="grid grid-cols-2 gap-x-6">
+        <Form v-else :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+          <div class="grid grid-cols-3 gap-x-6">
             <!-- 土地 -->
             <template v-if="createForm.warrant_type === WARRANT_TYPE_GROUND">
               <FormItem label="行政区域">
@@ -635,7 +635,7 @@ onMounted(() => {
               <FormItem label="面积(㎡)" required>
                 <InputNumber v-model:value="createForm.construct_area" :min="0.01" class="w-full" />
               </FormItem>
-              <FormItem class="col-span-2" label="用途">
+              <FormItem label="用途">
                 <Input v-model:value="createForm.construct_app" placeholder="如：写字楼 / 住宅楼" />
               </FormItem>
             </template>
