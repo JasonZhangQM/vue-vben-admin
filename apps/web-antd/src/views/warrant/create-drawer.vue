@@ -149,7 +149,7 @@ const houseColumns: TableColumnType[] = [
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 const ownerColumns: TableColumnType[] = [
-  { title: '客户 *', dataIndex: 'owner_id', width: 280 },
+  { title: '所有权人 *', dataIndex: 'owner_id', width: 280 },
   { title: '产权证编号 *', dataIndex: 'ownership_num', width: 220 },
   { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 140 },
   { title: '操作', dataIndex: '_op', width: 60 },
@@ -170,16 +170,30 @@ function removeOwnerRow(index: number) {
 
 // ================= 下拉数据 =================
 
-const customerOptions = ref<{ label: string; value: number }[]>([]);
+/** 远程客户搜索选项（外键关联模式：按需拉取，生产客户量可达千级） */
+const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
 const houseAppOptions = ref<{ label: string; value: number }[]>([]);
 
+/** 远程客户搜索 handler：走 /dicts/customers（无 data_scope，全量客户可选） */
+async function onSearchCustomer(keyword: string) {
+  if (!keyword?.trim()) {
+    remoteCustomerOptions.value = [];
+    return;
+  }
+  try {
+    const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 20 });
+    remoteCustomerOptions.value = items.map((c) => ({
+      label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
+      value: c.id,
+    }));
+  } catch {
+    remoteCustomerOptions.value = [];
+  }
+}
+
 async function loadOptions() {
-  const [customers, houseApps] = await Promise.all([getCustomerDict(), getHouseApps()]);
-  customerOptions.value = customers.map((c) => ({
-    label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
-    value: c.id,
-  }));
-  // 房产用途树展平为选项
+  // 只加载字典型数据（房产用途树）；客户选远程搜索
+  const houseApps = await getHouseApps();
   const flatten = (nodes: any[]) => {
     for (const n of nodes ?? []) {
       houseAppOptions.value.push({ label: n.name, value: n.id });
@@ -488,10 +502,12 @@ onMounted(() => {
             <template v-if="column.dataIndex === 'owner_id'">
               <SearchSelect
                 v-model:value="record.owner_id"
-                :options="customerOptions"
+                remote
+                :options="remoteCustomerOptions"
                 :status="attempted && !record.owner_id ? 'error' : undefined"
-                placeholder="选择客户"
+                placeholder="输入客户名搜索"
                 style="width: 100%"
+                @search="onSearchCustomer"
               />
             </template>
             <template v-else-if="column.dataIndex === 'ownership_num'">

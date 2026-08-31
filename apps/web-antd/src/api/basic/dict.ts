@@ -86,14 +86,22 @@ export function getTags() {
 
 // createTag/deleteTag 统一在 api/basic/customer.ts(标签管理页引用，避免桶导出重名冲突)
 
-/** 客户下拉字典(表单选择用) */
+/** 客户下拉字典(表单选择用，无 data_scope 过滤——选所有权人时需看到全量客户) */
 export function getCustomerDict(params?: {
   genre?: number;
   is_acceptor?: boolean;
   is_core?: boolean;
   managementor_id?: number;
+  q?: string;
+  page?: number;
+  page_size?: number;
 }) {
-  return requestClient.get<CustomerDictItem[]>('/dicts/customers', { params });
+  return requestClient.get<{
+    items: CustomerDictItem[];
+    total: number;
+    page: number;
+    page_size: number;
+  }>('/dicts/customers', { params });
 }
 
 /** 授信区域树(下拉选择用) */
