@@ -13,7 +13,6 @@ import {
   Button,
   Card,
   Checkbox,
-  CheckboxGroup,
   Descriptions,
   DescriptionsItem,
   Drawer,
@@ -196,6 +195,14 @@ watch(
       .filter((v): v is number => v !== undefined);
   },
 );
+
+/** 单个权限勾选/取消（手动维护数组，避免多 CheckboxGroup v-model 互斥） */
+function togglePerm(id: number, checked: boolean) {
+  const set = new Set(checkedPermIds.value);
+  if (checked) set.add(id);
+  else set.delete(id);
+  checkedPermIds.value = [...set];
+}
 
 function toggleGroup(groupIdx: number, checked: boolean) {
   const group = groupedPerms.value[groupIdx]!;
@@ -390,26 +397,41 @@ onMounted(async () => {
                 </Button>
               </AccessControl>
             </div>
+            <!-- 每个模块独立卡片：模块标题行（全选 Checkbox + 模块名）独占一行，下方子权限两列网格 -->
             <div
               v-for="(group, gi) in groupedPerms"
               :key="group.module"
-              class="mb-3 rounded border border-gray-200 p-3"
+              class="mb-3 overflow-hidden rounded border border-gray-200"
             >
-              <Checkbox
-                :checked="group.allChecked"
-                class="mb-2 font-medium"
-                @change="(e: any) => toggleGroup(gi, e.target.checked)"
+              <!-- 模块标题行：整行可点击，点击全选/全不选 -->
+              <div
+                class="flex items-center gap-2 bg-gray-50 px-3 py-2 font-medium"
+                @click="toggleGroup(gi, !group.allChecked)"
               >
-                模块：{{ group.module }}
-              </Checkbox>
-              <CheckboxGroup
-                v-model:value="checkedPermIds"
-                class="grid grid-cols-2 gap-y-1"
-              >
-                <Checkbox v-for="p in group.items" :key="p.id" :value="p.id">
+                <Checkbox
+                  :checked="group.allChecked"
+                  :indeterminate="!group.allChecked && group.items.some((i) => checkedPermIds.includes(i.id))"
+                  @click.stop
+                  @change="(e: any) => toggleGroup(gi, e.target.checked)"
+                />
+                <span>模块：{{ group.module }}</span>
+                <span class="ml-auto text-xs text-gray-400">
+                  {{ group.items.filter((i) => checkedPermIds.includes(i.id)).length }}
+                  / {{ group.items.length }}
+                </span>
+              </div>
+              <!-- 子权限区：横向排列，一行放不下自动换行 -->
+              <div class="flex flex-wrap gap-x-5 gap-y-2 p-3">
+                <Checkbox
+                  v-for="p in group.items"
+                  :key="p.id"
+                  :checked="checkedPermIds.includes(p.id)"
+                  :value="p.id"
+                  @change="(e: any) => togglePerm(p.id, e.target.checked)"
+                >
                   {{ p.name }}（{{ p.code }}）
                 </Checkbox>
-              </CheckboxGroup>
+              </div>
             </div>
           </TabPane>
         </Tabs>
