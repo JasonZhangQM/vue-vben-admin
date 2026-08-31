@@ -1,4 +1,4 @@
-﻿/** 基础数据：客户模块 API(创建/修改直接生效，无审批；子资源/核心额度/统计)。 */
+/** 基础数据：客户模块 API(创建/修改直接生效，无审批；子资源/核心额度/统计)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -83,19 +83,19 @@ export interface CustomerCreateParams {
     credit_code: string;
     custom_nature: number;
     decisionor: number;
-    industry_c: number;
+    industry_c?: number;
     paid_capital?: number;
     registered_addr: string;
     representative: string;
   };
   contact_addr: string;
   contact_num: string;
-  controler_id: number;
+  controler_id?: number;
   core_rate?: number;
   credit_region_id?: number;
   genre: number;
   group_id?: number;
-  industry_id: number;
+  industry_id?: number;
   is_acceptor?: boolean;
   is_core?: boolean;
   linkman: string;

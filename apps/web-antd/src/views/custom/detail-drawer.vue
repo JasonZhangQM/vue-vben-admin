@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度 / 客户标签。 */
 
 import type { CustomerDetail, ExtraTag } from '#/api/basic/customer';
@@ -77,13 +77,18 @@ async function load() {
   loading.value = true;
   try {
     detail.value = await getCustomerDetail(props.customerId);
-    // 股东 / 董事并行拉取(Tab 懒数据，失败不影响主信息)
-    const [shareholders, directors] = await Promise.all([
-      listShareholders(props.customerId).catch(() => []),
-      listDirectors(props.customerId).catch(() => []),
-    ]);
-    shareholderList.value = shareholders;
-    directorList.value = directors;
+    // 仅企业客户才拉股东/董事（后端会对个人客户返回 4001，全局拦截器会弹 toast）
+    if (detail.value.genre === 1) {
+      const [shareholders, directors] = await Promise.all([
+        listShareholders(props.customerId).catch(() => []),
+        listDirectors(props.customerId).catch(() => []),
+      ]);
+      shareholderList.value = shareholders;
+      directorList.value = directors;
+    } else {
+      shareholderList.value = [];
+      directorList.value = [];
+    }
   } catch {
     // 详情拉取失败：自动关闭抽屉 + 错误提示，避免页面挂死
     open.value = false;

@@ -1,4 +1,4 @@
-﻿/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
+/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
 
 import { requestClient } from '#/api/request';
 
@@ -133,4 +133,22 @@ export function getHouseApps() {
 /** 评估公司字典 */
 export function getEvaluateCompanies() {
   return requestClient.get<EvaluateCompanyItem[]>('/dicts/evaluate-companies');
+}
+
+/** 员工下拉字典(轻量接口，仅要求登录，按部门/职务/角色 code 筛选) */
+export interface EmployeeDictItem {
+  dept_name: null | string;
+  id: number;
+  name: string;
+  position: null | string;
+  username: string;
+}
+
+export function getEmployeeDict(params?: {
+  dept_id?: number;
+  position?: string;
+  /** 角色 code(如 pm/controler) */
+  role?: string;
+}) {
+  return requestClient.get<EmployeeDictItem[]>('/dicts/users', { params });
 }
