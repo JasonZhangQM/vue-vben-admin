@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 所有权人)+ 真实校验 + 类型切换保护。
  *
  * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
@@ -76,6 +76,7 @@ const createForm = reactive({
   ground_app: '',
   ground_area: undefined as number | undefined,
   // 在建工程
+  construct_region_id: undefined as number | undefined,
   construct_locate: '',
   construct_app: '',
   construct_area: undefined as number | undefined,
@@ -258,7 +259,7 @@ function isExtDirty(): boolean {
 function resetExtFields() {
   Object.assign(createForm, {
     ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
-    construct_locate: '', construct_app: '', construct_area: undefined,
+    construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
     draft_type: 20, denomination: undefined, draft_detail: '',
@@ -317,10 +318,17 @@ function validateExt(): { ext?: object; houses?: object[] } | null {
     }
     case WARRANT_TYPE_CONSTRUCTION: {
       if (!createForm.construct_locate || !createForm.construct_area) {
-        message.warning('请填写在建工程坐落与面积');
+        message.warning('请填写在建工程详细地址与面积');
         return null;
       }
-      return { ext: { construct_locate: createForm.construct_locate, construct_app: createForm.construct_app, construct_area: createForm.construct_area } };
+      return {
+        ext: {
+          region_id: createForm.construct_region_id ?? undefined,
+          construct_locate: createForm.construct_locate,
+          construct_app: createForm.construct_app,
+          construct_area: createForm.construct_area,
+        },
+      };
     }
     case WARRANT_TYPE_STOCK: {
       if (!createForm.stock_target || !createForm.stock_ratio) {
@@ -452,7 +460,7 @@ function resetAll() {
   Object.assign(createForm, {
     warrant_num: '', warrant_type: 1,
     ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
-    construct_locate: '', construct_app: '', construct_area: undefined,
+    construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
     draft_type: 20, denomination: undefined, draft_detail: '',
@@ -518,7 +526,7 @@ onMounted(() => {
                 :options="remoteCustomerOptions"
                 :status="attempted && !record.owner_id ? 'error' : undefined"
                 placeholder="输入客户名搜索"
-                style="width: 100%"
+                style="min-width: 160px"
                 @search="onSearchCustomer"
               />
             </template>
@@ -556,7 +564,7 @@ onMounted(() => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'region_id'">
-                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="min-width: 160px" />
               </template>
               <template v-else-if="column.dataIndex === 'house_locate'">
                 <Input
@@ -618,8 +626,11 @@ onMounted(() => {
 
             <!-- 在建工程 -->
             <template v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION">
-              <FormItem label="坐落" required>
-                <Input v-model:value="createForm.construct_locate" />
+              <FormItem label="行政区域">
+                <RegionTreeSelect v-model:value="createForm.construct_region_id" allow-clear />
+              </FormItem>
+              <FormItem label="详细地址" required>
+                <Input v-model:value="createForm.construct_locate" placeholder="详细地址" />
               </FormItem>
               <FormItem label="面积(㎡)" required>
                 <InputNumber v-model:value="createForm.construct_area" :min="0.01" class="w-full" />

@@ -354,7 +354,8 @@ async function submitEvaluate() {
         <!-- 在建工程(type=6) -->
         <TabPane v-if="detail.construction" key="construction" tab="在建工程">
           <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="坐落">{{ dash(detail.construction.construct_locate) }}</DescriptionsItem>
+            <DescriptionsItem label="行政区域">{{ dash(detail.construction.region_name) }}</DescriptionsItem>
+            <DescriptionsItem label="详细地址">{{ dash(detail.construction.construct_locate) }}</DescriptionsItem>
             <DescriptionsItem label="用途">{{ dash(detail.construction.construct_app) }}</DescriptionsItem>
             <DescriptionsItem label="面积(㎡)">{{ detail.construction.construct_area ?? '—' }}</DescriptionsItem>
           </Descriptions>

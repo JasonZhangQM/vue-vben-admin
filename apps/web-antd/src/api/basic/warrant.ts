@@ -1,4 +1,4 @@
-/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
+﻿/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -82,7 +82,7 @@ export interface WarrantDetail {
   auction_state?: null | number;
   auction_state_display?: null | string;
   chattel?: null | { chattel_type: number; chattel_type_display: string; chattel_detail: string };
-  construction?: null | { construct_locate: string; construct_app: string; construct_area: number };
+  construction?: null | { construct_locate: string; construct_app: string; construct_area: number; region_id?: null | number; region_name?: null | string };
   created_at: string;
   created_by_name: string;
   draft?: null | { id: number; draft_type: number; draft_type_display: string; denomination: number; draft_detail: string };
@@ -130,7 +130,7 @@ export interface WarrantListParams {
 
 export interface WarrantCreateParams {
   chattel?: { chattel_type: number; chattel_detail: string };
-  construction?: { construct_locate: string; construct_app: string; construct_area: number };
+  construction?: { construct_locate: string; construct_app: string; construct_area: number; region_id?: number };
   draft?: { denomination: number; draft_detail: string; draft_type: number };
   ground?: { ground_app: string; ground_area: number; ground_locate: string; region_id?: number };
   houses?: HouseItem[];
