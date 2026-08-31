@@ -288,7 +288,7 @@ async function submitEvaluate() {
 
       <Tabs>
         <!-- 所有权人：首列链接打开编辑 Modal -->
-        <TabPane key="owners" :tab="`所有权人（${detail.owners.length}）`">
+        <TabPane key="owners" :tab="`所有权人（${detail.owners?.length ?? 0}）`">
           <Table
             :columns="[
               { title: '姓名', dataIndex: 'owner_name' },
@@ -315,7 +315,7 @@ async function submitEvaluate() {
         </TabPane>
 
         <!-- 房产包（无独立 PATCH 端点，只读展示） -->
-        <TabPane v-if="detail.houses.length" key="houses" :tab="`房产（${detail.houses.length}）`">
+        <TabPane v-if="(detail.houses?.length ?? 0) > 0" key="houses" :tab="`房产（${detail.houses?.length ?? 0}）`">
           <Table
             :columns="[
               { title: '坐落', dataIndex: 'house_locate', ellipsis: true },
@@ -459,7 +459,7 @@ async function submitEvaluate() {
         </TabPane>
 
         <!-- 出入库记录 -->
-        <TabPane key="storages" :tab="`出入库（${detail.storages.length}）`">
+        <TabPane key="storages" :tab="`出入库（${detail.storages?.length ?? 0}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="storageForm.storage_type"
@@ -496,7 +496,7 @@ async function submitEvaluate() {
         </TabPane>
 
         <!-- 评估记录 -->
-        <TabPane key="evaluates" :tab="`评估（${detail.evaluates.length}）`">
+        <TabPane key="evaluates" :tab="`评估（${detail.evaluates?.length ?? 0}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="evaluateForm.evaluate_method"
