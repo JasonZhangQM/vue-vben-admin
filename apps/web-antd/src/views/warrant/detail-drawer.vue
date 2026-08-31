@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
@@ -316,7 +316,8 @@ async function submitEvaluate() {
         <TabPane v-if="(detail.houses?.length ?? 0) > 0" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
           <Table
             :columns="[
-              { title: '坐落', dataIndex: 'house_locate', ellipsis: true },
+              { title: '行政区域', dataIndex: 'region_name', width: 180 },
+              { title: '详细地址', dataIndex: 'house_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'house_area', width: 90 },
               { title: '用途', dataIndex: 'house_usage', width: 70 },
               { title: '建成年份', dataIndex: 'house_build_year', width: 90 },
@@ -327,7 +328,10 @@ async function submitEvaluate() {
             size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'house_usage'">
+              <template v-if="column.dataIndex === 'region_name'">
+                {{ record.region_name || '—' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'house_usage'">
                 {{ dictStore.labelOf('warrant.house_usage', record.house_usage) }}
               </template>
               <template v-else-if="column.dataIndex === 'house_build_year'">
@@ -340,7 +344,8 @@ async function submitEvaluate() {
         <!-- 土地(type=5) -->
         <TabPane v-if="detail.ground" key="ground" tab="土地信息">
           <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="坐落">{{ dash(detail.ground.ground_locate) }}</DescriptionsItem>
+            <DescriptionsItem label="行政区域">{{ dash(detail.ground.region_name) }}</DescriptionsItem>
+            <DescriptionsItem label="详细地址">{{ dash(detail.ground.ground_locate) }}</DescriptionsItem>
             <DescriptionsItem label="用途">{{ dash(detail.ground.ground_app) }}</DescriptionsItem>
             <DescriptionsItem label="面积(㎡)">{{ detail.ground.ground_area ?? '—' }}</DescriptionsItem>
           </Descriptions>

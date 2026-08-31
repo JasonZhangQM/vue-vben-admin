@@ -23,6 +23,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import { useDictStore } from '#/store/dict';
 
 import type { WarrantCreateParams } from '#/api/basic/warrant';
@@ -70,6 +71,7 @@ const createForm = reactive({
   warrant_num: '',
   warrant_type: 1 as number,
   // 土地
+  ground_region_id: undefined as number | undefined,
   ground_locate: '',
   ground_app: '',
   ground_area: undefined as number | undefined,
@@ -114,6 +116,7 @@ interface OwnerRow {
   _key: number;
 }
 interface HouseRow {
+  region_id: number | undefined;
   house_locate: string;
   house_app: number | undefined;
   house_area: number | undefined;
@@ -127,7 +130,7 @@ let rowKeySeq = 0;
 const nextKey = () => ++rowKeySeq;
 
 const emptyHouseRow = (): HouseRow => ({
-  house_locate: '', house_app: undefined, house_area: undefined,
+  region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined,
   house_name: '', house_build_year: undefined, house_usage: 10,
   _key: nextKey(),
 });
@@ -141,7 +144,8 @@ const ownerRows = ref<OwnerRow[]>([emptyOwnerRow()]);
 
 // 可编辑表格列：必填列标题带 *，行内输入组件经 bodyCell 插槽渲染
 const houseColumns: TableColumnType[] = [
-  { title: '坐落地址 *', dataIndex: 'house_locate' },
+  { title: '行政区域', dataIndex: 'region_id', width: 180 },
+  { title: '详细地址 *', dataIndex: 'house_locate' },
   { title: '用途分类 *', dataIndex: 'house_app', width: 150 },
   { title: '面积㎡ *', dataIndex: 'house_area', width: 130 },
   { title: '性质', dataIndex: 'house_usage', width: 110 },
@@ -253,7 +257,7 @@ function isExtDirty(): boolean {
 /** 清空全部类型扩展字段(切换确认后调用) */
 function resetExtFields() {
   Object.assign(createForm, {
-    ground_locate: '', ground_app: '', ground_area: undefined,
+    ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
     construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
@@ -287,6 +291,7 @@ function validateExt(): { ext?: object; houses?: object[] } | null {
       }
       return {
         houses: valid.map((h) => ({
+          region_id: h.region_id ?? undefined,
           house_locate: h.house_locate,
           house_app: h.house_app,
           house_area: h.house_area,
@@ -298,10 +303,17 @@ function validateExt(): { ext?: object; houses?: object[] } | null {
     }
     case WARRANT_TYPE_GROUND: {
       if (!createForm.ground_locate || !createForm.ground_area) {
-        message.warning('请填写土地坐落与面积');
+        message.warning('请填写土地详细地址与面积');
         return null;
       }
-      return { ext: { ground_locate: createForm.ground_locate, ground_app: createForm.ground_app, ground_area: createForm.ground_area } };
+      return {
+        ext: {
+          region_id: createForm.ground_region_id ?? undefined,
+          ground_locate: createForm.ground_locate,
+          ground_app: createForm.ground_app,
+          ground_area: createForm.ground_area,
+        },
+      };
     }
     case WARRANT_TYPE_CONSTRUCTION: {
       if (!createForm.construct_locate || !createForm.construct_area) {
@@ -439,7 +451,7 @@ async function onSubmit() {
 function resetAll() {
   Object.assign(createForm, {
     warrant_num: '', warrant_type: 1,
-    ground_locate: '', ground_app: '', ground_area: undefined,
+    ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
     construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
@@ -543,10 +555,13 @@ onMounted(() => {
             size="small"
           >
             <template #bodyCell="{ column, record, index }">
-              <template v-if="column.dataIndex === 'house_locate'">
+              <template v-if="column.dataIndex === 'region_id'">
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+              </template>
+              <template v-else-if="column.dataIndex === 'house_locate'">
                 <Input
                   v-model:value="record.house_locate"
-                  placeholder="坐落地址"
+                  placeholder="详细地址"
                   :status="attempted && !record.house_locate ? 'error' : undefined"
                   style="width: 100%"
                 />
@@ -587,13 +602,16 @@ onMounted(() => {
           <div class="grid grid-cols-2 gap-x-6">
             <!-- 土地 -->
             <template v-if="createForm.warrant_type === WARRANT_TYPE_GROUND">
-              <FormItem label="坐落" required>
-                <Input v-model:value="createForm.ground_locate" />
+              <FormItem label="行政区域">
+                <RegionTreeSelect v-model:value="createForm.ground_region_id" allow-clear />
+              </FormItem>
+              <FormItem label="详细地址" required>
+                <Input v-model:value="createForm.ground_locate" placeholder="详细地址" />
               </FormItem>
               <FormItem label="面积(㎡)" required>
                 <InputNumber v-model:value="createForm.ground_area" :min="0.01" class="w-full" />
               </FormItem>
-              <FormItem class="col-span-2" label="用途">
+              <FormItem label="用途">
                 <Input v-model:value="createForm.ground_app" placeholder="如：工业用地" />
               </FormItem>
             </template>

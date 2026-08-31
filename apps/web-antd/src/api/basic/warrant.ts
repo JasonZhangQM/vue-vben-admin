@@ -1,4 +1,4 @@
-﻿/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
+/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -35,6 +35,8 @@ export interface HouseItem {
   house_locate: string;
   house_name?: null | string;
   house_usage?: number;
+  region_id?: null | number;
+  region_name?: null | string;
 }
 
 export interface OwnerItem {
@@ -92,7 +94,7 @@ export interface WarrantDetail {
   evaluate_method?: null | number;
   evaluate_method_display?: null | string;
   evaluate_value: null | number;
-  ground?: null | { ground_locate: string; ground_app: string; ground_area: number };
+  ground?: null | { ground_locate: string; ground_app: string; ground_area: number; region_id?: null | number; region_name?: null | string };
   houses: HouseItem[];
   id: number;
   inquiry_date?: null | string;
@@ -130,7 +132,7 @@ export interface WarrantCreateParams {
   chattel?: { chattel_type: number; chattel_detail: string };
   construction?: { construct_locate: string; construct_app: string; construct_area: number };
   draft?: { denomination: number; draft_detail: string; draft_type: number };
-  ground?: { ground_app: string; ground_area: number; ground_locate: string };
+  ground?: { ground_app: string; ground_area: number; ground_locate: string; region_id?: number };
   houses?: HouseItem[];
   other?: { other_type: number; cost?: number; other_detail: string; patent?: any; software?: any };
   owners: { owner_id: number; ownership_num: string; share_ratio?: number }[];
