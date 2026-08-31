@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 部门管理：树形表格，部门名称列为详情入口；编辑/启停/删除/加子部门收纳在详情抽屉。 */
 
 import type { DeptNode } from '#/api/system/org';
@@ -46,7 +46,7 @@ async function loadTree() {
   }
 }
 
-/** 在树中按 id 查找节点（含子孙） */
+/** 在树中按 id 查找节点(含子孙) */
 function findNode(nodes: DeptNode[], id: number): DeptNode | undefined {
   for (const n of nodes) {
     if (n.id === id) return n;
@@ -62,7 +62,7 @@ const detailNode = ref<null | DeptNode>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
 function openDetail(row: any) {
@@ -79,14 +79,14 @@ async function refresh() {
   }
 }
 
-/** 上级部门名称（详情展示用） */
+/** 上级部门名称(详情展示用) */
 function parentName(node: DeptNode): string {
-  if (!node.parent_id) return '（顶级）';
+  if (!node.parent_id) return '(顶级)';
   const parent = findNode(tree.value, node.parent_id);
   return parent?.name ?? '—';
 }
 
-// ================= 新建 / 编辑（编辑入口在详情抽屉） =================
+// ================= 新建 / 编辑(编辑入口在详情抽屉) =================
 const editVisible = ref(false);
 const editMode = ref<'create' | 'edit'>('create');
 const editLoading = ref(false);
@@ -97,7 +97,7 @@ const editForm = reactive({
   ordery: 100,
 });
 
-/** 树拍平成下拉选项（排除自身及子孙，防成环） */
+/** 树拍平成下拉选项(排除自身及子孙，防成环) */
 function flattenForParent(
   nodes: DeptNode[],
   excludeId: number,
@@ -163,7 +163,7 @@ async function submitEdit() {
   }
 }
 
-// ================= 启停 / 删除 / 加子部门（收纳在详情抽屉） =================
+// ================= 启停 / 删除 / 加子部门(收纳在详情抽屉) =================
 async function onToggleStatus(checked: boolean) {
   if (!detailNode.value) return;
   await updateDept(detailNode.value.id, { status: checked ? 10 : 20 });
@@ -193,7 +193,7 @@ onMounted(loadTree);
 <template>
   <!-- 不传 title/description：不渲染页头 -->
   <Page>
-    <!-- 筛选区：独立 Card（部门树无筛选字段，仅放新增入口） -->
+    <!-- 筛选区：独立 Card(部门树无筛选字段，仅放新增入口) -->
     <Card class="mb-3" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1" />
@@ -294,7 +294,7 @@ onMounted(loadTree);
           <Input
             v-if="editForm.parent_id === 0"
             disabled
-            value="（顶级）"
+            value="(顶级)"
           />
           <SearchSelect
             v-else

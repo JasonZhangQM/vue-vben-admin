@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度 / 客户标签。 */
 
 import type { CustomerDetail, ExtraTag } from '#/api/basic/customer';
@@ -53,7 +53,7 @@ import { getIndustryTree } from '#/api/basic/dict';
 const props = defineProps<{ customerId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
 const open = defineModel<boolean>('open', { default: false });
@@ -77,7 +77,7 @@ async function load() {
   loading.value = true;
   try {
     detail.value = await getCustomerDetail(props.customerId);
-    // 股东 / 董事并行拉取（Tab 懒数据，失败不影响主信息）
+    // 股东 / 董事并行拉取(Tab 懒数据，失败不影响主信息)
     const [shareholders, directors] = await Promise.all([
       listShareholders(props.customerId).catch(() => []),
       listDirectors(props.customerId).catch(() => []),
@@ -101,7 +101,7 @@ watch(
   },
 );
 
-// ===== 编辑（CustomerUpdate，所有字段直接生效） =====
+// ===== 编辑(CustomerUpdate，所有字段直接生效) =====
 const { hasAccessByCodes } = useAccess();
 const canUpdate = computed(() => hasAccessByCodes(['customer:update']));
 
@@ -122,7 +122,7 @@ const editForm = reactive({
 
 async function openEdit() {
   if (!detail.value) return;
-  // 编辑需要行业全量（仅首次加载）；区域懒加载/搜索已封装进 RegionTreeSelect 组件
+  // 编辑需要行业全量(仅首次加载)；区域懒加载/搜索已封装进 RegionTreeSelect 组件
   if (!industryTreeData.value.length) {
     industryTreeData.value = toTreeData(await getIndustryTree());
   }
@@ -134,7 +134,7 @@ async function openEdit() {
     contact_addr: (detail.value as any).contact_addr ?? '',
     linkman: (detail.value as any).linkman ?? '',
     contact_num: (detail.value as any).contact_num ?? '',
-    region_id: undefined, // 留空保持不变（后端 exclude_unset）
+    region_id: undefined, // 留空保持不变(后端 exclude_unset)
     industry_id: undefined,
   });
   editVisible.value = true;
@@ -163,7 +163,7 @@ async function submitEdit() {
   }
 }
 
-// ===== 注销（收纳在抽屉内） =====
+// ===== 注销(收纳在抽屉内) =====
 async function onDelete() {
   if (!detail.value) return;
   await deleteCustomer(detail.value.id);
@@ -224,11 +224,11 @@ async function submitLimit() {
   }
   await addCoreLimit(detail.value.id, { ...limitForm });
   Object.assign(limitForm, { credit_amount: 0, valid_begin_date: '', valid_end_date: '' });
-  message.success('额度已创建（旧额度自动失效）');
+  message.success('额度已创建(旧额度自动失效)');
   await refresh();
 }
 
-// ===== 客户标签（参照 system/roles 权限配置：分组多选 + 保存） =====
+// ===== 客户标签(参照 system/roles 权限配置：分组多选 + 保存) =====
 const allTags = ref<ExtraTag[]>([]);
 const checkedTagIds = ref<number[]>([]);
 const tagSaving = ref(false);
@@ -413,8 +413,8 @@ async function saveTags() {
           </Descriptions>
         </TabPane>
 
-        <!-- 股东（独立 API 拉取） -->
-        <TabPane v-if="detail.genre === 1" key="shareholders" :tab="`股东（${shareholderList.length}）`">
+        <!-- 股东(独立 API 拉取) -->
+        <TabPane v-if="detail.genre === 1" key="shareholders" :tab="`股东(${shareholderList.length})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <Input v-model:value="shareholderForm.shareholder_name" placeholder="股东名称" style="width: 140px" />
             <InputNumber v-model:value="shareholderForm.invested_amount" placeholder="投资额" style="width: 120px" />
@@ -450,8 +450,8 @@ async function saveTags() {
           </Table>
         </TabPane>
 
-        <!-- 董事（独立 API 拉取） -->
-        <TabPane v-if="detail.genre === 1" key="directors" :tab="`董事（${directorList.length}）`">
+        <!-- 董事(独立 API 拉取) -->
+        <TabPane v-if="detail.genre === 1" key="directors" :tab="`董事(${directorList.length})`">
           <div class="mb-2 flex items-center gap-2">
             <Input v-model:value="directorName" placeholder="董事姓名" style="width: 160px" />
             <AccessControl :codes="['customer:update']" type="code">
@@ -524,8 +524,8 @@ async function saveTags() {
             </template>
           </Table>
         </TabPane>
-        <!-- 客户标签（参照 system/roles 权限配置：分组多选 + 保存） -->
-        <TabPane key="tags" :tab="`客户标签（${checkedTagIds.length}）`">
+        <!-- 客户标签(参照 system/roles 权限配置：分组多选 + 保存) -->
+        <TabPane key="tags" :tab="`客户标签(${checkedTagIds.length})`">
           <div class="mb-2 flex justify-end">
             <AccessControl :codes="['customer:update']" type="code">
               <Button :loading="tagSaving" size="small" type="primary" @click="saveTags">
@@ -557,12 +557,12 @@ async function saveTags() {
               </Checkbox>
             </div>
           </div>
-          <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签（请先在客户标签页创建）</div>
+          <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签(请先在客户标签页创建)</div>
         </TabPane>
       </Tabs>
     </div>
 
-    <!-- 客户编辑 Modal（字段对齐后端 CustomerUpdate，留空表示保持不变） -->
+    <!-- 客户编辑 Modal(字段对齐后端 CustomerUpdate，留空表示保持不变) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"

@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import type { ExtraTag, TagCustomer } from '#/api/basic/customer';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -41,7 +41,7 @@ import {
   updateTag,
 } from '#/api/basic/customer';
 
-// 客户枚举 label 镜像（与后端 customer/enums.py 对齐，仅本页展示用）
+// 客户枚举 label 镜像(与后端 customer/enums.py 对齐，仅本页展示用)
 const GENRE_LABELS: Record<number, string> = { 1: '企业', 2: '个人' };
 const CUSTOM_STATE_LABELS: Record<number, string> = {
   10: '正常', 20: '反担保', 30: '小贷', 90: '注销',
@@ -56,7 +56,7 @@ const CLASSIFICATION_COLORS: Record<number, string> = {
 // ============ 列表 ============
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 const loading = ref(false);
 const allTags = ref<ExtraTag[]>([]);
@@ -74,14 +74,14 @@ const applied = reactive({
   type: undefined as number | undefined,
 });
 
-/** 提交筛选（查询按钮 / 回车 / 重置时调用） */
+/** 提交筛选(查询按钮 / 回车 / 重置时调用) */
 function applyQuery() {
   applied.q = query.q.trim();
   applied.type = query.type;
   query.page = 1;
 }
 
-/** 前端过滤 + 分页（后端返回全量数组，基于 applied 快照） */
+/** 前端过滤 + 分页(后端返回全量数组，基于 applied 快照) */
 const filteredList = computed(() => {
   let arr = allTags.value;
   if (applied.q) {
@@ -124,7 +124,7 @@ const columns: TableColumnType[] = [
 // ============ 详情抽屉 ============
 const drawerOpen = ref(false);
 const detail = ref<ExtraTag | null>(null);
-/** 客户 Tab 数据（打开抽屉即加载） */
+/** 客户 Tab 数据(打开抽屉即加载) */
 const tagCustomers = ref<TagCustomer[]>([]);
 const customersLoading = ref(false);
 
@@ -183,7 +183,7 @@ const customerColumns: TableColumnType[] = [
   { title: '操作', key: 'op', width: 80, fixed: 'right' },
 ];
 
-// 移除 标签↔客户 关联（操作列）
+// 移除 标签↔客户 关联(操作列)
 async function onRemoveRelation(record: TagCustomer) {
   if (!detail.value) return;
   try {
@@ -192,7 +192,7 @@ async function onRemoveRelation(record: TagCustomer) {
     await loadList();
     await refreshDrawer();
   } catch {
-    // 后端拦截（关联不存在等）
+    // 后端拦截(关联不存在等)
   }
 }
 
@@ -225,7 +225,7 @@ async function submitCreate() {
   }
 }
 
-// ============ 编辑（抽屉 #extra 编辑按钮） ============
+// ============ 编辑(抽屉 #extra 编辑按钮) ============
 const editVisible = ref(false);
 const editLoading = ref(false);
 const editForm = reactive({
@@ -292,7 +292,7 @@ onMounted(loadList);
       </div>
     </Card>
 
-    <!-- 表格区（名称列链接化为唯一详情入口，无行内操作列） -->
+    <!-- 表格区(名称列链接化为唯一详情入口，无行内操作列) -->
     <Card size="small">
       <Table
         :columns="columns"
@@ -375,7 +375,7 @@ onMounted(loadList);
 
         <!-- 关联数据：客户 Tab -->
         <Tabs class="mt-3" size="small">
-          <TabPane :tab="`客户（${tagCustomers.length}）`" key="customers">
+          <TabPane :tab="`客户(${tagCustomers.length})`" key="customers">
             <Table
               :columns="customerColumns"
               :data-source="tagCustomers"

@@ -1,4 +1,4 @@
-<!-- 图形验证码输入字段：vben form 自定义组件（modelValue 协议），
+﻿<!-- 图形验证码输入字段：vben form 自定义组件(modelValue 协议)，
      内部拉取验证码图片；captchaNonce 变化时刷新，captcha_id 经回调交给父级随表单提交 -->
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';

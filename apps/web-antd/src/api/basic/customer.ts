@@ -1,4 +1,4 @@
-/** 基础数据：客户模块 API（创建/修改直接生效，无审批；子资源/核心额度/统计）。 */
+﻿/** 基础数据：客户模块 API(创建/修改直接生效，无审批；子资源/核心额度/统计)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -121,7 +121,7 @@ export interface CustomerListParams {
   q?: string;
 }
 
-/** 客户列表（data_scope 过滤） */
+/** 客户列表(data_scope 过滤) */
 export function getCustomerList(params: CustomerListParams) {
   return requestClient.get<PageResult<CustomerListItem>>('/customers', {
     params,
@@ -133,12 +133,12 @@ export function getCustomerDetail(id: number) {
   return requestClient.get<CustomerDetail>(`/customers/${id}`);
 }
 
-/** 添加客户（直接落库） */
+/** 添加客户(直接落库) */
 export function createCustomer(data: CustomerCreateParams) {
   return requestClient.post<{ id: number }>('/customers', data);
 }
 
-/** 修改客户（所有字段直接生效） */
+/** 修改客户(所有字段直接生效) */
 export function updateCustomer(id: number, data: object) {
   return requestClient.request(`/customers/${id}`, {
     data,
@@ -146,12 +146,12 @@ export function updateCustomer(id: number, data: object) {
   });
 }
 
-/** 删除客户（逻辑注销） */
+/** 删除客户(逻辑注销) */
 export function deleteCustomer(id: number) {
   return requestClient.delete(`/customers/${id}`);
 }
 
-/** 批量管护移交（直接生效，≤200 个客户） */
+/** 批量管护移交(直接生效，≤200 个客户) */
 export function batchTransfer(data: {
   customer_ids: number[];
   reason: string;
@@ -198,7 +198,7 @@ export function deleteDirector(id: number, directorId: number) {
   return requestClient.delete(`/customers/${id}/directors/${directorId}`);
 }
 
-/** 经营快照（同日覆盖） */
+/** 经营快照(同日覆盖) */
 export function addExtend(
   id: number,
   data: {
@@ -257,7 +257,7 @@ export function addCoreLimit(
 
 // ===== 集团 =====
 
-/** 集团树节点（成员数/在保汇均为合并口径：本集团 + 全部子集团） */
+/** 集团树节点(成员数/在保汇均为合并口径：本集团 + 全部子集团) */
 export interface GroupTreeNode {
   children: GroupTreeNode[];
   code: string;
@@ -311,22 +311,22 @@ export interface GroupUpdateParams {
   parent_id?: number;
 }
 
-/** 集团树（集团管理列表 / 新建客户表单 / 筛选用） */
+/** 集团树(集团管理列表 / 新建客户表单 / 筛选用) */
 export function getGroupTree() {
   return requestClient.get<GroupTreeNode[]>('/customer-groups');
 }
 
-/** 新建集团（必须指定母公司，母公司自动加入成员） */
+/** 新建集团(必须指定母公司，母公司自动加入成员) */
 export function createGroup(data: GroupCreateParams) {
   return requestClient.post<{ id: number }>('/customer-groups', data);
 }
 
-/** 集团详情（基本信息 + 直接成员 Top20 + 合并汇总） */
+/** 集团详情(基本信息 + 直接成员 Top20 + 合并汇总) */
 export function getGroupDetail(id: number) {
   return requestClient.get<GroupDetail>(`/customer-groups/${id}`);
 }
 
-/** 修改集团（可换父集团/换母公司，后端拦截成环与停用冲突） */
+/** 修改集团(可换父集团/换母公司，后端拦截成环与停用冲突) */
 export function updateGroup(id: number, data: GroupUpdateParams) {
   return requestClient.request(`/customer-groups/${id}`, {
     data,
@@ -334,12 +334,12 @@ export function updateGroup(id: number, data: GroupUpdateParams) {
   });
 }
 
-/** 删除集团（拦截：仍有成员或子集团） */
+/** 删除集团(拦截：仍有成员或子集团) */
 export function deleteGroup(id: number) {
   return requestClient.delete(`/customer-groups/${id}`);
 }
 
-/** 集团成员分页列表（直接成员，不含子集团） */
+/** 集团成员分页列表(直接成员，不含子集团) */
 export function listGroupMembers(id: number, params: { page: number; page_size: number }) {
   return requestClient.get<PageResult<GroupMemberItem>>(
     `/customer-groups/${id}/members`,
@@ -347,14 +347,14 @@ export function listGroupMembers(id: number, params: { page: number; page_size: 
   );
 }
 
-/** 批量加入成员企业（拦截：非企业客户/已属其他集团） */
+/** 批量加入成员企业(拦截：非企业客户/已属其他集团) */
 export function addGroupMembers(id: number, customerIds: number[]) {
   return requestClient.post<{ added: number }>(`/customer-groups/${id}/members`, {
     customer_ids: customerIds,
   });
 }
 
-/** 移除成员企业（母公司不可移除，后端拦截） */
+/** 移除成员企业(母公司不可移除，后端拦截) */
 export function removeGroupMember(id: number, customerId: number) {
   return requestClient.delete(`/customer-groups/${id}/members/${customerId}`);
 }
@@ -372,7 +372,7 @@ export function getCustomerOverview() {
   }>('/customers/stats/overview');
 }
 
-// ===== 标签（ExtraTag） =====
+// ===== 标签(ExtraTag) =====
 
 export interface ExtraTag {
   id: number;
@@ -382,7 +382,7 @@ export interface ExtraTag {
   created_by_name: string;
 }
 
-/** 标签类型枚举（与后端 customer 模型对齐） */
+/** 标签类型枚举(与后端 customer 模型对齐) */
 export const TAG_TYPE_OPTIONS = [
   { label: '行业标签', value: 10 },
   { label: '业务标签', value: 20 },
@@ -392,7 +392,7 @@ export function getTagList() {
   return requestClient.get<ExtraTag[]>('/dicts/tags');
 }
 
-/** 标签下的客户（详情抽屉 Tab 用） */
+/** 标签下的客户(详情抽屉 Tab 用) */
 export interface TagCustomer {
   id: number;
   name: string;
@@ -407,7 +407,7 @@ export function getTagCustomers(tagId: number) {
   return requestClient.get<TagCustomer[]>(`/dicts/tags/${tagId}/customers`);
 }
 
-/** 移除 标签↔客户 关联（标签详情抽屉操作列） */
+/** 移除 标签↔客户 关联(标签详情抽屉操作列) */
 export function removeTagCustomer(tagId: number, customerId: number) {
   return requestClient.delete(`/dicts/tags/${tagId}/customers/${customerId}`);
 }

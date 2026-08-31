@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import type { UserListItem } from '#/api/system/user';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -78,7 +78,7 @@ function openDetail(row: any) {
   detailOpen.value = true;
 }
 
-// ================= 新建（编辑收纳在详情抽屉） =================
+// ================= 新建(编辑收纳在详情抽屉) =================
 const createVisible = ref(false);
 const createLoading = ref(false);
 const createForm = reactive({
@@ -134,7 +134,7 @@ async function submitCreate() {
     createVisible.value = false;
     Modal.success({
       title: '用户创建成功',
-      content: `初始密码：${initial_password}（用户首登将被要求修改）`,
+      content: `初始密码：${initial_password}(用户首登将被要求修改)`,
     });
     await loadList();
   } finally {
@@ -285,7 +285,7 @@ onMounted(async () => {
             v-model:value="createForm.role_ids"
             :options="roleOptions"
             mode="multiple"
-            placeholder="选择角色（权限取并集）"
+            placeholder="选择角色(权限取并集)"
           />
         </FormItem>
         <FormItem label="说明">

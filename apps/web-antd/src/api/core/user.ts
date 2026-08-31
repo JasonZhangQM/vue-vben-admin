@@ -1,8 +1,8 @@
-import type { UserInfo } from '@vben/types';
+﻿import type { UserInfo } from '@vben/types';
 
 import { requestClient } from '#/api/request';
 
-/** 后端 /users/me 响应（ UserProfile 的关键字段子集） */
+/** 后端 /users/me 响应( UserProfile 的关键字段子集) */
 interface MyProfile {
   avatar_url: null | string;
   id: number;
@@ -12,7 +12,7 @@ interface MyProfile {
 }
 
 /**
- * 获取用户信息（映射为 vben UserInfo 协议）
+ * 获取用户信息(映射为 vben UserInfo 协议)
  */
 export async function getUserInfoApi(): Promise<UserInfo> {
   const raw = await requestClient.get<MyProfile>('/users/me');

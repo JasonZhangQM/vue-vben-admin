@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 菜单管理：树形表格，标题列为详情入口；编辑/删除/加子级收纳在详情抽屉。 */
 
 import type { MenuNode } from '#/api/system/org';
@@ -45,7 +45,7 @@ async function loadTree() {
   }
 }
 
-/** 在树中按 id 查找节点（含子孙） */
+/** 在树中按 id 查找节点(含子孙) */
 function findNode(nodes: MenuNode[], id: number): MenuNode | undefined {
   for (const n of nodes) {
     if (n.id === id) return n;
@@ -55,9 +55,9 @@ function findNode(nodes: MenuNode[], id: number): MenuNode | undefined {
   return undefined;
 }
 
-/** 上级菜单标题（详情展示用） */
+/** 上级菜单标题(详情展示用) */
 function parentName(node: MenuNode): string {
-  if (!node.parent_id) return '（顶级）';
+  if (!node.parent_id) return '(顶级)';
   const parent = findNode(tree.value, node.parent_id);
   return parent?.caption ?? '—';
 }
@@ -74,7 +74,7 @@ const detailNode = ref<null | MenuNode>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
 function openDetail(row: any) {
@@ -91,7 +91,7 @@ async function refresh() {
   }
 }
 
-// ================= 新建 / 编辑（编辑入口在详情抽屉） =================
+// ================= 新建 / 编辑(编辑入口在详情抽屉) =================
 const editVisible = ref(false);
 const editMode = ref<'create' | 'edit'>('create');
 const editLoading = ref(false);
@@ -112,7 +112,7 @@ function flattenForParent(
   nodes: MenuNode[],
   prefix = '',
 ): { label: string; value: number }[] {
-  // 只允许挂到目录（10）下
+  // 只允许挂到目录(10)下
   return nodes
     .filter((n) => n.type === 10)
     .flatMap((n) => [
@@ -176,7 +176,7 @@ async function submitEdit() {
     };
     if (editMode.value === 'create') {
       await createMenu(payload);
-      message.success('菜单创建成功（权限点已同步生成）');
+      message.success('菜单创建成功(权限点已同步生成)');
     } else {
       await updateMenu(editForm.id, payload);
       message.success('保存成功');
@@ -188,7 +188,7 @@ async function submitEdit() {
   }
 }
 
-// ================= 删除（收纳在详情抽屉） =================
+// ================= 删除(收纳在详情抽屉) =================
 async function onDelete() {
   if (!detailNode.value) return;
   await deleteMenu(detailNode.value.id);
@@ -213,7 +213,7 @@ onMounted(loadTree);
 <template>
   <!-- 不传 title/description：不渲染页头 -->
   <Page>
-    <!-- 筛选区：独立 Card（菜单树无筛选字段，仅放新增入口） -->
+    <!-- 筛选区：独立 Card(菜单树无筛选字段，仅放新增入口) -->
     <Card class="mb-3" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1" />
@@ -282,7 +282,7 @@ onMounted(loadTree);
                 <Button size="small" @click="openCreate(detailNode)">加子级</Button>
               </AccessControl>
               <AccessControl :codes="['menu:delete']" type="code">
-                <Popconfirm title="确认删除？（子级将联动删除）" @confirm="onDelete">
+                <Popconfirm title="确认删除？(子级将联动删除)" @confirm="onDelete">
                   <Button danger size="small">删除</Button>
                 </Popconfirm>
               </AccessControl>
@@ -323,7 +323,7 @@ onMounted(loadTree);
           <SearchSelect
             v-model:value="editForm.parent_id"
             :options="flattenForParent(tree)"
-            placeholder="顶级（parent_id=0）"
+            placeholder="顶级(parent_id=0)"
             allow-clear
           />
         </FormItem>
@@ -355,7 +355,7 @@ onMounted(loadTree);
         <FormItem label="权限码">
           <Input
             v-model:value="editForm.permission_code"
-            placeholder="如 user:list（为空则不鉴权）"
+            placeholder="如 user:list(为空则不鉴权)"
           />
         </FormItem>
         <FormItem label="排序">

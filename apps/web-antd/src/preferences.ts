@@ -1,4 +1,4 @@
-import {
+﻿import {
   appCopyrightPreferences,
   defineOverridesPreferences,
   definePreferencesExtension,
@@ -26,7 +26,7 @@ export const overridesPreferences = defineOverridesPreferences({
   },
   copyright: appCopyrightPreferences,
   logo: {
-    // 系统 Logo（public/logo.svg，内嵌 PNG 的 SVG，明暗主题通用）
+    // 系统 Logo(public/logo.svg，内嵌 PNG 的 SVG，明暗主题通用)
     source: '/logo.svg',
   },
 });

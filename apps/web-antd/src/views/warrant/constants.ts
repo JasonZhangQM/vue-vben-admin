@@ -1,8 +1,8 @@
-/** 权证模块 UI 常量——枚举值 → AntD Tag 颜色映射。
+﻿/** 权证模块 UI 常量——枚举值 → AntD Tag 颜色映射。
  *
- *  原则：与后端 enums.py 的 LabeledIntEnum 语义对齐（同值不同枚举
+ *  原则：与后端 enums.py 的 LabeledIntEnum 语义对齐(同值不同枚举
  *  必须分开映射，不能"值对值"瞎复用——详见 index.vue / detail-drawer.vue
- *  各自调用各自的 STATE_COLOR）。
+ *  各自调用各自的 STATE_COLOR)。
  *
  *  AGENTS.md §5.5 说颜色/样式标签随 dict 后端下发；但当前后端
  *  dict 未扩展 tag_color 字段，前端暂做本地映射，后端就绪后迁移。
@@ -21,7 +21,7 @@ export const WARRANT_STATE_COLOR: Record<number, string> = {
   990: 'red', // 已注销
 };
 
-/** 拍卖状态 AuctionState → AntD Tag color（与 WarrantState 值有重叠，必须独立） */
+/** 拍卖状态 AuctionState → AntD Tag color(与 WarrantState 值有重叠，必须独立) */
 export const AUCTION_STATE_COLOR: Record<number, string> = {
   10: 'green', // 正常
   20: 'red', // 查封
@@ -33,7 +33,7 @@ export const AUCTION_STATE_COLOR: Record<number, string> = {
   990: 'default', // 注销
 };
 
-/** 出入库类型 StorageType → AntD Tag color（列表页 storage_latest 列用） */
+/** 出入库类型 StorageType → AntD Tag color(列表页 storage_latest 列用) */
 export const STORAGE_TYPE_COLOR: Record<number, string> = {
   10: 'green', // 入库
   20: 'orange', // 续抵出库

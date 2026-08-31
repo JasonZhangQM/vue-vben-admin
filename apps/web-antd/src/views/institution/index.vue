@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import type { InstitutionListItem } from '#/api/basic/institution';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -53,7 +53,7 @@ import {
   updateInstitution,
 } from '#/api/basic/institution';
 
-// 机构枚举（与后端 institution/enums.py 对齐）
+// 机构枚举(与后端 institution/enums.py 对齐)
 const TYPE_OPTIONS = [
   { label: '银行', value: 10 },
   { label: '担保', value: 20 },
@@ -84,10 +84,10 @@ const AGREEMENT_TYPE_OPTIONS = [
 const typeLabel = (v: number) => TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v;
 const statusColor = (s: number) => ({ 10: 'green', 20: 'red', 90: 'default' })[s] ?? 'default';
 
-// 表格行点击高亮（useRowHighlight composable 全局共享）
+// 表格行点击高亮(useRowHighlight composable 全局共享)
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 const loading = ref(false);
 const list = ref<InstitutionListItem[]>([]);
@@ -144,7 +144,7 @@ async function submitCreate() {
     message.warning('请填写机构名称');
     return;
   }
-  // 银行类必须选择子类型（后端 4001 校验）
+  // 银行类必须选择子类型(后端 4001 校验)
   if (createForm.institution_type === 10 && !createForm.institution_subtype) {
     message.warning('银行类机构必须选择子类型');
     return;
@@ -198,7 +198,7 @@ async function openDetail(row: any) {
   }
 }
 
-// ---------- 机构编辑（InstitutionUpdate 自由字段，可少不可多） ----------
+// ---------- 机构编辑(InstitutionUpdate 自由字段，可少不可多) ----------
 const { hasAccessByCodes } = useAccess();
 const canUpdate = computed(() => hasAccessByCodes(['institution:update']));
 
@@ -258,7 +258,7 @@ async function submitEdit() {
   }
 }
 
-// ---------- 状态变更 / 注销（收纳在抽屉内，列表页不放） ----------
+// ---------- 状态变更 / 注销(收纳在抽屉内，列表页不放) ----------
 async function onToggleStatus() {
   if (!detail.value) return;
   await changeInstitutionStatus(detail.value.id, detail.value.status === 10 ? 20 : 10);
@@ -286,7 +286,7 @@ async function submitContact() {
   await reloadDetail();
 }
 
-// 联系人编辑（ContactUpdate 自由字段）
+// 联系人编辑(ContactUpdate 自由字段)
 const contactEditVisible = ref(false);
 const contactEditLoading = ref(false);
 const contactEditForm = reactive({
@@ -350,7 +350,7 @@ async function submitBranch() {
   await reloadDetail();
 }
 
-// 分支机构编辑（BranchUpdate 自由字段，status 不进编辑弹窗）
+// 分支机构编辑(BranchUpdate 自由字段，status 不进编辑弹窗)
 const branchEditVisible = ref(false);
 const branchEditLoading = ref(false);
 const branchEditForm = reactive({
@@ -420,7 +420,7 @@ async function submitAgreement() {
   await reloadDetail();
 }
 
-// 协议编辑（AgreementUpdate 自由字段子集）
+// 协议编辑(AgreementUpdate 自由字段子集)
 const agreementEditVisible = ref(false);
 const agreementEditLoading = ref(false);
 const agreementEditForm = reactive({
@@ -467,7 +467,7 @@ async function onDeleteAgreement(record: any) {
   await reloadDetail();
 }
 
-// ================= 列定义（无 ID 列 / 无操作列，名称列链接化） =================
+// ================= 列定义(无 ID 列 / 无操作列，名称列链接化) =================
 const columns: TableColumnType[] = [
   { title: '机构名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
   { title: '简称', dataIndex: 'short_name', ellipsis: true },
@@ -540,7 +540,7 @@ onMounted(loadList);
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            <!-- 名称列即详情入口（不加 ellipsis） -->
+            <!-- 名称列即详情入口(不加 ellipsis) -->
             <a @click="openDetail(record)">{{ record.name }}</a>
           </template>
           <template v-else-if="column.dataIndex === 'institution_type'">
@@ -643,7 +643,7 @@ onMounted(loadList);
 
         <Tabs>
           <!-- 联系人 Tab：首列链接化打开编辑 Modal -->
-          <TabPane key="contacts" :tab="`联系人（${detail.contacts.length}）`">
+          <TabPane key="contacts" :tab="`联系人(${detail.contacts.length})`">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <Input v-model:value="contactForm.name" placeholder="姓名" style="width: 120px" />
               <Input v-model:value="contactForm.phone" placeholder="电话" style="width: 160px" />
@@ -686,7 +686,7 @@ onMounted(loadList);
           </TabPane>
 
           <!-- 分支机构 Tab -->
-          <TabPane key="branches" :tab="`分支机构（${detail.branches.length}）`">
+          <TabPane key="branches" :tab="`分支机构(${detail.branches.length})`">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <Input v-model:value="branchForm.name" placeholder="名称" style="width: 140px" />
               <Input v-model:value="branchForm.short_name" placeholder="简称" style="width: 100px" />
@@ -723,7 +723,7 @@ onMounted(loadList);
           </TabPane>
 
           <!-- 授信协议 Tab -->
-          <TabPane key="agreements" :tab="`授信协议（${detail.agreements.length}）`">
+          <TabPane key="agreements" :tab="`授信协议(${detail.agreements.length})`">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <SearchSelect v-model:value="agreementForm.agreement_type" :options="AGREEMENT_TYPE_OPTIONS" size="small" style="width: 110px" />
               <InputNumber v-model:value="agreementForm.flow_credit" placeholder="流量额度" style="width: 130px" />
@@ -771,7 +771,7 @@ onMounted(loadList);
       </div>
     </Drawer>
 
-    <!-- 机构编辑 Modal（字段对齐后端 InstitutionUpdate） -->
+    <!-- 机构编辑 Modal(字段对齐后端 InstitutionUpdate) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
@@ -825,7 +825,7 @@ onMounted(loadList);
       </Form>
     </Modal>
 
-    <!-- 联系人编辑 Modal（字段对齐后端 ContactUpdate） -->
+    <!-- 联系人编辑 Modal(字段对齐后端 ContactUpdate) -->
     <Modal
       v-model:open="contactEditVisible"
       :confirm-loading="contactEditLoading"
@@ -856,7 +856,7 @@ onMounted(loadList);
       </Form>
     </Modal>
 
-    <!-- 分支机构编辑 Modal（字段对齐后端 BranchUpdate） -->
+    <!-- 分支机构编辑 Modal(字段对齐后端 BranchUpdate) -->
     <Modal
       v-model:open="branchEditVisible"
       :confirm-loading="branchEditLoading"
@@ -881,7 +881,7 @@ onMounted(loadList);
       </Form>
     </Modal>
 
-    <!-- 授信协议编辑 Modal（字段对齐后端 AgreementUpdate 子集） -->
+    <!-- 授信协议编辑 Modal(字段对齐后端 AgreementUpdate 子集) -->
     <Modal
       v-model:open="agreementEditVisible"
       :confirm-loading="agreementEditLoading"

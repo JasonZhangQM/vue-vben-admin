@@ -1,13 +1,13 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /**
- * 行政区域下拉选择（全局通用组件）。
+ * 行政区域下拉选择(全局通用组件)。
  *
  * 封装全部坑点，业务页面只需 v-model 一个值：
- * - 懒加载：首屏只拉 34 省，展开逐级加载（有子级节点预置 children:[] + isLeaf:false 渲染箭头）
- * - 远程搜索：输入名称/代码 → 后端搜索 → 平铺显示完整路径（如"四川省/成都市/武侯区"）
+ * - 懒加载：首屏只拉 34 省，展开逐级加载(有子级节点预置 children:[] + isLeaf:false 渲染箭头)
+ * - 远程搜索：输入名称/代码 → 后端搜索 → 平铺显示完整路径(如"四川省/成都市/武侯区")
  * - 选中回显：value 对应节点不在懒加载树中时，调详情接口插入临时节点显示完整路径
  * - AntD TreeSelect 搜索后自动清空输入框的坑：时间戳冷却期区分自动清空与用户清空
- * - 过滤属性是 filterTreeNode（不是 filterOption），远程搜索模式禁用本地过滤
+ * - 过滤属性是 filterTreeNode(不是 filterOption)，远程搜索模式禁用本地过滤
  */
 import type { PropType } from 'vue';
 
@@ -31,7 +31,7 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   placeholder: {
     type: String,
-    default: '行政区划（输入搜索 / 展开加载子级）',
+    default: '行政区划(输入搜索 / 展开加载子级)',
   },
 });
 
@@ -39,7 +39,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const regionTreeData = ref<any[]>([]);
 
-/** 后端节点 → AntD TreeSelect treeData，title 为完整路径（选中后输入框显示完整路径） */
+/** 后端节点 → AntD TreeSelect treeData，title 为完整路径(选中后输入框显示完整路径) */
 function toRegionNodes(nodes: any[], parentPath = ''): any[] {
   return (nodes ?? []).map((n) => {
     const fullPath = parentPath ? `${parentPath}/${n.name}` : n.name;
@@ -55,7 +55,7 @@ function toRegionNodes(nodes: any[], parentPath = ''): any[] {
   });
 }
 
-/** 在 treeData 中递归查找节点（返回原对象引用，修改可触发响应式） */
+/** 在 treeData 中递归查找节点(返回原对象引用，修改可触发响应式) */
 function findNodeInTree(nodes: any[], key: number): any | null {
   for (const n of nodes) {
     if (n.key === key) return n;
@@ -76,7 +76,7 @@ async function loadRegionChildren(node: any) {
   }
 }
 
-/** 远程搜索：防抖 + 冷却期（AntD 搜索后自动清空输入框再触发 @search("")） */
+/** 远程搜索：防抖 + 冷却期(AntD 搜索后自动清空输入框再触发 @search("")) */
 let regionSearchTimer: ReturnType<typeof setTimeout> | null = null;
 let lastRegionSearchTime = 0;
 const regionRootsBackup = ref<any[]>([]);
@@ -104,7 +104,7 @@ function onRegionSearch(input: string) {
   }, 300);
 }
 
-/** 回显：value 节点不在树中时，调详情接口插入临时节点（显示完整路径而非空白/ID） */
+/** 回显：value 节点不在树中时，调详情接口插入临时节点(显示完整路径而非空白/ID) */
 async function ensureEchoNode(id: number) {
   if (!id || findNodeInTree(regionTreeData.value, id)) return;
   try {
@@ -116,7 +116,7 @@ async function ensureEchoNode(id: number) {
       ];
     }
   } catch {
-    // 回显失败不阻断（显示 ID 兜底）
+    // 回显失败不阻断(显示 ID 兜底)
   }
 }
 

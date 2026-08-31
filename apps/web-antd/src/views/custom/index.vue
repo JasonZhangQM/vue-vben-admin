@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 客户管理：列表（data_scope 过滤）/ 新建（直落库）/ 详情抽屉。 */
+﻿<script lang="ts" setup>
+/** 客户管理：列表(data_scope 过滤)/ 新建(直落库)/ 详情抽屉。 */
 
 import type { CustomerListItem } from '#/api/basic/customer';
 import type { TableColumnType } from 'ant-design-vue';
@@ -43,11 +43,11 @@ import { getUserList } from '#/api/system/user';
 
 import DetailDrawer from './detail-drawer.vue';
 
-// 全局共享工具：行高亮 composable + 格式化函数（消除重复定义）
+// 全局共享工具：行高亮 composable + 格式化函数(消除重复定义)
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash, filterTreeOption, toTreeData } from '#/utils/format';
 
-// 客户枚举（与后端 customer/enums.py 对齐）
+// 客户枚举(与后端 customer/enums.py 对齐)
 const GENRE_OPTIONS = [
   { label: '企业', value: 1 },
   { label: '个人', value: 2 },
@@ -101,7 +101,7 @@ const query = reactive({
   page_size: 20,
   q: '',
   genre: undefined as number | undefined,
-  // 布尔筛选用 1/0 表示（AntD Select value 不支持 boolean），提交前转换
+  // 布尔筛选用 1/0 表示(AntD Select value 不支持 boolean)，提交前转换
   is_core: undefined as number | undefined,
   is_acceptor: undefined as number | undefined,
   classification: undefined as number | undefined,
@@ -144,7 +144,7 @@ function openDetail(row: any) {
   detailOpen.value = true;
 }
 
-// ================= 新建（直落库） =================
+// ================= 新建(直落库) =================
 const createVisible = ref(false);
 const createLoading = ref(false);
 // 表单字段与后端 CustomerCreate schema 对齐
@@ -180,7 +180,7 @@ const createForm = reactive({
   household_nature: undefined as number | undefined,
 });
 
-// 下拉数据源（管护经理=pm 角色，风控专员=controler 角色，分开加载）
+// 下拉数据源(管护经理=pm 角色，风控专员=controler 角色，分开加载)
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlerOptions = ref<{ label: string; value: number }[]>([]);
 const industryTreeData = ref<any[]>([]);
@@ -225,7 +225,7 @@ function openCreate() {
 }
 
 async function submitCreate() {
-  // 前端轻校验（后端 Pydantic 兜底）
+  // 前端轻校验(后端 Pydantic 兜底)
   if (!createForm.name || !createForm.short_name) {
     message.warning('请填写客户名称与简称');
     return;
@@ -300,14 +300,14 @@ async function submitCreate() {
       company,
       personal,
     });
-    message.success(`客户创建成功（#${res.id}）`);
+    message.success(`客户创建成功(#${res.id})`);
     createVisible.value = false;
   } finally {
     createLoading.value = false;
   }
 }
 
-// 表格行点击高亮（useRowHighlight composable 全局共享）
+// 表格行点击高亮(useRowHighlight composable 全局共享)
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 const columns: TableColumnType[] = [
@@ -410,7 +410,7 @@ onMounted(() => {
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            <!-- 名称列即详情入口（不加 ellipsis） -->
+            <!-- 名称列即详情入口(不加 ellipsis) -->
             <a @click="openDetail(record)">{{ record.name }}</a>
           </template>
           <template v-else-if="column.dataIndex === 'short_name'">
@@ -448,7 +448,7 @@ onMounted(() => {
       </Table>
     </Card>
 
-    <!-- 新建客户（直落库） -->
+    <!-- 新建客户(直落库) -->
     <Modal
       v-model:open="createVisible"
       :confirm-loading="createLoading"
@@ -488,7 +488,7 @@ onMounted(() => {
           <SearchSelect
             v-model:value="createForm.managementor_id"
             :options="pmOptions"
-            placeholder="客户经理（业务发起人）"
+            placeholder="客户经理(业务发起人)"
           />
         </FormItem>
         <FormItem label="风控专员" required>

@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import type {
   WorkbenchProjectItem,
   WorkbenchQuickNavItem,
@@ -85,7 +85,7 @@ const projectItems: WorkbenchProjectItem[] = [
   },
 ];
 
-// 快捷导航指向已实现的业务模块（原 vben 演示链接已随 demos 路由删除）
+// 快捷导航指向已实现的业务模块(原 vben 演示链接已随 demos 路由删除)
 const quickNavItems: WorkbenchQuickNavItem[] = [
   {
     color: '#1fdaca',

@@ -1,5 +1,5 @@
-/**
- * 通用格式化工具函数（全项目共享）
+﻿/**
+ * 通用格式化工具函数(全项目共享)
  *
  * 抽取自多处业务页面的重复逻辑：dash / opt / toTreeData / filterOption
  * 新增页面直接从本文件 import，禁止就地重复实现。
@@ -29,7 +29,7 @@ export function formatAmount(v: number | null | undefined): string {
 }
 
 /**
- * 后端树节点 → AntD TreeSelect treeData（递归）
+ * 后端树节点 → AntD TreeSelect treeData(递归)
  * 后端节点需提供 { id, name, children? } 结构
  */
 export function toTreeData(
@@ -59,7 +59,7 @@ export function filterTreeOption(input: string, node: any): boolean {
 }
 
 /**
- * 从后端字典选项列表中按 value 取 label（找不到返回 value 本身或 fallback）
+ * 从后端字典选项列表中按 value 取 label(找不到返回 value 本身或 fallback)
  */
 export function findLabel(
   options: { label: string; value: number | string }[] | undefined,

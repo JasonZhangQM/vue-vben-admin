@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 审批中心：待我审批 / 我的申请；摘要列为详情入口，审批动作收纳在详情抽屉内。 */
 
 import type {
@@ -39,14 +39,14 @@ import {
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 
-// 实例状态（与后端 approval/enums.py 对齐）
+// 实例状态(与后端 approval/enums.py 对齐)
 const STATUS_COLOR: Record<number, string> = {
   10: 'processing',
   20: 'success',
   30: 'error',
   40: 'default',
 };
-// 任务状态（轨迹展示）
+// 任务状态(轨迹展示)
 const TASK_STATUS_COLOR: Record<number, string> = {
   10: 'processing',
   20: 'success',
@@ -89,7 +89,7 @@ async function loadMine() {
   }
 }
 
-// ================= 行点击高亮（各 Tab 独立记录） =================
+// ================= 行点击高亮(各 Tab 独立记录) =================
 const {
   customRow: tasksCustomRow,
   rowClassName: tasksRowClassName,
@@ -102,17 +102,17 @@ const {
   highlight: highlightMine,
 } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
-// ================= 实例详情（摘要列链接 = 唯一入口） =================
+// ================= 实例详情(摘要列链接 = 唯一入口) =================
 const detailVisible = ref(false);
 const detailLoading = ref(false);
 const detail = ref<ApprovalInstanceDetail | null>(null);
-// 当前行的待办任务 ID（仅待我审批列表返回，供抽屉内审批动作使用）
+// 当前行的待办任务 ID(仅待我审批列表返回，供抽屉内审批动作使用)
 const currentTaskId = ref<null | number>(null);
 
-/** payload 分字段展示（创建草稿 / 修改 diff / 移交 ID 列表） */
+/** payload 分字段展示(创建草稿 / 修改 diff / 移交 ID 列表) */
 const payloadEntries = ref<{ key: string; value: string }[]>([]);
 
 function renderPayload(payload: Record<string, any>) {
@@ -146,7 +146,7 @@ function openDetail(record: any, fromTasks: boolean) {
   loadDetail(record.id);
 }
 
-// ================= 审批动作（同意 / 驳回，收纳在详情抽屉） =================
+// ================= 审批动作(同意 / 驳回，收纳在详情抽屉) =================
 const actVisible = ref(false);
 const actLoading = ref(false);
 const actAction = ref(10); // 10 同意 / 20 驳回
@@ -176,7 +176,7 @@ async function submitAct() {
   }
 }
 
-// ================= 撤回（收纳在详情抽屉） =================
+// ================= 撤回(收纳在详情抽屉) =================
 async function onWithdraw() {
   if (!detail.value) return;
   await withdrawInstance(detail.value.id);
@@ -218,7 +218,7 @@ onMounted(() => {
     <Card size="small">
       <Tabs>
         <!-- 待我审批 -->
-        <TabPane key="tasks" :tab="`待我审批（${tasksTotal}）`">
+        <TabPane key="tasks" :tab="`待我审批(${tasksTotal})`">
           <Table
             :columns="taskColumns"
             :custom-row="tasksCustomRow"
@@ -252,7 +252,7 @@ onMounted(() => {
         </TabPane>
 
         <!-- 我的申请 -->
-        <TabPane key="mine" :tab="`我的申请（${mineTotal}）`">
+        <TabPane key="mine" :tab="`我的申请(${mineTotal})`">
           <Table
             :columns="mineColumns"
             :custom-row="mineCustomRow"
@@ -289,7 +289,7 @@ onMounted(() => {
       </Tabs>
     </Card>
 
-    <!-- 审批动作弹窗（由详情抽屉触发） -->
+    <!-- 审批动作弹窗(由详情抽屉触发) -->
     <Modal
       v-model:open="actVisible"
       :confirm-loading="actLoading"
@@ -301,7 +301,7 @@ onMounted(() => {
       <div class="mb-2 text-sm text-gray-500">{{ detail?.summary }}</div>
       <Textarea
         v-model:value="actOpinion"
-        :placeholder="actAction === 20 ? '驳回意见（必填）' : '审批意见（可空）'"
+        :placeholder="actAction === 20 ? '驳回意见(必填)' : '审批意见(可空)'"
         :rows="3"
       />
     </Modal>

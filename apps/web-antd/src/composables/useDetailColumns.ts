@@ -1,9 +1,9 @@
-import { computed } from 'vue';
+﻿import { computed } from 'vue';
 
 import { breakpointsAntDesign, useBreakpoints } from '@vueuse/core';
 
 /**
- * 详情页基本信息列数：随视口宽度自适应（AntD 断点口径）。
+ * 详情页基本信息列数：随视口宽度自适应(AntD 断点口径)。
  * ≥1200px 4 列；≥768px 3 列；≥576px 2 列；更窄 1 列。
  * 长文本整行项将 span 绑定同一列数，即可在任意列数下占满整行。
  */

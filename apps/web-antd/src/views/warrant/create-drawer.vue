@@ -1,7 +1,7 @@
-<script lang="ts" setup>
-/** 新增权证抽屉：分区 Card（基本信息 / 类型扩展 / 所有权人）+ 真实校验 + 类型切换保护。
+﻿<script lang="ts" setup>
+/** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 所有权人)+ 真实校验 + 类型切换保护。
  *
- * 从 index.vue 抽出（复用优先）：payload 组装逻辑沿用已验证版本，后端零改动。
+ * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
  */
 
 import type { FormInstance } from 'ant-design-vue';
@@ -35,7 +35,7 @@ const open = defineModel<boolean>('open', { default: false });
 
 const dictStore = useDictStore();
 
-// 枚举值常量（代码判断用，镜像后端 warrant/enums.py）
+// 枚举值常量(代码判断用，镜像后端 warrant/enums.py)
 const WARRANT_TYPE_HOUSE = 1;
 const WARRANT_TYPE_GROUND = 5;
 const WARRANT_TYPE_CONSTRUCTION = 6;
@@ -46,9 +46,9 @@ const WARRANT_TYPE_VEHICLE = 41;
 const WARRANT_TYPE_CHATTEL = 51;
 const WARRANT_TYPE_OTHER = 55;
 
-// 类型扩展区标题（分区 Card 标题随类型动态变化）
+// 类型扩展区标题(分区 Card 标题随类型动态变化)
 const EXT_TITLES: Record<number, string> = {
-  1: '房产信息（支持多套）',
+  1: '房产信息(支持多套)',
   5: '土地信息',
   6: '在建工程信息',
   11: '应收账款信息',
@@ -105,7 +105,7 @@ const rules = {
   warrant_type: [{ required: true, message: '请选择权证类型' }],
 };
 
-// ================= 动态行（可编辑表格） =================
+// ================= 动态行(可编辑表格) =================
 
 interface OwnerRow {
   owner_id: number | undefined;
@@ -151,7 +151,7 @@ const houseColumns: TableColumnType[] = [
 const ownerColumns: TableColumnType[] = [
   { title: '客户 *', dataIndex: 'owner_id' },
   { title: '权证编号 *', dataIndex: 'ownership_num' },
-  { title: '份额%（可空=共有）', dataIndex: 'share_ratio', width: 160 },
+  { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 160 },
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 
@@ -176,7 +176,7 @@ const houseAppOptions = ref<{ label: string; value: number }[]>([]);
 async function loadOptions() {
   const [customers, houseApps] = await Promise.all([getCustomerDict(), getHouseApps()]);
   customerOptions.value = customers.map((c) => ({
-    label: `${c.name}（${c.genre === 1 ? '企业' : '个人'}）`,
+    label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
     value: c.id,
   }));
   // 房产用途树展平为选项
@@ -236,7 +236,7 @@ function isExtDirty(): boolean {
   );
 }
 
-/** 清空全部类型扩展字段（切换确认后调用） */
+/** 清空全部类型扩展字段(切换确认后调用) */
 function resetExtFields() {
   Object.assign(createForm, {
     ground_locate: '', ground_app: '', ground_area: undefined,
@@ -255,7 +255,7 @@ function resetExtFields() {
 
 const extTitle = computed(() => EXT_TITLES[createForm.warrant_type] ?? '类型信息');
 
-/** 校验动态行（可编辑表格无绑定 rules，手动校验 + attempted 标红） */
+/** 校验动态行(可编辑表格无绑定 rules，手动校验 + attempted 标红) */
 function validateExt(): { ext?: object; houses?: object[] } | null {
   switch (createForm.warrant_type) {
     case WARRANT_TYPE_HOUSE: {
@@ -264,11 +264,11 @@ function validateExt(): { ext?: object; houses?: object[] } | null {
       );
       const valid = houseRows.value.filter((h) => h.house_locate && h.house_app && h.house_area);
       if (valid.length === 0) {
-        message.warning(hasAny ? '房产行信息不完整（坐落 / 用途 / 面积均为必填）' : '房产权证需至少填写一行完整房产');
+        message.warning(hasAny ? '房产行信息不完整(坐落 / 用途 / 面积均为必填)' : '房产权证需至少填写一行完整房产');
         return null;
       }
       if (hasAny && valid.length < houseRows.value.filter((h) => h.house_locate || h.house_app || h.house_area).length) {
-        message.warning('存在信息不完整的房产行（坐落 / 用途 / 面积均为必填），请补全或删除');
+        message.warning('存在信息不完整的房产行(坐落 / 用途 / 面积均为必填)，请补全或删除');
         return null;
       }
       return {
@@ -352,27 +352,27 @@ function validateExt(): { ext?: object; houses?: object[] } | null {
   }
 }
 
-/** 校验所有权人行：全空行忽略；部分填写（客户或权证编号缺失）报错定位行号 */
+/** 校验所有权人行：全空行忽略；部分填写(客户或权证编号缺失)报错定位行号 */
 function validateOwners() {
   const rows = ownerRows.value;
   for (let i = 0; i < rows.length; i++) {
     const { owner_id, ownership_num, share_ratio } = rows[i]!;
     const hasAny = owner_id || ownership_num || share_ratio !== undefined;
     if (hasAny && (!owner_id || !ownership_num)) {
-      message.warning(`第 ${i + 1} 行所有权人信息不完整（客户与权证编号均为必填）`);
+      message.warning(`第 ${i + 1} 行所有权人信息不完整(客户与权证编号均为必填)`);
       return null;
     }
   }
   const owners = rows.filter((o) => o.owner_id && o.ownership_num);
   if (owners.length === 0) {
-    message.warning('请至少填写一行完整所有权人（客户 + 权证编号）');
+    message.warning('请至少填写一行完整所有权人(客户 + 权证编号)');
     return null;
   }
   return owners;
 }
 
 async function onSubmit() {
-  // 1) 主表单 rules 校验（错误就地标红）
+  // 1) 主表单 rules 校验(错误就地标红)
   try {
     await formRef.value?.validate();
   } catch {
@@ -390,7 +390,7 @@ async function onSubmit() {
     return;
   }
 
-  // 3) 按类型组装 payload（沿用已验证结构，仅提交对应类型字段）
+  // 3) 按类型组装 payload(沿用已验证结构，仅提交对应类型字段)
   const payload: WarrantCreateParams = {
     warrant_num: createForm.warrant_num,
     warrant_type: createForm.warrant_type,
@@ -472,7 +472,7 @@ onMounted(() => {
         </Form>
       </Card>
 
-      <!-- 分区二：类型扩展（标题随类型变化；房产为可编辑表格，其余为两列表单） -->
+      <!-- 分区二：类型扩展(标题随类型变化；房产为可编辑表格，其余为两列表单) -->
       <Card size="small" :title="extTitle">
         <!-- 房产：1:N 房产包，可编辑表格 -->
         <template v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE">
@@ -629,8 +629,8 @@ onMounted(() => {
         </Form>
       </Card>
 
-      <!-- 分区三：所有权人（可编辑表格） -->
-      <Card size="small" title="所有权人（统一中间表，支持共有）">
+      <!-- 分区三：所有权人(可编辑表格) -->
+      <Card size="small" title="所有权人(统一中间表，支持共有)">
         <Table
           :columns="ownerColumns"
           :data-source="ownerRows"

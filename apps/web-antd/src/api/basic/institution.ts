@@ -1,4 +1,4 @@
-/** 基础数据：机构模块 API（机构主表 / 联系人 / 分支机构 / 授信协议）。 */
+﻿/** 基础数据：机构模块 API(机构主表 / 联系人 / 分支机构 / 授信协议)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -42,7 +42,7 @@ export interface AgreementItem {
   valid_end_date: string;
 }
 
-/** 机构详情（扁平结构：机构字段在顶层 + 三个子资源数组，与后端 get_detail 对齐） */
+/** 机构详情(扁平结构：机构字段在顶层 + 三个子资源数组，与后端 get_detail 对齐) */
 export interface InstitutionDetail extends InstitutionListItem {
   contact_addr: null | string;
   contact_count: number;
@@ -85,7 +85,7 @@ export function getInstitutionList(params: InstitutionListParams) {
   });
 }
 
-/** 机构详情（聚合联系人 / 分支 / 协议） */
+/** 机构详情(聚合联系人 / 分支 / 协议) */
 export function getInstitutionDetail(id: number) {
   return requestClient.get<InstitutionDetail>(`/institutions/${id}`);
 }
@@ -103,7 +103,7 @@ export function updateInstitution(id: number, data: object) {
   });
 }
 
-/** 机构状态变更（启用 / 停用 / 注销） */
+/** 机构状态变更(启用 / 停用 / 注销) */
 export function changeInstitutionStatus(id: number, status: number) {
   return requestClient.request(`/institutions/${id}/status`, {
     data: { status },
@@ -126,7 +126,7 @@ export function addContact(id: number, data: { name: string; phone?: string }) {
   return requestClient.post(`/institutions/${id}/contacts`, data);
 }
 
-/** 联系人 PATCH 自由字段（留空不序列化，保持原值） */
+/** 联系人 PATCH 自由字段(留空不序列化，保持原值) */
 export function updateContact(
   id: number,
   contactId: number,
@@ -162,7 +162,7 @@ export function addBranch(
   return requestClient.post(`/institutions/${id}/branches`, data);
 }
 
-/** 分支机构 PATCH 自由字段（留空不序列化，保持原值） */
+/** 分支机构 PATCH 自由字段(留空不序列化，保持原值) */
 export function updateBranch(
   id: number,
   branchId: number,
@@ -202,7 +202,7 @@ export function addAgreement(
   return requestClient.post(`/institutions/${id}/agreements`, data);
 }
 
-/** 授信协议 PATCH 自由字段（留空不序列化，保持原值） */
+/** 授信协议 PATCH 自由字段(留空不序列化，保持原值) */
 export function updateAgreement(
   id: number,
   agreementId: number,
@@ -225,7 +225,7 @@ export function deleteAgreement(id: number, agreementId: number) {
   return requestClient.delete(`/institutions/${id}/agreements/${agreementId}`);
 }
 
-/** 机构类型字典（类型 / 子类型 / 协议类型） */
+/** 机构类型字典(类型 / 子类型 / 协议类型) */
 export function getInstitutionTypesDict() {
   return requestClient.get<{
     agreement_type: { label: string; value: number }[];

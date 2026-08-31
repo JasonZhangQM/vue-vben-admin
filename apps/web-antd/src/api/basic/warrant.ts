@@ -1,4 +1,4 @@
-/** 基础数据：权证模块 API（主表 / 所有权人 / 出入库 / 评估 / 批量操作）。 */
+﻿/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -148,24 +148,24 @@ export interface WarrantCreateParams {
   warrant_type: number;
 }
 
-/** 权证列表（data_scope 按 created_by 过滤） */
+/** 权证列表(data_scope 按 created_by 过滤) */
 export function getWarrantList(params: WarrantListParams) {
   return requestClient.get<PageResult<WarrantListItem>>('/warrants', {
     params,
   });
 }
 
-/** 权证详情（聚合扩展 / 所有权人 / 出入库 / 评估） */
+/** 权证详情(聚合扩展 / 所有权人 / 出入库 / 评估) */
 export function getWarrantDetail(id: number) {
   return requestClient.get<WarrantDetail>(`/warrants/${id}`);
 }
 
-/** 创建权证（主表 + 类型扩展 + 所有权人，单事务） */
+/** 创建权证(主表 + 类型扩展 + 所有权人，单事务) */
 export function createWarrant(data: WarrantCreateParams) {
   return requestClient.post<{ id: number }>('/warrants', data);
 }
 
-/** 修改主表字段（评估 / 状态 / 拍卖） */
+/** 修改主表字段(评估 / 状态 / 拍卖) */
 export function updateWarrant(id: number, data: object) {
   return requestClient.request(`/warrants/${id}`, {
     data,
@@ -173,12 +173,12 @@ export function updateWarrant(id: number, data: object) {
   });
 }
 
-/** 删除权证（拦截：已入库 / 已流转走注销流程） */
+/** 删除权证(拦截：已入库 / 已流转走注销流程) */
 export function deleteWarrant(id: number) {
   return requestClient.delete(`/warrants/${id}`);
 }
 
-/** 修改所有权人（OwnershipUpdate 自由字段，留空不序列化保持原值） */
+/** 修改所有权人(OwnershipUpdate 自由字段，留空不序列化保持原值) */
 export function updateWarrantOwner(
   id: number,
   ownerRowId: number,

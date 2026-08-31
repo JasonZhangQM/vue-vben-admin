@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 用户详情抽屉：基本信息全字段 + 操作（编辑 / 启停 / 重置密码 / 删除）收纳在 #extra。 */
+﻿<script lang="ts" setup>
+/** 用户详情抽屉：基本信息全字段 + 操作(编辑 / 启停 / 重置密码 / 删除)收纳在 #extra。 */
 
 import type { UserDetail } from '#/api/system/user';
 
@@ -42,7 +42,7 @@ import { getRoleList } from '#/api/system/role';
 const props = defineProps<{ userId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
 const open = defineModel<boolean>('open', { default: false });
@@ -84,7 +84,7 @@ watch(
   },
 );
 
-// ===== 编辑 Modal（字段对齐后端 UserUpdate 自由字段 + 角色全量分配） =====
+// ===== 编辑 Modal(字段对齐后端 UserUpdate 自由字段 + 角色全量分配) =====
 const deptOptions = ref<{ label: string; value: number }[]>([]);
 const roleOptions = ref<{ label: string; value: number }[]>([]);
 
@@ -200,7 +200,7 @@ async function onDelete() {
               <Button size="small" @click="onResetPwd">重置密码</Button>
             </AccessControl>
             <AccessControl :codes="['user:delete']" type="code">
-              <Popconfirm title="确认删除该用户？（逻辑删除）" @confirm="onDelete">
+              <Popconfirm title="确认删除该用户？(逻辑删除)" @confirm="onDelete">
                 <Button danger size="small">删除</Button>
               </Popconfirm>
             </AccessControl>
@@ -241,7 +241,7 @@ async function onDelete() {
       </Card>
     </div>
 
-    <!-- 编辑 Modal（字段对齐后端 UserUpdate 自由字段） -->
+    <!-- 编辑 Modal(字段对齐后端 UserUpdate 自由字段) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
@@ -289,7 +289,7 @@ async function onDelete() {
             v-model:value="editForm.role_ids"
             :options="roleOptions"
             mode="multiple"
-            placeholder="选择角色（权限取并集）"
+            placeholder="选择角色(权限取并集)"
           />
         </FormItem>
       </Form>

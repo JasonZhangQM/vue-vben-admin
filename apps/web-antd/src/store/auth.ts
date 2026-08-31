@@ -1,4 +1,4 @@
-import type { Recordable, UserInfo } from '@vben/types';
+﻿import type { Recordable, UserInfo } from '@vben/types';
 
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
           });
         }
 
-        // 首登/重置后强制改密：提示引导（个人中心 → 安全设置）
+        // 首登/重置后强制改密：提示引导(个人中心 → 安全设置)
         if (mustChangePassword) {
           notification.warning({
             description: '当前使用初始密码，请前往「个人中心 → 安全设置」修改密码。',

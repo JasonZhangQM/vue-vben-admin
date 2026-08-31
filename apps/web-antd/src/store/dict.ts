@@ -1,4 +1,4 @@
-import type { DictItem, DictMap } from '#/api/core/dicts';
+﻿import type { DictItem, DictMap } from '#/api/core/dicts';
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
@@ -14,20 +14,20 @@ import { getAllDictsApi } from '#/api/core/dicts';
 export const useDictStore = defineStore('dict', () => {
   /** 全部枚举：{ "customer.classification": [{value, label}, ...] } */
   const dictMap = ref<DictMap>({});
-  /** 加载中（首次启动或手动刷新时） */
+  /** 加载中(首次启动或手动刷新时) */
   const loading = ref(false);
   /** 上次加载时间戳 */
   const lastLoadedAt = ref(0);
-  /** TTL 毫秒（10 分钟） */
+  /** TTL 毫秒(10 分钟) */
   const TTL = 10 * 60 * 1000;
 
-  /** 是否还有效（未过期且已加载） */
+  /** 是否还有效(未过期且已加载) */
   function isFresh() {
     return Object.keys(dictMap.value).length > 0 &&
       Date.now() - lastLoadedAt.value < TTL;
   }
 
-  /** 加载全部字典（幂等：已加载则跳过） */
+  /** 加载全部字典(幂等：已加载则跳过) */
   async function loadAll(force = false) {
     if (!force && isFresh()) return dictMap.value;
     loading.value = true;
@@ -41,13 +41,13 @@ export const useDictStore = defineStore('dict', () => {
     return dictMap.value;
   }
 
-  /** 手动刷新（跳过 TTL 检查） */
+  /** 手动刷新(跳过 TTL 检查) */
   async function refresh() {
     return loadAll(true);
   }
 
   /**
-   * 取指定字典的 options 数组（供 <SearchSelect> :options 使用）。
+   * 取指定字典的 options 数组(供 <SearchSelect> :options 使用)。
    *
    * @param key 完整字典 key，如 'customer.classification'
    * @returns [{value, label}, ...]；未加载或不存在时返回空数组
@@ -57,7 +57,7 @@ export const useDictStore = defineStore('dict', () => {
   }
 
   /**
-   * 用 value 反查 label（列表页行渲染、详情页字段显示用）。
+   * 用 value 反查 label(列表页行渲染、详情页字段显示用)。
    *
    * @returns 中文 label；找不到返回 `—`
    */

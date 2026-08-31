@@ -1,4 +1,4 @@
-/** 系统管理：角色 / 权限 API。 */
+﻿/** 系统管理：角色 / 权限 API。 */
 
 import { requestClient } from '#/api/request';
 
@@ -70,7 +70,7 @@ export function updateRole(id: number, data: RoleUpdateParams) {
   });
 }
 
-/** 删除角色（仅非内置且无用户绑定） */
+/** 删除角色(仅非内置且无用户绑定) */
 export function deleteRole(id: number) {
   return requestClient.delete(`/roles/${id}`);
 }

@@ -1,4 +1,4 @@
-/** 系统管理：用户模块 API。 */
+﻿/** 系统管理：用户模块 API。 */
 
 import { requestClient } from '#/api/request';
 
@@ -31,7 +31,7 @@ export interface UserListItem {
   is_super_admin: boolean;
 }
 
-/** 操作日志摘要（用户详情 recent_logs） */
+/** 操作日志摘要(用户详情 recent_logs) */
 export interface OperationLogBrief {
   id: number;
   module: string;
@@ -74,7 +74,7 @@ export interface UserListParams {
   page_size?: number;
   position?: string;
   q?: string;
-  /** 角色 code（如 pm/controler），按拥有该角色过滤 */
+  /** 角色 code(如 pm/controler)，按拥有该角色过滤 */
   role?: string;
   status?: number;
 }
@@ -89,7 +89,7 @@ export function getUserDetail(id: number) {
   return requestClient.get<UserDetail>(`/users/${id}`);
 }
 
-/** 新增用户（返回初始密码） */
+/** 新增用户(返回初始密码) */
 export function createUser(data: UserCreateParams) {
   return requestClient.post<{ initial_password: string }>('/users', data);
 }
@@ -102,7 +102,7 @@ export function updateUser(id: number, data: UserUpdateParams) {
   });
 }
 
-/** 删除用户（逻辑删除） */
+/** 删除用户(逻辑删除) */
 export function deleteUser(id: number) {
   return requestClient.delete(`/users/${id}`);
 }
@@ -115,7 +115,7 @@ export function changeUserStatus(id: number, status: number) {
   });
 }
 
-/** 重置密码（new_password 为空则后端生成） */
+/** 重置密码(new_password 为空则后端生成) */
 export function resetUserPassword(id: number, newPassword?: string) {
   return requestClient.post<{ initial_password: string }>(
     `/users/${id}/password`,
@@ -123,7 +123,7 @@ export function resetUserPassword(id: number, newPassword?: string) {
   );
 }
 
-/** 分配角色（全量替换） */
+/** 分配角色(全量替换) */
 export function assignUserRoles(id: number, roleIds: number[]) {
   return requestClient.put(`/users/${id}/roles`, { role_ids: roleIds });
 }

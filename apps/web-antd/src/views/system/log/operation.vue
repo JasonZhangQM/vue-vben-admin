@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 操作日志：动作列为详情入口；纯只读审计，无操作按钮。 */
 
 import type { OperationLogItem } from '#/api/system/log';
@@ -144,12 +144,12 @@ onMounted(loadList);
       </Table>
     </Card>
 
-    <!-- 日志详情抽屉（只读） -->
+    <!-- 日志详情抽屉(只读) -->
     <Drawer v-model:open="detailVisible" title="操作日志详情" width="66%">
       <Descriptions v-if="current" :column="1" bordered size="small">
         <DescriptionsItem label="时间">{{ current.created_at }}</DescriptionsItem>
         <DescriptionsItem label="操作人">
-          {{ current.username }}{{ current.user_name ? `（${current.user_name}）` : '' }}
+          {{ current.username }}{{ current.user_name ? `(${current.user_name})` : '' }}
         </DescriptionsItem>
         <DescriptionsItem label="模块 / 动作">
           {{ current.module }} / {{ current.action }}

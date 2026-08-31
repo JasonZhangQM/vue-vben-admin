@@ -1,4 +1,4 @@
-/** 基础数据：字典 API（区域 / 行业 / 标签 / 客户下拉 / 评估公司）。 */
+﻿/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
 
 import { requestClient } from '#/api/request';
 
@@ -35,8 +35,8 @@ export interface EvaluateCompanyItem {
   name: string;
 }
 
-/** 行政区域树节点（懒加载接口返回，has_children 供前端渲染展开箭头；
- *  children 仅前端懒加载填充，接口不返回） */
+/** 行政区域树节点(懒加载接口返回，has_children 供前端渲染展开箭头；
+ *  children 仅前端懒加载填充，接口不返回) */
 export interface RegionTreeNode {
   children?: RegionTreeNode[];
   code: string;
@@ -49,12 +49,12 @@ export interface RegionTreeNode {
   status: number;
 }
 
-/** 行政区域树（级联全量模式，约 4.5 万条，仅用于级联选择器全量场景） */
+/** 行政区域树(级联全量模式，约 4.5 万条，仅用于级联选择器全量场景) */
 export function getRegionTree() {
   return requestClient.get<TreeNode[]>('/regions/tree');
 }
 
-/** 行政区域懒加载：顶层省级列表（34 条，TreeSelect 首屏） */
+/** 行政区域懒加载：顶层省级列表(34 条，TreeSelect 首屏) */
 export function getRegionRoots() {
   return requestClient.get<RegionTreeNode[]>('/regions/roots');
 }
@@ -64,12 +64,12 @@ export function getRegionChildren(parentId: number) {
   return requestClient.get<RegionTreeNode[]>(`/regions/${parentId}/children`);
 }
 
-/** 行政区域搜索（远程搜索，返回平铺结果带完整路径） */
+/** 行政区域搜索(远程搜索，返回平铺结果带完整路径) */
 export function searchRegions(q: string) {
   return requestClient.get<(RegionTreeNode & { path: string })[]>('/regions/search', { params: { q } });
 }
 
-/** 行政区域单节点详情（带完整路径，编辑回显用） */
+/** 行政区域单节点详情(带完整路径，编辑回显用) */
 export function getRegionDetail(id: number) {
   return requestClient.get<RegionTreeNode & { path: string }>(`/regions/${id}`);
 }
@@ -84,9 +84,9 @@ export function getTags() {
   return requestClient.get<TagItem[]>('/dicts/tags');
 }
 
-// createTag/deleteTag 统一在 api/basic/customer.ts（标签管理页引用，避免桶导出重名冲突）
+// createTag/deleteTag 统一在 api/basic/customer.ts(标签管理页引用，避免桶导出重名冲突)
 
-/** 客户下拉字典（表单选择用） */
+/** 客户下拉字典(表单选择用) */
 export function getCustomerDict(params?: {
   genre?: number;
   is_acceptor?: boolean;
@@ -96,12 +96,12 @@ export function getCustomerDict(params?: {
   return requestClient.get<CustomerDictItem[]>('/dicts/customers', { params });
 }
 
-/** 授信区域树（下拉选择用） */
+/** 授信区域树(下拉选择用) */
 export function getCreditRegionTree() {
   return requestClient.get<TreeNode[]>('/dicts/credit-regions/tree');
 }
 
-/** 权证类型字典（含票据主类型 / 明细类型） */
+/** 权证类型字典(含票据主类型 / 明细类型) */
 export function getWarrantTypesDict() {
   return requestClient.get<{
     draft_detail_type: { label: string; value: number }[];

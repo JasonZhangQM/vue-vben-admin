@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 权证管理：列表 / 批量操作 / 详情抽屉 / 新建抽屉（create-drawer.vue）。 */
+﻿<script lang="ts" setup>
+/** 权证管理：列表 / 批量操作 / 详情抽屉 / 新建抽屉(create-drawer.vue)。 */
 
 import type { WarrantListItem } from '#/api/basic/warrant';
 import type { TableColumnType } from 'ant-design-vue';
@@ -41,7 +41,7 @@ import {
 import CreateDrawer from './create-drawer.vue';
 import DetailDrawer from './detail-drawer.vue';
 
-// dict store（label 真相源，禁止硬编码 OPTIONS）
+// dict store(label 真相源，禁止硬编码 OPTIONS)
 const dictStore = useDictStore();
 
 // ================= 列表 =================
@@ -59,10 +59,10 @@ const query = reactive({
   owner_id: undefined as number | undefined,
 });
 
-// 表格勾选（批量操作用）
+// 表格勾选(批量操作用)
 const selectedRowKeys = ref<number[]>([]);
 const selectedRows = ref<WarrantListItem[]>([]);
-// AntD rowSelection 的 key 类型为 string | number（Key），row-key 是数字 id，安全转回 number
+// AntD rowSelection 的 key 类型为 string | number(Key)，row-key 是数字 id，安全转回 number
 const onSelectChange = (keys: (string | number)[], rows: WarrantListItem[]) => {
   selectedRowKeys.value = keys.map(Number);
   selectedRows.value = rows;
@@ -92,7 +92,7 @@ function resetQuery() {
   loadList();
 }
 
-// 所有权人远程搜索（对接后端 list_warrants 的 owner_id 筛选）
+// 所有权人远程搜索(对接后端 list_warrants 的 owner_id 筛选)
 const ownerOptions = ref<{ label: string; value: number }[]>([]);
 const ownerLoading = ref(false);
 async function onSearchOwner(keyword: string) {
@@ -104,7 +104,7 @@ async function onSearchOwner(keyword: string) {
   try {
     const data = await getCustomerList({ page: 1, page_size: 30, q: keyword });
     ownerOptions.value = data.items.map((c) => ({
-      label: `${c.name}（${c.genre === 1 ? '企业' : '个人'}）`,
+      label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
       value: c.id,
     }));
   } finally {
@@ -116,7 +116,7 @@ async function onSearchOwner(keyword: string) {
 const detailOpen = ref(false);
 const detailWarrantId = ref<null | number>(null);
 
-// 表格行点击高亮（useRowHighlight composable 全局共享）
+// 表格行点击高亮(useRowHighlight composable 全局共享)
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 function openDetail(row: any) {
@@ -125,7 +125,7 @@ function openDetail(row: any) {
   detailOpen.value = true;
 }
 
-// ================= 新建（独立抽屉组件 create-drawer.vue） =================
+// ================= 新建(独立抽屉组件 create-drawer.vue) =================
 const createOpen = ref(false);
 
 const columns: TableColumnType[] = [
@@ -160,7 +160,7 @@ async function onSearchUser(keyword: string) {
   userLoading.value = true;
   try {
     const res = await getUserList({ page: 1, page_size: 30, q: keyword });
-    userOptions.value = res.items.map((u) => ({ label: `${u.name || u.username}（${u.username}）`, value: u.id }));
+    userOptions.value = res.items.map((u) => ({ label: `${u.name || u.username}(${u.username})`, value: u.id }));
   } finally {
     userLoading.value = false;
   }
@@ -350,7 +350,7 @@ onMounted(() => {
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'warrant_num'">
-            <!-- 权证号列即详情入口（不加 ellipsis） -->
+            <!-- 权证号列即详情入口(不加 ellipsis) -->
             <a @click="openDetail(record)">{{ record.warrant_num }}</a>
           </template>
           <template v-else-if="column.dataIndex === 'warrant_type'">
@@ -383,7 +383,7 @@ onMounted(() => {
       </Table>
     </Card>
 
-    <!-- 新建权证抽屉（分区 Card + 可编辑表格 + 校验，见 create-drawer.vue） -->
+    <!-- 新建权证抽屉(分区 Card + 可编辑表格 + 校验，见 create-drawer.vue) -->
     <CreateDrawer v-model:open="createOpen" @created="loadList" />
 
     <!-- 权证详情抽屉 -->

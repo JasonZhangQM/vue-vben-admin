@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 该文件可自行根据业务逻辑进行调整
  */
 import type { RequestClientOptions } from '@vben/request';
@@ -46,7 +46,7 @@ function createRequestClient(baseURL: string, options?: RequestClientOptions) {
   }
 
   /**
-   * 刷新token逻辑（旋转式：同时更新 access / refresh 两个 token）
+   * 刷新token逻辑(旋转式：同时更新 access / refresh 两个 token)
    */
   async function doRefreshToken() {
     const accessStore = useAccessStore();

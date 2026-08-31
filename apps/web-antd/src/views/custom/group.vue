@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 集团管理：树形列表（合并口径统计）+ 新建/编辑 + 详情抽屉（成员/子集团）。 */
+﻿<script lang="ts" setup>
+/** 集团管理：树形列表(合并口径统计)+ 新建/编辑 + 详情抽屉(成员/子集团)。 */
 
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -48,19 +48,19 @@ import { dash, filterTreeOption, formatAmount, opt, toTreeData } from '#/utils/f
 
 const dictStore = useDictStore();
 
-// 表格行点击高亮（全局共享 composable）
+// 表格行点击高亮(全局共享 composable)
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
 // ================= 树列表 =================
 const loading = ref(false);
 const tree = ref<GroupTreeNode[]>([]);
 const keyword = ref('');
-const expandedRowKeys = ref<number[]>([]); // 受控展开（配合 全部展开/收起）
+const expandedRowKeys = ref<number[]>([]); // 受控展开(配合 全部展开/收起)
 
-/** 叶子节点 children:[] → undefined（AntD Table 空数组仍渲染展开箭头） */
+/** 叶子节点 children:[] → undefined(AntD Table 空数组仍渲染展开箭头) */
 function normalize(nodes: GroupTreeNode[]): GroupTreeNode[] {
   return nodes.map((n) => {
     const children = n.children?.length ? normalize(n.children) : undefined;
@@ -87,7 +87,7 @@ const displayTree = computed(() =>
   normalize(filterTree(tree.value, keyword.value.trim().toLowerCase())),
 );
 
-/** 收集全部节点 id（受控展开用） */
+/** 收集全部节点 id(受控展开用) */
 function collectIds(nodes: GroupTreeNode[], acc: number[] = []): number[] {
   for (const n of nodes) {
     acc.push(n.id);
@@ -112,7 +112,7 @@ function toggleExpandAll() {
     expandedRowKeys.value.length >= all.length ? [] : all;
 }
 
-/** 单行展开/收起（受控 expandedRowKeys） */
+/** 单行展开/收起(受控 expandedRowKeys) */
 function handleExpand(expanded: boolean, record: GroupTreeNode) {
   expandedRowKeys.value = expanded
     ? [...expandedRowKeys.value, record.id]
@@ -124,9 +124,9 @@ function resetQuery() {
   keyword.value = '';
 }
 
-/** 集团下拉树（新建/编辑选上级集团；含"（顶级）"项，选 0 = 无上级） */
+/** 集团下拉树(新建/编辑选上级集团；含"(顶级)"项，选 0 = 无上级) */
 const parentTreeData = computed(() => [
-  { key: 0, title: '（顶级）', value: 0, children: toTreeData(tree.value) },
+  { key: 0, title: '(顶级)', value: 0, children: toTreeData(tree.value) },
 ]);
 
 const columns: TableColumnType[] = [
@@ -139,7 +139,7 @@ const columns: TableColumnType[] = [
   { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
-// ================= 客户远程搜索（母公司 / 添加成员共用） =================
+// ================= 客户远程搜索(母公司 / 添加成员共用) =================
 const customerOptions = ref<{ label: string; value: number }[]>([]);
 let customerSearchToken = 0;
 
@@ -203,7 +203,7 @@ async function submitCreate() {
       credit_amount: createForm.credit_amount ?? 0,
       description: opt(createForm.description),
     });
-    message.success('集团已创建（母公司已自动加入成员）');
+    message.success('集团已创建(母公司已自动加入成员)');
     createVisible.value = false;
     await loadTree();
   } finally {
@@ -229,7 +229,7 @@ async function reloadDetail(id: number) {
     membersQuery.page = 1;
     await loadMembers(id);
   } catch {
-    // 详情拉取失败：自动关闭抽屉（错误提示由全局拦截器弹出）
+    // 详情拉取失败：自动关闭抽屉(错误提示由全局拦截器弹出)
     detailVisible.value = false;
     detail.value = null;
   } finally {
@@ -237,7 +237,7 @@ async function reloadDetail(id: number) {
   }
 }
 
-/** 删除集团（后端拦截：仍有成员/子集团） */
+/** 删除集团(后端拦截：仍有成员/子集团) */
 async function onDelete() {
   if (!detail.value) return;
   await deleteGroup(detail.value.id);
@@ -247,7 +247,7 @@ async function onDelete() {
   await loadTree();
 }
 
-// ---- 成员 Tab（直接成员，独立分页接口） ----
+// ---- 成员 Tab(直接成员，独立分页接口) ----
 const membersLoading = ref(false);
 const members = ref<any[]>([]);
 const membersTotal = ref(0);
@@ -278,12 +278,12 @@ const memberColumns: TableColumnType[] = [
   { title: '操作', key: 'op', width: 70 },
 ];
 
-/** 移除成员（母公司不可移除——前端禁用，后端兜底拦截） */
+/** 移除成员(母公司不可移除——前端禁用，后端兜底拦截) */
 async function onRemoveMember(record: any) {
   if (!detail.value) return;
   await removeGroupMember(detail.value.id, record.id);
   message.success('已移除');
-  // 刷新抽屉（汇总数字）+ 成员列表 + 树（成员数变化）
+  // 刷新抽屉(汇总数字)+ 成员列表 + 树(成员数变化)
   await reloadDetail(detail.value.id);
   await loadTree();
 }
@@ -345,11 +345,11 @@ function openEdit() {
     id: detail.value.id,
     name: detail.value.name,
     parent_id: detail.value.parent_id ?? undefined,
-    parent_customer_id: undefined, // 留空 = 不修改（换母公司才选新值）
+    parent_customer_id: undefined, // 留空 = 不修改(换母公司才选新值)
     credit_amount: detail.value.credit_amount,
     description: detail.value.description ?? '',
   });
-  // 预置当前母公司进 options 供回显（搜索时会被替换）
+  // 预置当前母公司进 options 供回显(搜索时会被替换)
   customerOptions.value = detail.value.parent_customer_id
     ? [
         {
@@ -362,7 +362,7 @@ function openEdit() {
 }
 
 /** GroupUpdate：name/credit_amount/description 全字段提交；
- * parent_id / parent_customer_id 留空 = 不修改（换值才生效） */
+ * parent_id / parent_customer_id 留空 = 不修改(换值才生效) */
 async function submitEdit() {
   if (!editForm.name.trim()) {
     message.warning('请填写集团名称');
@@ -401,7 +401,7 @@ onMounted(() => {
         <Input
           v-model:value="keyword"
           allow-clear
-          placeholder="集团名称 / 编码（实时过滤）"
+          placeholder="集团名称 / 编码(实时过滤)"
           style="width: 240px"
         />
         <Button @click="resetQuery">重置</Button>
@@ -431,7 +431,7 @@ onMounted(() => {
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'name'">
-            <!-- 名称列即详情入口（不加 ellipsis） -->
+            <!-- 名称列即详情入口(不加 ellipsis) -->
             <a @click="openDetail(record)">{{ record.name }}</a>
           </template>
           <template v-else-if="column.dataIndex === 'parent_customer_name'">
@@ -450,7 +450,7 @@ onMounted(() => {
       </Table>
     </Card>
 
-    <!-- 新建集团：母公司必选（自动加入成员），上级集团可选 -->
+    <!-- 新建集团：母公司必选(自动加入成员)，上级集团可选 -->
     <Modal
       v-model:open="createVisible"
       :confirm-loading="createLoading"
@@ -522,10 +522,10 @@ onMounted(() => {
             <DescriptionsItem label="母公司">
               {{ dash(detail.parent_customer_name) }}
             </DescriptionsItem>
-            <DescriptionsItem label="成员数（含子集团）">
+            <DescriptionsItem label="成员数(含子集团)">
               {{ detail.member_count }}
             </DescriptionsItem>
-            <DescriptionsItem label="在保汇总（含子集团）">
+            <DescriptionsItem label="在保汇总(含子集团)">
               {{ formatAmount(detail.total_insure_amount) }}
             </DescriptionsItem>
             <DescriptionsItem label="授信额度">
@@ -541,7 +541,7 @@ onMounted(() => {
         </Card>
 
         <Tabs>
-          <!-- 成员企业 Tab：直接成员（分页），母公司不可移除 -->
+          <!-- 成员企业 Tab：直接成员(分页)，母公司不可移除 -->
           <TabPane key="members" tab="成员企业">
             <div class="mb-2">
               <AccessControl :codes="['customer:update']" type="code">
@@ -588,7 +588,7 @@ onMounted(() => {
                   {{ formatAmount(record.amount) }}
                 </template>
                 <template v-else-if="column.key === 'op'">
-                  <!-- 母公司不可移除（后端兜底拦截） -->
+                  <!-- 母公司不可移除(后端兜底拦截) -->
                   <AccessControl :codes="['customer:update']" type="code">
                     <Popconfirm
                       v-if="record.id !== detail?.parent_customer_id"
@@ -605,7 +605,7 @@ onMounted(() => {
           </TabPane>
 
           <!-- 子集团 Tab：名称链接打开该子集团详情 -->
-          <TabPane key="subgroups" :tab="`下属集团（${detail.children?.length ?? 0}）`">
+          <TabPane key="subgroups" :tab="`下属集团(${detail.children?.length ?? 0})`">
             <Table
               :columns="subColumns"
               :data-source="detail.children ?? []"
@@ -641,7 +641,7 @@ onMounted(() => {
         v-model:value="memberAddIds"
         :options="customerOptions"
         mode="multiple"
-        placeholder="输入名称搜索企业客户（可多选）"
+        placeholder="输入名称搜索企业客户(可多选)"
         remote
         style="width: 100%"
         @search="searchCustomers"
@@ -674,7 +674,7 @@ onMounted(() => {
           <SearchSelect
             v-model:value="editForm.parent_customer_id"
             :options="customerOptions"
-            placeholder="不修改（换母公司才选择新值）"
+            placeholder="不修改(换母公司才选择新值)"
             remote
             style="width: 100%"
             @search="searchCustomers"

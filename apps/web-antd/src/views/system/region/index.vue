@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 行政区划：只读树形表格（懒加载子级），按名称/代码搜索。 */
+﻿<script lang="ts" setup>
+/** 行政区划：只读树形表格(懒加载子级)，按名称/代码搜索。 */
 
 import type { RegionTreeNode } from '#/api/basic/dict';
 import type { TableColumnType } from 'ant-design-vue';
@@ -14,12 +14,12 @@ import { useRowHighlight } from '#/composables/useRowHighlight';
 import { getRegionChildren, getRegionRoots, searchRegions } from '#/api/basic/dict';
 
 const loading = ref(false);
-/** 搜索模式：true 时展示平铺搜索结果（无树形展开） */
+/** 搜索模式：true 时展示平铺搜索结果(无树形展开) */
 const searchMode = ref(false);
 const tree = ref<RegionTreeNode[]>([]);
-/** 受控展开行（树形懒加载） */
+/** 受控展开行(树形懒加载) */
 const expandedKeys = ref<number[]>([]);
-/** 已加载过子级的节点 id 集合（避免重复请求） */
+/** 已加载过子级的节点 id 集合(避免重复请求) */
 const loadedIds = new Set<number>();
 
 /** 懒加载子级：占位 children 置换为真实数据 */

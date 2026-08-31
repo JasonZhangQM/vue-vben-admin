@@ -1,4 +1,4 @@
-/** 审批中心 API：我的申请 / 待我审批 / 审批动作 / 实例详情。 */
+﻿/** 审批中心 API：我的申请 / 待我审批 / 审批动作 / 实例详情。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -52,7 +52,7 @@ export function getMyTasks(params?: { page?: number; page_size?: number }) {
   );
 }
 
-/** 审批动作（action：10 同意 / 20 驳回） */
+/** 审批动作(action：10 同意 / 20 驳回) */
 export function actTask(taskId: number, action: number, opinion?: string) {
   return requestClient.post(`/approvals/tasks/${taskId}/act`, {
     action,
@@ -60,14 +60,14 @@ export function actTask(taskId: number, action: number, opinion?: string) {
   });
 }
 
-/** 撤回申请（仅 pending 且本人提交） */
+/** 撤回申请(仅 pending 且本人提交) */
 export function withdrawInstance(instanceId: number, reason?: string) {
   return requestClient.post(`/approvals/instances/${instanceId}/withdraw`, {
     reason,
   });
 }
 
-/** 实例详情（payload + 任务轨迹） */
+/** 实例详情(payload + 任务轨迹) */
 export function getInstanceDetail(instanceId: number) {
   return requestClient.get<ApprovalInstanceDetail>(
     `/approvals/instances/${instanceId}`,

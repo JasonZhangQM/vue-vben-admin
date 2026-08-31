@@ -1,5 +1,5 @@
-/**
- * 表格行点击高亮 composable（全项目共享）
+﻿/**
+ * 表格行点击高亮 composable(全项目共享)
  *
  * 抽取自 institution/custom/warrant/system 等列表页的重复逻辑：
  * activeRowKey + customRow + rowClassName 三件套
@@ -26,7 +26,7 @@ export function useRowHighlight() {
   const rowClassName = (record: any) =>
     record.id === activeRowKey.value ? 'row-active' : '';
 
-  /** 主动设置高亮行（如打开详情时高亮该行） */
+  /** 主动设置高亮行(如打开详情时高亮该行) */
   function highlight(row: any) {
     activeRowKey.value = row?.id;
   }

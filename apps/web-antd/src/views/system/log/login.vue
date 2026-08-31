@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 登录日志：只读审计列表，无详情抽屉（字段少、无详情接口）。 */
+﻿<script lang="ts" setup>
+/** 登录日志：只读审计列表，无详情抽屉(字段少、无详情接口)。 */
 
 import type { LoginLogItem } from '#/api/system/log';
 

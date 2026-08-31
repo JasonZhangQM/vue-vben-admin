@@ -1,5 +1,5 @@
-<script lang="ts" setup>
-/** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库（联动状态）/ 评估。 */
+﻿<script lang="ts" setup>
+/** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
 
@@ -47,7 +47,7 @@ import { auctionStateColor, warrantStateColor } from './constants';
 const props = defineProps<{ warrantId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 const dictStore = useDictStore();
 
@@ -55,7 +55,7 @@ const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | WarrantDetail>(null);
 const loading = ref(false);
 
-// 状态 → Tag 颜色映射已抽到 ./constants.ts（避免两处维护 + 拍卖/权证状态语义串用）
+// 状态 → Tag 颜色映射已抽到 ./constants.ts(避免两处维护 + 拍卖/权证状态语义串用)
 
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
 async function refresh() {
@@ -85,7 +85,7 @@ watch(
   },
 );
 
-// ===== 编辑（WarrantUpdate 自由字段子集：评估字段） =====
+// ===== 编辑(WarrantUpdate 自由字段子集：评估字段) =====
 const { hasAccessByCodes } = useAccess();
 const canUpdate = computed(() => hasAccessByCodes(['warrant:update']));
 
@@ -127,7 +127,7 @@ async function submitEdit() {
   }
 }
 
-// ===== 删除（收纳在抽屉内） =====
+// ===== 删除(收纳在抽屉内) =====
 async function onDelete() {
   if (!detail.value) return;
   await deleteWarrant(detail.value.id);
@@ -136,7 +136,7 @@ async function onDelete() {
   emit('updated');
 }
 
-// ===== 所有权人编辑（OwnershipUpdate 自由字段） =====
+// ===== 所有权人编辑(OwnershipUpdate 自由字段) =====
 const ownerEditVisible = ref(false);
 const ownerEditLoading = ref(false);
 const ownerEditForm = reactive({
@@ -172,7 +172,7 @@ async function submitOwnerEdit() {
   }
 }
 
-// ===== 出入库（联动主表状态） =====
+// ===== 出入库(联动主表状态) =====
 const storageForm = reactive({
   storage_type: 10,
   storage_date: '',
@@ -190,7 +190,7 @@ async function submitStorage() {
     storage_explain: storageForm.storage_explain || undefined,
   });
   Object.assign(storageForm, { storage_type: 10, storage_date: '', storage_explain: '' });
-  message.success('出入库登记成功（权证状态已联动）');
+  message.success('出入库登记成功(权证状态已联动)');
   await refresh();
 }
 
@@ -232,7 +232,7 @@ async function submitEvaluate() {
               <Button size="small" type="primary" @click="openEdit">编辑</Button>
             </AccessControl>
             <AccessControl :codes="['warrant:delete']" type="code">
-              <Popconfirm title="确认删除该权证？（已入库/已流转权证将被拦截）" @confirm="onDelete">
+              <Popconfirm title="确认删除该权证？(已入库/已流转权证将被拦截)" @confirm="onDelete">
                 <Button danger size="small">删除</Button>
               </Popconfirm>
             </AccessControl>
@@ -286,7 +286,7 @@ async function submitEvaluate() {
 
       <Tabs>
         <!-- 所有权人：首列链接打开编辑 Modal -->
-        <TabPane key="owners" :tab="`所有权人（${detail.owners?.length ?? 0}）`">
+        <TabPane key="owners" :tab="`所有权人(${detail.owners?.length ?? 0})`">
           <Table
             :columns="[
               { title: '姓名', dataIndex: 'owner_name' },
@@ -312,8 +312,8 @@ async function submitEvaluate() {
           </Table>
         </TabPane>
 
-        <!-- 房产包（无独立 PATCH 端点，只读展示） -->
-        <TabPane v-if="(detail.houses?.length ?? 0) > 0" key="houses" :tab="`房产（${detail.houses?.length ?? 0}）`">
+        <!-- 房产包(无独立 PATCH 端点，只读展示) -->
+        <TabPane v-if="(detail.houses?.length ?? 0) > 0" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
           <Table
             :columns="[
               { title: '坐落', dataIndex: 'house_locate', ellipsis: true },
@@ -337,7 +337,7 @@ async function submitEvaluate() {
           </Table>
         </TabPane>
 
-        <!-- 土地（type=5） -->
+        <!-- 土地(type=5) -->
         <TabPane v-if="detail.ground" key="ground" tab="土地信息">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="坐落">{{ dash(detail.ground.ground_locate) }}</DescriptionsItem>
@@ -346,7 +346,7 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 在建工程（type=6） -->
+        <!-- 在建工程(type=6) -->
         <TabPane v-if="detail.construction" key="construction" tab="在建工程">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="坐落">{{ dash(detail.construction.construct_locate) }}</DescriptionsItem>
@@ -355,7 +355,7 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 应收（type=11） -->
+        <!-- 应收(type=11) -->
         <TabPane v-if="detail.receivable" key="receivable" tab="应收账款">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="说明" :span="2">{{ dash(detail.receivable.receivable_detail) }}</DescriptionsItem>
@@ -365,7 +365,7 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 股权（type=21） -->
+        <!-- 股权(type=21) -->
         <TabPane v-if="detail.stock" key="stock" tab="股权信息">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="标的公司">{{ dash(detail.stock.target) }}</DescriptionsItem>
@@ -377,7 +377,7 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 票据主表（type=31） -->
+        <!-- 票据主表(type=31) -->
         <TabPane v-if="detail.draft" key="draft" tab="票据信息">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="票据类型">{{ dash(detail.draft.draft_type_display) }}</DescriptionsItem>
@@ -386,11 +386,11 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 票据明细（type=31 的子表） -->
+        <!-- 票据明细(type=31 的子表) -->
         <TabPane
           v-if="detail.draft_extends && detail.draft_extends.length"
           :key="`draft-extends-${detail.id}`"
-          :tab="`票据明细（${detail.draft_extends.length}）`"
+          :tab="`票据明细(${detail.draft_extends.length})`"
         >
           <Table
             :columns="[
@@ -419,7 +419,7 @@ async function submitEvaluate() {
           </Table>
         </TabPane>
 
-        <!-- 车辆（type=41） -->
+        <!-- 车辆(type=41) -->
         <TabPane v-if="detail.vehicle" key="vehicle" tab="车辆信息">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="车架号">{{ dash(detail.vehicle.frame_num) }}</DescriptionsItem>
@@ -429,7 +429,7 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 动产（type=51） -->
+        <!-- 动产(type=51) -->
         <TabPane v-if="detail.chattel" key="chattel" tab="动产信息">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="动产类型">{{ dash(detail.chattel.chattel_type_display) }}</DescriptionsItem>
@@ -437,18 +437,18 @@ async function submitEvaluate() {
           </Descriptions>
         </TabPane>
 
-        <!-- 其他（type=55） -->
+        <!-- 其他(type=55) -->
         <TabPane v-if="detail.other" key="other" tab="其他权证">
           <Descriptions :column="2" size="small" bordered>
             <DescriptionsItem label="其他类型">{{ dash(detail.other.other_type_display) }}</DescriptionsItem>
             <DescriptionsItem label="成本">{{ detail.other.cost?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="说明" :span="2">{{ dash(detail.other.other_detail) }}</DescriptionsItem>
-            <!-- 商标子表（other_type=40） -->
+            <!-- 商标子表(other_type=40) -->
             <template v-if="detail.other.patent">
               <DescriptionsItem label="商标名称">{{ dash(detail.other.patent.patent_name) }}</DescriptionsItem>
               <DescriptionsItem label="注册号">{{ dash(detail.other.patent.reg_num) }}</DescriptionsItem>
             </template>
-            <!-- 软著子表（other_type=501） -->
+            <!-- 软著子表(other_type=501) -->
             <template v-if="detail.other.software">
               <DescriptionsItem label="软件名称">{{ dash(detail.other.software.software_name) }}</DescriptionsItem>
               <DescriptionsItem label="软著号">{{ dash(detail.other.software.reg_num) }}</DescriptionsItem>
@@ -457,7 +457,7 @@ async function submitEvaluate() {
         </TabPane>
 
         <!-- 出入库记录 -->
-        <TabPane key="storages" :tab="`出入库（${detail.storages?.length ?? 0}）`">
+        <TabPane key="storages" :tab="`出入库(${detail.storages?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="storageForm.storage_type"
@@ -466,7 +466,7 @@ async function submitEvaluate() {
               style="width: 120px"
             />
             <DatePicker v-model:value="storageForm.storage_date" value-format="YYYY-MM-DD" size="small" style="width: 150px" />
-            <Input v-model:value="storageForm.storage_explain" placeholder="说明（可空）" size="small" style="width: 180px" />
+            <Input v-model:value="storageForm.storage_explain" placeholder="说明(可空)" size="small" style="width: 180px" />
             <AccessControl :codes="['warrant:update']" type="code">
               <Button size="small" type="primary" @click="submitStorage">登记</Button>
             </AccessControl>
@@ -494,7 +494,7 @@ async function submitEvaluate() {
         </TabPane>
 
         <!-- 评估记录 -->
-        <TabPane key="evaluates" :tab="`评估（${detail.evaluates?.length ?? 0}）`">
+        <TabPane key="evaluates" :tab="`评估(${detail.evaluates?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="evaluateForm.evaluate_method"
@@ -504,7 +504,7 @@ async function submitEvaluate() {
             />
             <InputNumber v-model:value="evaluateForm.evaluate_value" placeholder="评估值" size="small" style="width: 120px" />
             <DatePicker v-model:value="evaluateForm.evaluate_date" value-format="YYYY-MM-DD" size="small" style="width: 150px" />
-            <Input v-model:value="evaluateForm.evaluate_company" placeholder="评估公司（可空）" size="small" style="width: 160px" />
+            <Input v-model:value="evaluateForm.evaluate_company" placeholder="评估公司(可空)" size="small" style="width: 160px" />
             <AccessControl :codes="['warrant:update']" type="code">
               <Button size="small" type="primary" @click="submitEvaluate">添加</Button>
             </AccessControl>
@@ -534,12 +534,12 @@ async function submitEvaluate() {
       </Tabs>
     </div>
 
-    <!-- 权证编辑 Modal（字段对齐后端 WarrantUpdate 评估字段子集） -->
+    <!-- 权证编辑 Modal(字段对齐后端 WarrantUpdate 评估字段子集) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑权证（评估信息）"
+      title="编辑权证(评估信息)"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -576,7 +576,7 @@ async function submitEvaluate() {
       </Form>
     </Modal>
 
-    <!-- 所有权人编辑 Modal（字段对齐后端 OwnershipUpdate） -->
+    <!-- 所有权人编辑 Modal(字段对齐后端 OwnershipUpdate) -->
     <Modal
       v-model:open="ownerEditVisible"
       :confirm-loading="ownerEditLoading"

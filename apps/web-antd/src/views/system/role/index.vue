@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 角色管理：角色名称列为详情入口；编辑/删除/权限配置收纳在详情抽屉。 */
 
 import type { PermissionItem, RoleDetail, RoleListItem } from '#/api/system/role';
@@ -67,7 +67,7 @@ const detail = ref<null | RoleDetail>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
-// 详情基本信息响应式列数（视口越宽列越多）
+// 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
 function openDetail(row: any) {
@@ -104,7 +104,7 @@ const userColumns: TableColumnType[] = [
   { title: '职务', dataIndex: 'position' },
 ];
 
-// ================= 编辑 Modal（RoleUpdate 自由字段：名称 / 数据范围 / 描述） =================
+// ================= 编辑 Modal(RoleUpdate 自由字段：名称 / 数据范围 / 描述) =================
 const editVisible = ref(false);
 const editLoading = ref(false);
 const editForm = reactive({
@@ -132,7 +132,7 @@ async function submitEdit() {
   }
   editLoading.value = true;
   try {
-    // 内置角色仅允许改名称/描述/数据范围（后端校验）
+    // 内置角色仅允许改名称/描述/数据范围(后端校验)
     await updateRole(editForm.id, {
       name: editForm.name,
       data_scope: editForm.data_scope,
@@ -155,7 +155,7 @@ async function onDelete() {
   await loadList();
 }
 
-// ================= 权限配置（抽屉 Tab 内） =================
+// ================= 权限配置(抽屉 Tab 内) =================
 const allPerms = ref<PermissionItem[]>([]);
 const checkedPermIds = ref<number[]>([]);
 
@@ -196,7 +196,7 @@ watch(
   },
 );
 
-/** 单个权限勾选/取消（手动维护数组，避免多 CheckboxGroup v-model 互斥） */
+/** 单个权限勾选/取消(手动维护数组，避免多 CheckboxGroup v-model 互斥) */
 function togglePerm(id: number, checked: boolean) {
   const set = new Set(checkedPermIds.value);
   if (checked) set.add(id);
@@ -223,7 +223,7 @@ async function savePerms() {
   permSaving.value = true;
   try {
     await assignRolePermissions(detail.value.id, checkedPermIds.value);
-    message.success('权限已更新（绑定用户权限缓存已失效）');
+    message.success('权限已更新(绑定用户权限缓存已失效)');
     await refresh();
   } finally {
     permSaving.value = false;
@@ -281,7 +281,7 @@ onMounted(async () => {
 <template>
   <!-- 不传 title/description：不渲染页头 -->
   <Page>
-    <!-- 筛选区：独立 Card（角色无筛选字段，仅放新增入口） -->
+    <!-- 筛选区：独立 Card(角色无筛选字段，仅放新增入口) -->
     <Card class="mb-3" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1" />
@@ -343,7 +343,7 @@ onMounted(async () => {
               <AccessControl :codes="['role:delete']" type="code">
                 <Popconfirm
                   :disabled="detail.is_builtin"
-                  title="确认删除该角色？（需先解除用户绑定）"
+                  title="确认删除该角色？(需先解除用户绑定)"
                   @confirm="onDelete"
                 >
                   <Button :disabled="detail.is_builtin" danger size="small">删除</Button>
@@ -368,8 +368,8 @@ onMounted(async () => {
         </Card>
 
         <Tabs>
-          <!-- 绑定用户（只读展示，用户编辑入口在用户管理） -->
-          <TabPane key="users" :tab="`绑定用户（${detail.users.length}）`">
+          <!-- 绑定用户(只读展示，用户编辑入口在用户管理) -->
+          <TabPane key="users" :tab="`绑定用户(${detail.users.length})`">
             <Table
               :columns="userColumns"
               :data-source="detail.users"
@@ -389,7 +389,7 @@ onMounted(async () => {
           </TabPane>
 
           <!-- 权限配置 -->
-          <TabPane key="perms" :tab="`权限配置（${detail.permission_codes.length}）`">
+          <TabPane key="perms" :tab="`权限配置(${detail.permission_codes.length})`">
             <div class="mb-2 flex justify-end">
               <AccessControl :codes="['role:assign']" type="code">
                 <Button :loading="permSaving" size="small" type="primary" @click="savePerms">
@@ -397,7 +397,7 @@ onMounted(async () => {
                 </Button>
               </AccessControl>
             </div>
-            <!-- 每个模块独立卡片：模块标题行（全选 Checkbox + 模块名）独占一行，下方子权限两列网格 -->
+            <!-- 每个模块独立卡片：模块标题行(全选 Checkbox + 模块名)独占一行，下方子权限两列网格 -->
             <div
               v-for="(group, gi) in groupedPerms"
               :key="group.module"
@@ -429,7 +429,7 @@ onMounted(async () => {
                   :value="p.id"
                   @change="(e: any) => togglePerm(p.id, e.target.checked)"
                 >
-                  {{ p.name }}（{{ p.code }}）
+                  {{ p.name }}({{ p.code }})
                 </Checkbox>
               </div>
             </div>
@@ -448,7 +448,7 @@ onMounted(async () => {
     >
       <Form :label-col="{ span: 5 }" :model="createForm" :wrapper-col="{ span: 17 }">
         <FormItem label="角色标识" required>
-          <Input v-model:value="createForm.code" placeholder="如 risk_officer（唯一，创建后不可改）" />
+          <Input v-model:value="createForm.code" placeholder="如 risk_officer(唯一，创建后不可改)" />
         </FormItem>
         <FormItem label="角色名称" required>
           <Input v-model:value="createForm.name" />
@@ -462,7 +462,7 @@ onMounted(async () => {
       </Form>
     </Modal>
 
-    <!-- 编辑角色弹窗（字段对齐后端 RoleUpdate 自由字段） -->
+    <!-- 编辑角色弹窗(字段对齐后端 RoleUpdate 自由字段) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
