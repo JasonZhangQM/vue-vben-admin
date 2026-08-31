@@ -117,7 +117,7 @@ const formRules = computed(() => ({
     { max: 8, message: '简称不得超过 8 字符', trigger: 'blur' },
   ],
   managementor_id: [{ required: true, message: '请选择管护经理', trigger: 'change' }],
-  region_id: [{ required: true, message: '请选择行政区域', trigger: 'change' }],
+  // 行政区域/行业/集团均可空
   // 联系人/电话/地址/行业分类均可空(后端 schema 已改为 str | None / int | None)
   // 企业条件必填
   credit_code: [
@@ -279,8 +279,8 @@ async function onSubmit() {
             registered_addr: createForm.registered_addr,
             capital: createForm.capital ?? 0,
             paid_capital: createForm.paid_capital ?? 0,
-            custom_nature: createForm.custom_nature!,
-            decisionor: createForm.decisionor!,
+            custom_nature: createForm.custom_nature,
+            decisionor: createForm.decisionor,
             industry_c: createForm.industry_c ?? createForm.industry_id,
           }
         : undefined;
@@ -289,8 +289,8 @@ async function onSubmit() {
         ? {
             license_num: createForm.license_num,
             license_addr: createForm.license_addr,
-            marital_status: createForm.marital_status!,
-            household_nature: createForm.household_nature!,
+            marital_status: createForm.marital_status,
+            household_nature: createForm.household_nature,
           }
         : undefined;
 
@@ -301,7 +301,7 @@ async function onSubmit() {
       linkman: createForm.linkman,
       contact_num: createForm.contact_num,
       contact_addr: createForm.contact_addr,
-      region_id: createForm.region_id!,
+      region_id: createForm.region_id,
       industry_id: createForm.industry_id,
       credit_region_id: createForm.credit_region_id,
       group_id: createForm.group_id,
@@ -403,7 +403,7 @@ watch(open, (val) => {
               />
             </FormItem>
             <FormItem name="region_id" label="行政区域">
-              <RegionTreeSelect v-model:value="createForm.region_id" />
+              <RegionTreeSelect v-model:value="createForm.region_id" allow-clear />
             </FormItem>
             <FormItem name="industry_id" label="行业分类">
               <TreeSelect

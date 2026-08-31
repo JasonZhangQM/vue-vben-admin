@@ -107,7 +107,7 @@ export interface CustomerCreateParams {
     license_num: string;
     marital_status: number;
   };
-  region_id: number;
+  region_id?: number;
   short_name: string;
 }
 
