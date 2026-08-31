@@ -564,7 +564,7 @@ onMounted(() => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'region_id'">
-                <RegionTreeSelect v-model:value="record.region_id" allow-clear />
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
               </template>
               <template v-else-if="column.dataIndex === 'house_locate'">
                 <Input

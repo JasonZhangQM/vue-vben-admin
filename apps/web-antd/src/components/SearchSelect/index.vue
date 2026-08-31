@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 全局搜索下拉组件：内置 show-search + label/value 双匹配 filter-option。
  *
  * 两类用法：
@@ -91,7 +91,7 @@ function onRemoteSearch(val: string) {
     :disabled="disabled"
     :placeholder="placeholder"
     :size="size"
-    :style="style"
+    :style="{ width: '100%', ...(style ?? {}) }"
     :filter-option="remote ? false : filterOption"
     @change="emit('change', $event)"
     @dropdown-visible-change="emit('dropdown-visible-change', $event)"
