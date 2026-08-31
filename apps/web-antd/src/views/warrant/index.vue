@@ -27,7 +27,10 @@ import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store/dict';
 import { dash } from '#/utils/format';
 
+import { warrantStateColor, STORAGE_TYPE_COLOR } from './constants';
+
 import { getUserList } from '#/api/system/user';
+import { getCustomerList } from '#/api/basic/customer';
 import {
   batchCancel,
   batchStorage,
@@ -40,9 +43,6 @@ import DetailDrawer from './detail-drawer.vue';
 
 // dict store（label 真相源，禁止硬编码 OPTIONS）
 const dictStore = useDictStore();
-
-const stateColor = (s: number) =>
-  ({ 10: 'default', 20: 'green', 30: 'blue', 60: 'default', 210: 'orange', 310: 'red', 410: 'purple', 990: 'red' })[s] ?? 'default';
 
 // ================= 列表 =================
 const loading = ref(false);
@@ -87,8 +87,29 @@ function resetQuery() {
   query.auction_state = undefined;
   query.evaluate_method = undefined;
   query.owner_id = undefined;
+  ownerOptions.value = []; // 清远程搜索下拉缓存
   query.page = 1;
   loadList();
+}
+
+// 所有权人远程搜索（对接后端 list_warrants 的 owner_id 筛选）
+const ownerOptions = ref<{ label: string; value: number }[]>([]);
+const ownerLoading = ref(false);
+async function onSearchOwner(keyword: string) {
+  if (!keyword) {
+    ownerOptions.value = [];
+    return;
+  }
+  ownerLoading.value = true;
+  try {
+    const data = await getCustomerList({ page: 1, page_size: 30, q: keyword });
+    ownerOptions.value = data.items.map((c) => ({
+      label: `${c.name}（${c.genre === 1 ? '企业' : '个人'}）`,
+      value: c.id,
+    }));
+  } finally {
+    ownerLoading.value = false;
+  }
 }
 
 // ================= 详情 =================
@@ -109,9 +130,11 @@ const createOpen = ref(false);
 
 const columns: TableColumnType[] = [
   { title: '权证号', dataIndex: 'warrant_num' }, // 详情入口链接列：不加 ellipsis
-  { title: '类型', dataIndex: 'warrant_type', ellipsis: true },
-  { title: '状态', dataIndex: 'warrant_state', ellipsis: true },
-  { title: '评估值', dataIndex: 'evaluate_value', ellipsis: true },
+  { title: '类型', dataIndex: 'warrant_type', width: 90 },
+  { title: '状态', dataIndex: 'warrant_state', width: 90 },
+  { title: '所有权人', dataIndex: 'owner_names', ellipsis: true },
+  { title: '评估值', dataIndex: 'evaluate_value', width: 100 },
+  { title: '最近出入库', dataIndex: 'storage_latest', width: 140 },
   { title: '登记时间', dataIndex: 'created_at', ellipsis: true },
   { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
 ];
@@ -269,6 +292,16 @@ onMounted(() => {
           placeholder="评估方式"
           style="width: 120px"
         />
+        <SearchSelect
+          v-model:value="query.owner_id"
+          :options="ownerOptions"
+          :loading="ownerLoading"
+          allow-clear
+          placeholder="所有权人"
+          remote
+          style="width: 180px"
+          @search="onSearchOwner"
+        />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
         <Button @click="resetQuery">重置</Button>
         <div class="flex-1" />
@@ -324,12 +357,24 @@ onMounted(() => {
             {{ dictStore.labelOf('warrant.warrant_type', record.warrant_type) }}
           </template>
           <template v-else-if="column.dataIndex === 'warrant_state'">
-            <Tag :color="stateColor(record.warrant_state)">
+            <Tag :color="warrantStateColor(record.warrant_state)">
               {{ dictStore.labelOf('warrant.warrant_state', record.warrant_state) }}
             </Tag>
           </template>
+          <template v-else-if="column.dataIndex === 'owner_names'">
+            {{ (record.owner_names as string[])?.join('、') || '—' }}
+          </template>
           <template v-else-if="column.dataIndex === 'evaluate_value'">
             {{ record.evaluate_value?.toLocaleString() ?? '—' }}
+          </template>
+          <template v-else-if="column.dataIndex === 'storage_latest'">
+            <template v-if="record.storage_latest">
+              <Tag size="small" :color="STORAGE_TYPE_COLOR[record.storage_latest.storage_type] ?? 'default'">
+                {{ dictStore.labelOf('warrant.storage_type', record.storage_latest.storage_type) }}
+              </Tag>
+              <span class="text-xs text-gray-500 ml-1">{{ record.storage_latest.storage_date }}</span>
+            </template>
+            <template v-else>—</template>
           </template>
           <template v-else-if="column.dataIndex === 'created_by_name'">
             {{ dash(record.created_by_name) }}

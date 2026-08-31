@@ -42,6 +42,8 @@ import {
   updateWarrantOwner,
 } from '#/api/basic/warrant';
 
+import { auctionStateColor, warrantStateColor } from './constants';
+
 const props = defineProps<{ warrantId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
 
@@ -53,11 +55,7 @@ const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | WarrantDetail>(null);
 const loading = ref(false);
 
-// 状态 → Tag 颜色映射（颜色不由后端控制，但集中维护）
-const STATE_COLOR: Record<number, string> = {
-  10: 'default', 20: 'green', 30: 'blue', 60: 'default',
-  110: 'orange', 210: 'orange', 310: 'red', 410: 'purple', 990: 'red',
-};
+// 状态 → Tag 颜色映射已抽到 ./constants.ts（避免两处维护 + 拍卖/权证状态语义串用）
 
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
 async function refresh() {
@@ -250,12 +248,12 @@ async function submitEvaluate() {
 
           <!-- 状态/分类 -->
           <DescriptionsItem label="权证状态">
-            <Tag :color="STATE_COLOR[(detail as any).warrant_state] ?? 'default'">
+            <Tag :color="warrantStateColor((detail as any).warrant_state)">
               {{ dash((detail as any).warrant_state_display) }}
             </Tag>
           </DescriptionsItem>
           <DescriptionsItem label="拍卖状态">
-            <Tag :color="STATE_COLOR[(detail as any).auction_state] ?? 'default'">
+            <Tag :color="auctionStateColor((detail as any).auction_state)">
               {{ dash((detail as any).auction_state_display) }}
             </Tag>
           </DescriptionsItem>
