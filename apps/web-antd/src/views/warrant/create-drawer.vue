@@ -154,8 +154,8 @@ const houseColumns: TableColumnType[] = [
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 const ownerColumns: TableColumnType[] = [
-  { title: '所有权人 *', dataIndex: 'owner_id', width: 280 },
-  { title: '产权证编号 *', dataIndex: 'ownership_num', width: 220 },
+  { title: '所有权人 *', dataIndex: 'owner_id', width: 200 },
+  { title: '产权证编号 *', dataIndex: 'ownership_num' },
   { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 140 },
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
@@ -526,7 +526,7 @@ onMounted(() => {
                 :options="remoteCustomerOptions"
                 :status="attempted && !record.owner_id ? 'error' : undefined"
                 placeholder="输入客户名搜索"
-                style="min-width: 160px"
+                allow-clear
                 @search="onSearchCustomer"
               />
             </template>
@@ -564,7 +564,7 @@ onMounted(() => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'region_id'">
-                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="min-width: 160px" />
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear />
               </template>
               <template v-else-if="column.dataIndex === 'house_locate'">
                 <Input
