@@ -104,7 +104,7 @@ const createForm = reactive({
   chattel_detail: '',
   other_type: 99,
   other_detail: '',
-  receivable_detail: '',
+  receivable_detail: '贷款期间所有应收账款',
 });
 
 const rules = {
@@ -316,7 +316,7 @@ function resetExtFields() {
     draft_type: 20, denomination: undefined, draft_detail: '',
     frame_num: '', plate_num: '', vehicle_brand: '',
     chattel_type: 10, chattel_detail: '',
-    other_type: 99, other_detail: '', receivable_detail: '',
+    other_type: 99, other_detail: '', receivable_detail: '贷款期间所有应收账款',
   });
   houseRows.value = [emptyHouseRow()];
   groundRows.value = [emptyGroundRow()];
@@ -453,6 +453,10 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
 
 /** 校验所有权人行：全空行忽略；部分填写(客户或权证编号缺失)报错定位行号 */
 function validateOwners() {
+  // 应收账款没有所有权人中间表概念，跳过
+  if (createForm.warrant_type === WARRANT_TYPE_RECEIVABLE) {
+    return [];
+  }
   const rows = ownerRows.value;
   for (let i = 0; i < rows.length; i++) {
     const { owner_id, ownership_num, share_ratio } = rows[i]!;
@@ -533,7 +537,7 @@ function resetAll() {
     draft_type: 20, denomination: undefined, draft_detail: '',
     frame_num: '', plate_num: '', vehicle_brand: '',
     chattel_type: 10, chattel_detail: '',
-    other_type: 99, other_detail: '', receivable_detail: '',
+    other_type: 99, other_detail: '', receivable_detail: '贷款期间所有应收账款',
   });
   houseRows.value = [emptyHouseRow()];
   ownerRows.value = [emptyOwnerRow()];
@@ -574,7 +578,7 @@ onMounted(() => {
       </Card>
 
       <!-- 分区二：所有权人(可编辑表格)——提到类型扩展之前，业务上应先明确"是谁的证" -->
-      <Card size="small" title="所有权人(统一中间表，支持共有)">
+      <Card v-if="createForm.warrant_type !== WARRANT_TYPE_RECEIVABLE" size="small" title="所有权人(统一中间表，支持共有)">
         <template #extra>
           <Button size="small" type="link" @click="addOwnerRow">+ 增加</Button>
         </template>
