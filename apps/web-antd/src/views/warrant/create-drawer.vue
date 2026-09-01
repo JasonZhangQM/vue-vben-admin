@@ -56,7 +56,7 @@ const EXT_TITLES: Record<number, string> = {
   1: '房产信息(支持多套)',
   5: '土地信息',
   6: '在建工程信息',
-  11: '应收账款信息',
+  11: '应收账款信息(可为空)',
   21: '股权信息',
   31: '票据信息',
   41: '车辆信息',
@@ -147,6 +147,11 @@ interface ConstructionRow {
   _key: number;
 }
 
+interface ReceiveUnitRow {
+  receive_unit: string;
+  _key: number;
+}
+
 let rowKeySeq = 0;
 const nextKey = () => ++rowKeySeq;
 
@@ -159,9 +164,14 @@ const emptyOwnerRow = (): OwnerRow => ({
   owner_id: undefined, ownership_num: '', share_ratio: undefined,
   _key: nextKey(),
 });
+const emptyReceiveUnitRow = (): ReceiveUnitRow => ({
+  receive_unit: '',
+  _key: nextKey(),
+});
 
 const houseRows = ref<HouseRow[]>([emptyHouseRow()]);
 const ownerRows = ref<OwnerRow[]>([emptyOwnerRow()]);
+const receiveUnitRows = ref<ReceiveUnitRow[]>([]);
 
 // 可编辑表格列：必填列标题带 *，行内输入组件经 bodyCell 插槽渲染
 const houseColumns: TableColumnType[] = [
@@ -202,6 +212,8 @@ function addOwnerRow() {
 function removeOwnerRow(index: number) {
   ownerRows.value.splice(index, 1);
 }
+function addReceiveUnitRow() { receiveUnitRows.value.push(emptyReceiveUnitRow()); }
+function removeReceiveUnitRow(index: number) { receiveUnitRows.value.splice(index, 1); }
 
 const groundRows = ref<GroundRow[]>([emptyGroundRow()]);
 const constructionRows = ref<ConstructionRow[]>([emptyConstructionRow()]);
@@ -219,6 +231,10 @@ const constructionColumns: TableColumnType[] = [
   { title: '详细地址 *', dataIndex: 'construct_locate' },
   { title: '面积㎡ *', dataIndex: 'construct_area', width: 130 },
   { title: '用途', dataIndex: 'construct_app', width: 150 },
+  { title: '操作', dataIndex: '_op', width: 60 },
+];
+const receiveUnitColumns: TableColumnType[] = [
+  { title: '应收单位', dataIndex: 'receive_unit' },
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 
@@ -427,10 +443,13 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
     }
     case WARRANT_TYPE_RECEIVABLE: {
       if (!createForm.receivable_detail) {
-        message.warning('请填写应收账款说明');
+        message.warning('请填写应收详情');
         return null;
       }
-      return { ext: { receivable_detail: createForm.receivable_detail } };
+      const receive_units = receiveUnitRows.value
+        .map((r) => r.receive_unit.trim())
+        .filter(Boolean);
+      return { ext: { receivable_detail: createForm.receivable_detail, receive_units } };
     }
     case WARRANT_TYPE_CHATTEL: {
       if (!createForm.chattel_detail) {
@@ -453,10 +472,6 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
 
 /** 校验所有权人行：全空行忽略；部分填写(客户或权证编号缺失)报错定位行号 */
 function validateOwners() {
-  // 应收账款没有所有权人中间表概念，跳过
-  if (createForm.warrant_type === WARRANT_TYPE_RECEIVABLE) {
-    return [];
-  }
   const rows = ownerRows.value;
   for (let i = 0; i < rows.length; i++) {
     const { owner_id, ownership_num, share_ratio } = rows[i]!;
@@ -541,6 +556,7 @@ function resetAll() {
   });
   houseRows.value = [emptyHouseRow()];
   ownerRows.value = [emptyOwnerRow()];
+  receiveUnitRows.value = [];
   lastType = 1;
   attempted.value = false;
   formRef.value?.clearValidate();
@@ -562,7 +578,7 @@ onMounted(() => {
       <!-- 分区一：基本信息 -->
       <Card size="small" title="基本信息">
         <Form ref="formRef" :label-col="{ span: 6 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 18 }">
-          <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div class="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
             <FormItem label="权证类型" name="warrant_type">
               <SearchSelect
                 v-model:value="createForm.warrant_type"
@@ -573,12 +589,16 @@ onMounted(() => {
             <FormItem label="权证号" name="warrant_num">
               <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
             </FormItem>
+            <!-- 应收账款类型：应收详情上移到基本信息 -->
+            <FormItem v-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE" label="应收详情">
+              <Input v-model:value="createForm.receivable_detail" placeholder="贷款期间所有应收账款" />
+            </FormItem>
           </div>
         </Form>
       </Card>
 
       <!-- 分区二：所有权人(可编辑表格)——提到类型扩展之前，业务上应先明确"是谁的证" -->
-      <Card v-if="createForm.warrant_type !== WARRANT_TYPE_RECEIVABLE" size="small" title="所有权人(统一中间表，支持共有)">
+      <Card size="small" title="所有权人(统一中间表，支持共有)">
         <template #extra>
           <Button size="small" type="link" @click="addOwnerRow">+ 增加</Button>
         </template>
@@ -626,6 +646,7 @@ onMounted(() => {
           <Button v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE" size="small" type="link" @click="addHouseRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_GROUND" size="small" type="link" @click="addGroundRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION" size="small" type="link" @click="addConstructionRow">+ 增加</Button>
+          <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE" size="small" type="link" @click="addReceiveUnitRow">+ 增加</Button>
         </template>
         <!-- 房产：1:N 房产包，可编辑表格 -->
         <template v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE">
@@ -810,13 +831,6 @@ onMounted(() => {
               </FormItem>
             </template>
 
-            <!-- 应收账款 -->
-            <template v-else-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE">
-              <FormItem label="说明" required>
-                <Input v-model:value="createForm.receivable_detail" placeholder="应收账款详情" />
-              </FormItem>
-            </template>
-
             <!-- 动产 -->
             <template v-else-if="createForm.warrant_type === WARRANT_TYPE_CHATTEL">
               <FormItem label="动产类型">
@@ -838,9 +852,32 @@ onMounted(() => {
             </template>
           </div>
         </Form>
+        <!-- type=11 应收单位明细表格 -->
+        <template v-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE">
+          <Table
+            :columns="receiveUnitColumns"
+            :data-source="receiveUnitRows"
+            :pagination="false"
+            :row-key="(r: any) => r._key"
+            size="small"
+            class="mt-3"
+          >
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'receive_unit'">
+                <Input
+                  v-model:value="record.receive_unit"
+                  placeholder="应收单位名称"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === '_op'">
+                <Button danger size="small" type="link" @click="removeReceiveUnitRow(index)">删除</Button>
+              </template>
+            </template>
+          </Table>
+        </template>
       </Card>
     </div>
-
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button @click="open = false">取消</Button>
