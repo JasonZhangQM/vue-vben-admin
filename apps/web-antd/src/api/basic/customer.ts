@@ -11,15 +11,11 @@ export interface CustomerListItem {
   credit_amount: number;
   credit_region_id: null | number;
   credit_region_name: null | string;
-  custom_state: number;
-  custom_typ: number;
   day_space: number;
   genre: number;
   group_id: null | number;
   group_name: null | string;
   id: number;
-  is_acceptor: boolean;
-  is_core: boolean;
   managementor_name: string;
   name: string;
   region_name: null | string;
@@ -27,11 +23,32 @@ export interface CustomerListItem {
   created_by_name: string;
 }
 
+export interface CustomerContact {
+  id: number;
+  name: string;
+  phone: string;
+  email: string | null;
+  addr: string | null;
+  is_primary: boolean;
+  remark: string | null;
+  created_by_name: string;
+}
+
+export interface CustomerContactCreate {
+  name: string;
+  phone: string;
+  email?: string;
+  addr?: string;
+  is_primary?: boolean;
+  remark?: string;
+}
+
 export interface CustomerDetail extends CustomerListItem {
   classification_display: string;
+  license_num: null | string;
+  license_addr: null | string;
   company: null | Record<string, any>;
   core_info: null | {
-    core_rate: null | number;
     current_limit: null | {
       credit_amount: number;
       id: number;
@@ -62,11 +79,7 @@ export interface CustomerDetail extends CustomerListItem {
   tags: null | number[];
   entrusted_loan: number;
   // ---- 以下与后端 get_detail 实际响应逐字段对齐 ----
-  linkman: null | string;
-  contact_num: null | string;
-  contact_addr: null | string;
-  core_rate: null | number;
-  core_remark: null | string;
+  contacts: CustomerContact[];
   industry_name: null | string;
   last_provide_date: null | string;
   last_review_date: null | string;
@@ -80,31 +93,23 @@ export interface CustomerDetail extends CustomerListItem {
 export interface CustomerCreateParams {
   company?: {
     capital?: number;
-    credit_code: string;
     custom_nature?: number;
     decisionor?: number;
     industry_c?: number;
     paid_capital?: number;
-    registered_addr?: string;
     representative?: string;
   };
-  contact_addr: string;
-  contact_num: string;
-  controler_id?: number;
-  core_rate?: number;
+  contacts?: CustomerContactCreate[];
   credit_region_id?: number;
   genre: number;
   group_id?: number;
   industry_id?: number;
-  is_acceptor?: boolean;
-  is_core?: boolean;
-  linkman: string;
+  license_num?: string;
+  license_addr?: string;
   managementor_id: number;
   name: string;
   personal?: {
     household_nature?: number;
-    license_addr?: string;
-    license_num: string;
     marital_status?: number;
   };
   region_id?: number;
@@ -114,8 +119,6 @@ export interface CustomerCreateParams {
 export interface CustomerListParams {
   classification?: number;
   genre?: number;
-  is_acceptor?: boolean;
-  is_core?: boolean;
   page?: number;
   page_size?: number;
   q?: string;
@@ -144,11 +147,6 @@ export function updateCustomer(id: number, data: object) {
     data,
     method: 'PATCH',
   });
-}
-
-/** 删除客户(逻辑注销) */
-export function deleteCustomer(id: number) {
-  return requestClient.delete(`/customers/${id}`);
 }
 
 /** 批量管护移交(直接生效，≤200 个客户) */
@@ -196,6 +194,31 @@ export function addDirector(id: number, directorName: string) {
 
 export function deleteDirector(id: number, directorId: number) {
   return requestClient.delete(`/customers/${id}/directors/${directorId}`);
+}
+
+// ===== 联系人(CustomerContact) =====
+
+export function listCustomerContacts(id: number) {
+  return requestClient.get<CustomerContact[]>(`/customers/${id}/contacts`);
+}
+
+export function addCustomerContact(id: number, data: CustomerContactCreate) {
+  return requestClient.post<{ id: number }>(`/customers/${id}/contacts`, data);
+}
+
+export function updateCustomerContact(
+  id: number,
+  contactId: number,
+  data: Partial<CustomerContactCreate>,
+) {
+  return requestClient.request(`/customers/${id}/contacts/${contactId}`, {
+    data,
+    method: 'PATCH',
+  });
+}
+
+export function deleteCustomerContact(id: number, contactId: number) {
+  return requestClient.delete(`/customers/${id}/contacts/${contactId}`);
 }
 
 /** 经营快照(同日覆盖) */
@@ -276,11 +299,8 @@ export interface GroupMemberItem {
   amount: number;
   classification: number;
   credit_amount: number;
-  custom_state: number;
   genre: number;
   id: number;
-  is_acceptor: boolean;
-  is_core: boolean;
   managementor_name: string;
   name: string;
   short_name: string;
@@ -363,9 +383,7 @@ export function removeGroupMember(id: number, customerId: number) {
 
 export function getCustomerOverview() {
   return requestClient.get<{
-    active_count: number;
     classification_distribution: Record<string, number>;
-    core_count: number;
     total_amount: number;
     total_count: number;
     total_credit_amount: number;
@@ -398,7 +416,6 @@ export interface TagCustomer {
   name: string;
   short_name: string;
   genre: number;            // 1 企业 / 2 个人
-  custom_state: number;     // 10 正常 20 反担保 30 小贷 90 注销
   classification: number;   // 五级分类
   managementor_name: string;
 }

@@ -20,11 +20,8 @@ export interface TagItem {
 
 /** 客户下拉字典项 */
 export interface CustomerDictItem {
-  custom_state: number;
   genre: number;
   id: number;
-  is_acceptor: boolean;
-  is_core: boolean;
   managementor_name: null | string;
   name: string;
   short_name: string;
@@ -89,8 +86,6 @@ export function getTags() {
 /** 客户下拉字典(表单选择用，无 data_scope 过滤——选所有权人时需看到全量客户) */
 export function getCustomerDict(params?: {
   genre?: number;
-  is_acceptor?: boolean;
-  is_core?: boolean;
   managementor_id?: number;
   q?: string;
   page?: number;

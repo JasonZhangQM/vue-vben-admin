@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 集团管理：树形列表(合并口径统计)+ 新建/编辑 + 详情抽屉(成员/子集团)。 */
 
 import type { TableColumnType } from 'ant-design-vue';
@@ -271,7 +271,6 @@ const memberColumns: TableColumnType[] = [
   { title: '客户名称', dataIndex: 'name' }, // 成员属客户模块维护，此处仅展示
   { title: '简称', dataIndex: 'short_name', ellipsis: true },
   { title: '五级分类', dataIndex: 'classification', width: 100, ellipsis: true },
-  { title: '客户状态', dataIndex: 'custom_state', width: 100, ellipsis: true },
   { title: '管护人', dataIndex: 'managementor_name', ellipsis: true },
   { title: '授信额度', dataIndex: 'credit_amount', width: 130, ellipsis: true },
   { title: '在保金额', dataIndex: 'amount', width: 130, ellipsis: true },
@@ -577,9 +576,6 @@ onMounted(() => {
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'classification'">
                   {{ dictStore.labelOf('customer.classification', record.classification) }}
-                </template>
-                <template v-else-if="column.dataIndex === 'custom_state'">
-                  {{ dictStore.labelOf('customer.custom_state', record.custom_state) }}
                 </template>
                 <template v-else-if="column.dataIndex === 'credit_amount'">
                   {{ formatAmount(record.credit_amount) }}

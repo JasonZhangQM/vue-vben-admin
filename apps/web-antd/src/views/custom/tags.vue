@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { ExtraTag, TagCustomer } from '#/api/basic/customer';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -43,9 +43,6 @@ import {
 
 // 客户枚举 label 镜像(与后端 customer/enums.py 对齐，仅本页展示用)
 const GENRE_LABELS: Record<number, string> = { 1: '企业', 2: '个人' };
-const CUSTOM_STATE_LABELS: Record<number, string> = {
-  10: '正常', 20: '反担保', 30: '小贷', 90: '注销',
-};
 const CLASSIFICATION_LABELS: Record<number, string> = {
   10: '正常', 20: '关注', 30: '次级', 40: '可疑', 50: '损失',
 };
@@ -177,7 +174,6 @@ const customerColumns: TableColumnType[] = [
   { title: '客户名称', dataIndex: 'name' },
   { title: '简称', dataIndex: 'short_name', ellipsis: true },
   { title: '类型', dataIndex: 'genre', width: 90, ellipsis: true },
-  { title: '客户状态', dataIndex: 'custom_state', width: 100, ellipsis: true },
   { title: '五级分类', dataIndex: 'classification', width: 100, ellipsis: true },
   { title: '管护经理', dataIndex: 'managementor_name', width: 120, ellipsis: true },
   { title: '操作', key: 'op', width: 80, fixed: 'right' },
@@ -391,9 +387,6 @@ onMounted(loadList);
                 </template>
                 <template v-else-if="column.dataIndex === 'genre'">
                   {{ GENRE_LABELS[record.genre] ?? dash(record.genre) }}
-                </template>
-                <template v-else-if="column.dataIndex === 'custom_state'">
-                  {{ CUSTOM_STATE_LABELS[record.custom_state] ?? dash(record.custom_state) }}
                 </template>
                 <template v-else-if="column.dataIndex === 'classification'">
                   <Tag :color="CLASSIFICATION_COLORS[record.classification] ?? 'default'">

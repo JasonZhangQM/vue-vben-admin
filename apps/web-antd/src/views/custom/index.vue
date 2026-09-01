@@ -39,21 +39,13 @@ const query = reactive({
   page_size: 20,
   q: '',
   genre: undefined as number | undefined,
-  // 布尔筛选用 1/0 表示(AntD Select value 不支持 boolean)，提交前转换
-  is_core: undefined as number | undefined,
-  is_acceptor: undefined as number | undefined,
   classification: undefined as number | undefined,
 });
 
 async function loadList() {
   loading.value = true;
   try {
-    const data = await getCustomerList({
-      ...query,
-      is_core: query.is_core === undefined ? undefined : query.is_core === 1,
-      is_acceptor:
-        query.is_acceptor === undefined ? undefined : query.is_acceptor === 1,
-    });
+    const data = await getCustomerList({ ...query });
     list.value = data.items;
     total.value = data.total;
   } finally {
@@ -66,8 +58,6 @@ function resetQuery() {
   query.q = '';
   query.genre = undefined;
   query.classification = undefined;
-  query.is_core = undefined;
-  query.is_acceptor = undefined;
   query.page = 1;
   loadList();
 }
@@ -101,7 +91,6 @@ const columns: TableColumnType[] = [
   { title: '风控专员', dataIndex: 'controler_name', ellipsis: true },
   { title: '授信额度', dataIndex: 'credit_amount', ellipsis: true },
   { title: '在保余额', dataIndex: 'amount', ellipsis: true },
-  { title: '标记', key: 'flags', ellipsis: true },
   { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
@@ -135,26 +124,6 @@ onMounted(() => {
           :options="dictStore.get('customer.classification')"
           allow-clear
           placeholder="五级分类"
-          style="width: 110px"
-        />
-        <SearchSelect
-          v-model:value="query.is_core"
-          :options="[
-            { label: '核心企业', value: 1 },
-            { label: '非核心', value: 0 },
-          ]"
-          allow-clear
-          placeholder="核心企业"
-          style="width: 120px"
-        />
-        <SearchSelect
-          v-model:value="query.is_acceptor"
-          :options="[
-            { label: '承兑人', value: 1 },
-            { label: '非承兑', value: 0 },
-          ]"
-          allow-clear
-          placeholder="承兑人"
           style="width: 110px"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
@@ -215,11 +184,6 @@ onMounted(() => {
           </template>
           <template v-else-if="column.dataIndex === 'amount'">
             {{ record.amount?.toLocaleString() ?? '—' }}
-          </template>
-          <template v-else-if="column.key === 'flags'">
-            <Tag v-if="record.is_core" color="purple">核心</Tag>
-            <Tag v-if="record.is_acceptor" color="cyan">承兑</Tag>
-            <span v-if="!record.is_core && !record.is_acceptor">—</span>
           </template>
           <template v-else-if="column.dataIndex === 'created_by_name'">
             {{ dash(record.created_by_name) }}

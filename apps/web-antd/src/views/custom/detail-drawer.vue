@@ -23,6 +23,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Switch,
   Table,
   Tabs,
   TabPane,
@@ -32,9 +33,10 @@ import {
 
 import {
   addCoreLimit,
+  addCustomerContact,
   addDirector,
   addShareholder,
-  deleteCustomer,
+  deleteCustomerContact,
   deleteDirector,
   deleteShareholder,
   getCustomerDetail,
@@ -42,6 +44,7 @@ import {
   listDirectors,
   listShareholders,
   updateCustomer,
+  updateCustomerContact,
   updateCustomerTags,
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
@@ -118,9 +121,6 @@ const editForm = reactive({
   short_name: '',
   credit_amount: undefined as number | undefined,
   managementor_id: undefined as number | undefined,
-  contact_addr: '',
-  linkman: '',
-  contact_num: '',
   region_id: undefined as number | undefined,
   industry_id: undefined as number | undefined,
 });
@@ -136,9 +136,6 @@ async function openEdit() {
     short_name: detail.value.short_name ?? '',
     credit_amount: detail.value.credit_amount ?? undefined,
     managementor_id: undefined, // 留空保持不变
-    contact_addr: (detail.value as any).contact_addr ?? '',
-    linkman: (detail.value as any).linkman ?? '',
-    contact_num: (detail.value as any).contact_num ?? '',
     region_id: undefined, // 留空保持不变(后端 exclude_unset)
     industry_id: undefined,
   });
@@ -154,9 +151,6 @@ async function submitEdit() {
       short_name: opt(editForm.short_name),
       credit_amount: editForm.credit_amount,
       managementor_id: editForm.managementor_id,
-      contact_addr: opt(editForm.contact_addr),
-      linkman: opt(editForm.linkman),
-      contact_num: opt(editForm.contact_num),
       region_id: editForm.region_id,
       industry_id: editForm.industry_id,
     });
@@ -166,15 +160,6 @@ async function submitEdit() {
   } finally {
     editLoading.value = false;
   }
-}
-
-// ===== 注销(收纳在抽屉内) =====
-async function onDelete() {
-  if (!detail.value) return;
-  await deleteCustomer(detail.value.id);
-  message.success('客户已注销');
-  open.value = false;
-  emit('updated');
 }
 
 // ===== 股东 / 董事快速添加 =====
@@ -230,6 +215,76 @@ async function submitLimit() {
   await addCoreLimit(detail.value.id, { ...limitForm });
   Object.assign(limitForm, { credit_amount: 0, valid_begin_date: '', valid_end_date: '' });
   message.success('额度已创建(旧额度自动失效)');
+  await refresh();
+}
+
+// ===== 联系人(CustomerContact) =====
+
+const contactForm = reactive({
+  name: '',
+  phone: '',
+});
+
+const editContactVisible = ref(false);
+const editContactLoading = ref(false);
+const editContactForm = reactive({
+  id: 0,
+  name: '',
+  phone: '',
+  email: '',
+  addr: '',
+  is_primary: false,
+  remark: '',
+});
+
+async function submitContact() {
+  if (!detail.value || !contactForm.name?.trim() || !contactForm.phone?.trim()) {
+    message.warning('请填写姓名和电话');
+    return;
+  }
+  await addCustomerContact(detail.value.id, { ...contactForm });
+  Object.assign(contactForm, { name: '', phone: '' });
+  message.success('联系人已添加');
+  await refresh();
+}
+
+function openContactEdit(record: any) {
+  Object.assign(editContactForm, {
+    id: record.id,
+    name: record.name ?? '',
+    phone: record.phone ?? '',
+    email: record.email ?? '',
+    addr: record.addr ?? '',
+    is_primary: !!record.is_primary,
+    remark: record.remark ?? '',
+  });
+  editContactVisible.value = true;
+}
+
+async function submitContactEdit() {
+  if (!detail.value) return;
+  editContactLoading.value = true;
+  try {
+    await updateCustomerContact(detail.value.id, editContactForm.id, {
+      name: editContactForm.name,
+      phone: editContactForm.phone,
+      email: editContactForm.email || undefined,
+      addr: editContactForm.addr || undefined,
+      is_primary: editContactForm.is_primary,
+      remark: editContactForm.remark || undefined,
+    });
+    editContactVisible.value = false;
+    message.success('联系人已更新');
+    await refresh();
+  } finally {
+    editContactLoading.value = false;
+  }
+}
+
+async function onDeleteContact(record: any) {
+  if (!detail.value) return;
+  await deleteCustomerContact(detail.value.id, record.id);
+  message.success('联系人已删除');
   await refresh();
 }
 
@@ -321,11 +376,6 @@ async function saveTags() {
             <AccessControl :codes="['customer:update']" type="code">
               <Button size="small" type="primary" @click="openEdit">编辑</Button>
             </AccessControl>
-            <AccessControl :codes="['customer:delete']" type="code">
-              <Popconfirm title="确认注销该客户？" @confirm="onDelete">
-                <Button danger size="small">注销</Button>
-              </Popconfirm>
-            </AccessControl>
           </div>
         </template>
         <Descriptions :column="detailColumns" size="small">
@@ -333,13 +383,12 @@ async function saveTags() {
           <DescriptionsItem label="客户名称">{{ dash(detail.name) }}</DescriptionsItem>
           <DescriptionsItem label="简称">{{ dash(detail.short_name) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ detail.genre === 1 ? '企业' : '个人' }}</DescriptionsItem>
-          <DescriptionsItem label="业务分类">{{ dash(detail.custom_typ) }}</DescriptionsItem>
-          <DescriptionsItem label="客户状态">
-            <Tag v-if="detail.custom_state === 10" color="green">正常</Tag>
-            <Tag v-else-if="detail.custom_state === 20" color="orange">反担保</Tag>
-            <Tag v-else-if="detail.custom_state === 30" color="cyan">小贷</Tag>
-            <Tag v-else-if="detail.custom_state === 90" color="red">注销</Tag>
-            <span v-else>{{ dash(detail.custom_state) }}</span>
+          <!-- 统一证照（企业=信用代码/注册地址，个人=身份证号/身份证地址） -->
+          <DescriptionsItem :label="detail.genre === 1 ? '统一社会信用代码' : '证件号码'">
+            {{ dash(detail.license_num) }}
+          </DescriptionsItem>
+          <DescriptionsItem :label="detail.genre === 1 ? '注册地址' : '户籍地址'" :span="detailColumns">
+            {{ dash(detail.license_addr) }}
           </DescriptionsItem>
 
           <!-- 关联归属 -->
@@ -350,24 +399,12 @@ async function saveTags() {
           <DescriptionsItem label="行政区域">{{ dash(detail.region_name) }}</DescriptionsItem>
           <DescriptionsItem label="行业分类">{{ dash(detail.industry_name) }}</DescriptionsItem>
 
-          <!-- 联系人 -->
-          <DescriptionsItem label="联系人">{{ dash(detail.linkman) }}</DescriptionsItem>
-          <DescriptionsItem label="联系电话">{{ dash(detail.contact_num) }}</DescriptionsItem>
-          <DescriptionsItem label="联系地址" :span="detailColumns">{{ dash(detail.contact_addr) }}</DescriptionsItem>
-
           <!-- 状态/分类 -->
           <DescriptionsItem label="五级分类">
             <Tag :color="classificationColor(detail.classification)">
               {{ dash(detail.classification_display) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem v-if="detail.is_core" label="核心企业">
-            <Tag color="purple">是</Tag>
-          </DescriptionsItem>
-          <DescriptionsItem v-if="detail.is_acceptor" label="承兑人">
-            <Tag color="cyan">是</Tag>
-          </DescriptionsItem>
-          <DescriptionsItem v-if="detail.core_rate" label="核心占比">{{ detail.core_rate }}%</DescriptionsItem>
 
           <!-- 金额/汇总 -->
           <DescriptionsItem label="授信额度">{{ detail.credit_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
@@ -390,14 +427,63 @@ async function saveTags() {
       </Card>
 
       <Tabs>
+        <!-- 联系人 -->
+        <TabPane key="contacts" :tab="`联系人(${detail.contacts?.length ?? 0})`">
+          <div class="mb-2 flex items-center gap-2">
+            <Input v-model:value="contactForm.name" placeholder="姓名 *" style="width: 140px" />
+            <Input v-model:value="contactForm.phone" placeholder="电话 *" style="width: 150px" />
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="submitContact">添加</Button>
+            </AccessControl>
+          </div>
+          <Table
+            :columns="[
+              { title: '姓名', dataIndex: 'name', width: 120 },
+              { title: '电话', dataIndex: 'phone', width: 140 },
+              { title: '邮箱', dataIndex: 'email', width: 160 },
+              { title: '联系地址', dataIndex: 'addr' },
+              { title: '备注', dataIndex: 'remark', width: 120 },
+              { title: '首选', dataIndex: 'is_primary', width: 70, align: 'center' },
+              { title: '操作', key: 'op', width: 70, align: 'center' },
+            ]"
+            :data-source="detail.contacts ?? []"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'name'">
+                <a @click="openContactEdit(record)">{{ dash(record.name) }}</a>
+              </template>
+              <template v-else-if="column.dataIndex === 'email'">
+                {{ dash(record.email) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'addr'">
+                {{ dash(record.addr) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'remark'">
+                {{ dash(record.remark) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'is_primary'">
+                <Tag v-if="record.is_primary" color="blue">首选</Tag>
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['customer:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteContact(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </template>
+            </template>
+          </Table>
+        </TabPane>
+
         <!-- 企业扩展 -->
         <TabPane v-if="detail.company" key="company" tab="企业信息">
           <Descriptions :column="detailColumns" size="small">
-            <DescriptionsItem label="统一社会信用代码">{{ dash(detail.company.credit_code) }}</DescriptionsItem>
             <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
             <DescriptionsItem label="注册资本">{{ detail.company.capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="实收资本">{{ detail.company.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="注册地址" :span="detailColumns">{{ dash(detail.company.registered_addr) }}</DescriptionsItem>
           </Descriptions>
           <div v-if="detail.latest_extend" class="mt-3">
             <Card size="small" title="最新经营快照">
@@ -413,8 +499,8 @@ async function saveTags() {
         <!-- 个人扩展 -->
         <TabPane v-if="detail.personal" key="personal" tab="个人信息">
           <Descriptions :column="detailColumns" size="small">
-            <DescriptionsItem label="证件号码">{{ dash(detail.personal.license_num) }}</DescriptionsItem>
-            <DescriptionsItem label="户籍地址" :span="detailColumns">{{ dash(detail.personal.license_addr) }}</DescriptionsItem>
+            <DescriptionsItem label="婚姻状态">{{ dash(detail.personal.marital_status_display) }}</DescriptionsItem>
+            <DescriptionsItem label="户籍性质">{{ dash(detail.personal.household_nature_display) }}</DescriptionsItem>
           </Descriptions>
         </TabPane>
 
@@ -488,11 +574,10 @@ async function saveTags() {
           </Table>
         </TabPane>
 
-        <!-- 核心企业额度 -->
-        <TabPane v-if="detail.is_core" key="core-limits" tab="核心企业额度">
+        <!-- 核心企业额度（有额度记录即显示） -->
+        <TabPane v-if="detail.core_info" key="core-limits" tab="核心企业额度">
           <div v-if="detail.core_info" class="mb-3">
             <Descriptions :column="detailColumns" size="small">
-              <DescriptionsItem label="核心占比">{{ detail.core_info.core_rate ?? '—' }}%</DescriptionsItem>
               <DescriptionsItem label="累计已用">{{ detail.core_info.total_used_amount.toLocaleString() }}</DescriptionsItem>
             </Descriptions>
           </div>
@@ -587,15 +672,6 @@ async function saveTags() {
         <FormItem label="授信额度">
           <InputNumber v-model:value="editForm.credit_amount" :disabled="!canUpdate" :min="0" :precision="2" class="!w-full" placeholder="留空保持不变" />
         </FormItem>
-        <FormItem label="联系人">
-          <Input v-model:value="editForm.linkman" :disabled="!canUpdate" />
-        </FormItem>
-        <FormItem label="联系电话">
-          <Input v-model:value="editForm.contact_num" :disabled="!canUpdate" />
-        </FormItem>
-        <FormItem label="联系地址">
-          <Input v-model:value="editForm.contact_addr" :disabled="!canUpdate" />
-        </FormItem>
         <FormItem label="行政区域">
           <RegionTreeSelect
             v-model:value="editForm.region_id"
@@ -616,6 +692,35 @@ async function saveTags() {
             placeholder="留空保持不变"
             tree-default-expand-all
           />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- 联系人编辑 Modal -->
+    <Modal
+      v-model:open="editContactVisible"
+      :confirm-loading="editContactLoading"
+      title="编辑联系人"
+      @ok="submitContactEdit"
+    >
+      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <FormItem label="姓名 *">
+          <Input v-model:value="editContactForm.name" :placeholder="'必填'" />
+        </FormItem>
+        <FormItem label="电话 *">
+          <Input v-model:value="editContactForm.phone" :placeholder="'必填'" />
+        </FormItem>
+        <FormItem label="邮箱">
+          <Input v-model:value="editContactForm.email" placeholder="可空" />
+        </FormItem>
+        <FormItem label="联系地址">
+          <Input v-model:value="editContactForm.addr" placeholder="可空" />
+        </FormItem>
+        <FormItem label="首选联系人">
+          <Switch v-model:checked="editContactForm.is_primary" />
+        </FormItem>
+        <FormItem label="备注">
+          <Input v-model:value="editContactForm.remark" placeholder="可空" />
         </FormItem>
       </Form>
     </Modal>
