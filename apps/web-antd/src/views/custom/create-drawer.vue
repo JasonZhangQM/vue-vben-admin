@@ -3,7 +3,7 @@
  *
  * 布局策略：
  * - Drawer 宽度 66%，Card size="small" 分区布局
- * - 响应式 grid：useFormColumns composable 提供；整行字段用 fullSpanClass 跨列
+ * - 响应式 grid：useFormColumns composable 提供
  * - 联系人参考 warrant/create-drawer.vue 的所有权人可编辑表格模式
  * - watch(open) → resetAll 打开即重置 + 加载下拉选项
  * - genre 类型切换保护：已有 license_num/license_addr 时弹窗确认清空
@@ -47,7 +47,8 @@ const open = defineModel<boolean>('open', { default: false });
 const userStore = useUserStore();
 
 // 表单响应式列数
-const { gridColsClass, fullSpanClass } = useFormColumns();
+const { gridColsClass } = useFormColumns(3);
+const { gridColsClass: gridColsClass4 } = useFormColumns(4);
 
 // ================= 下拉数据 =================
 const pmOptions = ref<{ label: string; value: number }[]>([]);
@@ -288,7 +289,7 @@ watch(open, (val) => {
             <FormItem name="name" label="客户名称">
               <Input v-model:value="createForm.name" placeholder="企业全称 / 个人姓名" />
             </FormItem>
-            <FormItem name="short_name" label="简称">
+            <FormItem name="short_name" label="客户简称">
               <Input v-model:value="createForm.short_name" :maxlength="8" placeholder="≤8 字符" />
             </FormItem>
             <FormItem :label="licenseNumLabel" name="license_num">
@@ -301,8 +302,8 @@ watch(open, (val) => {
             <FormItem name="region_id" label="行政区域">
               <RegionTreeSelect v-model:value="createForm.region_id" allow-clear />
             </FormItem>
-            <FormItem :class="fullSpanClass" :label="licenseAddrLabel">
-              <Input v-model:value="createForm.license_addr" />
+            <FormItem :label="licenseAddrLabel">
+              <Input v-model:value="createForm.license_addr" placeholder="详细地址" />
             </FormItem>
           </div>
         </Form>
@@ -316,7 +317,7 @@ watch(open, (val) => {
           :rules="formRules as any"
           :wrapper-col="{ span: 16 }"
         >
-          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass4">
             <FormItem name="managementor_id" label="管护经理">
               <SearchSelect
                 v-model:value="createForm.managementor_id"
@@ -367,7 +368,7 @@ watch(open, (val) => {
       <!-- Card 3 联系人(可编辑表格) -->
       <Card size="small" title="联系人">
         <template #extra>
-          <Button type="link" size="small" @click="addContactRow">+ 增加</Button>
+          <Button size="small" type="link" @click="addContactRow">+ 增加</Button>
         </template>
         <Table
           :columns="contactColumns"
@@ -375,34 +376,33 @@ watch(open, (val) => {
           :pagination="false"
           :row-key="(r: ContactRow) => r._key"
           size="small"
-          bordered
         >
-          <template #bodyCell="{ column, record }">
+          <template #bodyCell="{ column, record, index }">
             <template v-if="column.dataIndex === 'name'">
-              <Input v-model:value="record.name" :placeholder="'姓名 *'" />
+              <Input v-model:value="record.name" placeholder="姓名 *" style="width: 100%" />
             </template>
             <template v-else-if="column.dataIndex === 'phone'">
-              <Input v-model:value="record.phone" :placeholder="'电话 *'" />
+              <Input v-model:value="record.phone" placeholder="电话 *" style="width: 100%" />
             </template>
             <template v-else-if="column.dataIndex === 'email'">
-              <Input v-model:value="record.email" placeholder="可空" />
+              <Input v-model:value="record.email" placeholder="可空" style="width: 100%" />
             </template>
             <template v-else-if="column.dataIndex === 'addr'">
-              <Input v-model:value="record.addr" placeholder="可空" />
+              <Input v-model:value="record.addr" placeholder="可空" style="width: 100%" />
             </template>
             <template v-else-if="column.dataIndex === 'remark'">
-              <Input v-model:value="record.remark" placeholder="可空" />
+              <Input v-model:value="record.remark" placeholder="可空" style="width: 100%" />
             </template>
             <template v-else-if="column.dataIndex === 'is_primary'">
               <Switch v-model:checked="record.is_primary" />
             </template>
             <template v-else-if="column.dataIndex === '_op'">
               <Button
+                v-if="contacts.length > 1"
                 danger
-                type="link"
                 size="small"
-                :disabled="contacts.length <= 1"
-                @click="removeContactRow((contacts as any).indexOf(record))"
+                type="link"
+                @click="removeContactRow(index)"
               >
                 删除
               </Button>

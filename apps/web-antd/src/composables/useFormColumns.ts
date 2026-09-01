@@ -14,18 +14,21 @@ import { breakpointsAntDesign, useBreakpoints } from '@vueuse/core';
  * 注意：必须用完整字符串返回（如 'grid-cols-4'），
  * 不能用模板字符串拼接（`grid-cols-${n}`），否则 Tailwind JIT 扫描不到。
  *
+ * @param maxCols 上限列数，默认 4；如某页希望宽屏也不超过 3 列可传 3
  * @returns cols            — 纯数字列数(供需要 span 数值的场景使用)
  * @returns gridColsClass   — 栅格容器使用的 Tailwind 类(如 'grid-cols-4')
  * @returns fullSpanClass   — 需要占满整行的 FormItem 使用的 Tailwind 类(如 'col-span-4')
  */
-export function useFormColumns() {
+export function useFormColumns(maxCols = 4) {
   const breakpoints = useBreakpoints(breakpointsAntDesign);
 
   const cols = computed(() => {
-    if (breakpoints.greaterOrEqual('xl').value) return 4;
-    if (breakpoints.greaterOrEqual('md').value) return 3;
-    if (breakpoints.greaterOrEqual('sm').value) return 2;
-    return 1;
+    let n;
+    if (breakpoints.greaterOrEqual('xl').value) n = 4;
+    else if (breakpoints.greaterOrEqual('md').value) n = 3;
+    else if (breakpoints.greaterOrEqual('sm').value) n = 2;
+    else n = 1;
+    return Math.min(n, maxCols);
   });
 
   // 返回完整字符串（Tailwind JIT 能识别），不做拼接
