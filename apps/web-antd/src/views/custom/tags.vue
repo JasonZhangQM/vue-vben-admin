@@ -282,7 +282,7 @@ onMounted(loadList);
         <Button type="primary" @click="applyQuery">查询</Button>
         <Button @click="resetQuery">重置</Button>
         <div class="flex-1" />
-        <AccessControl :codes="['customer:create']" type="code">
+        <AccessControl :codes="['customer:tags_list']" type="code">
           <Button type="primary" @click="openCreate">新增标签</Button>
         </AccessControl>
       </div>
@@ -340,10 +340,10 @@ onMounted(loadList);
           <template #title>基本信息</template>
           <template #extra>
             <Space size="small">
-              <AccessControl :codes="['customer:update']" type="code">
+              <AccessControl :codes="['customer:tags_list']" type="code">
                 <Button type="primary" @click="openEdit">编辑</Button>
               </AccessControl>
-              <AccessControl :codes="['customer:update']" type="code">
+              <AccessControl :codes="['customer:tags_list']" type="code">
                 <Popconfirm
                   :disabled="detail.in_use"
                   :title="detail.in_use ? '标签已被客户使用，不可删除' : '确认删除该标签？'"
@@ -397,7 +397,7 @@ onMounted(loadList);
                   {{ dash(record.managementor_name) }}
                 </template>
                 <template v-else-if="column.key === 'op'">
-                  <AccessControl :codes="['customer:update']" type="code">
+                  <AccessControl :codes="['customer:tags_list']" type="code">
                     <Popconfirm
                       :title="`确认移除 ${record.name} 与该标签的关联？`"
                       @confirm="onRemoveRelation(record as TagCustomer)"

@@ -558,16 +558,16 @@ onMounted(() => {
       <!-- 分区一：基本信息 -->
       <Card size="small" title="基本信息">
         <Form ref="formRef" :label-col="{ span: 6 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 18 }">
-          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
-            <FormItem label="权证号" name="warrant_num">
-              <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
-            </FormItem>
+          <div class="grid grid-cols-2 gap-x-6 gap-y-2">
             <FormItem label="权证类型" name="warrant_type">
               <SearchSelect
                 v-model:value="createForm.warrant_type"
                 :options="dictStore.get('warrant.warrant_type')"
                 @change="onTypeChange"
               />
+            </FormItem>
+            <FormItem label="权证号" name="warrant_num">
+              <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
             </FormItem>
           </div>
         </Form>

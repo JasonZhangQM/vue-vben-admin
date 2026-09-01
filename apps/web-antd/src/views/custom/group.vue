@@ -408,7 +408,7 @@ onMounted(() => {
           {{ expandedRowKeys.length > 0 ? '全部收起' : '全部展开' }}
         </Button>
         <div class="flex-1" />
-        <AccessControl :codes="['customer:create']" type="code">
+        <AccessControl :codes="['customer:group_list']" type="code">
           <Button type="primary" @click="openCreate">新增集团</Button>
         </AccessControl>
       </div>
@@ -505,10 +505,10 @@ onMounted(() => {
           <template #extra>
             <Space :size="4">
               <!-- 编辑按钮：必备，置于首位 -->
-              <AccessControl :codes="['customer:update']" type="code">
+              <AccessControl :codes="['customer:group_list']" type="code">
                 <Button size="small" type="primary" @click="openEdit">编辑</Button>
               </AccessControl>
-              <AccessControl :codes="['customer:delete']" type="code">
+              <AccessControl :codes="['customer:group_list']" type="code">
                 <Popconfirm title="确认删除该集团？" @confirm="onDelete">
                   <Button danger size="small">删除</Button>
                 </Popconfirm>
@@ -543,7 +543,7 @@ onMounted(() => {
           <!-- 成员企业 Tab：直接成员(分页)，母公司不可移除 -->
           <TabPane key="members" tab="成员企业">
             <div class="mb-2">
-              <AccessControl :codes="['customer:update']" type="code">
+              <AccessControl :codes="['customer:group_list']" type="code">
                 <Button size="small" type="primary" @click="openMemberAdd">
                   添加成员
                 </Button>
@@ -585,7 +585,7 @@ onMounted(() => {
                 </template>
                 <template v-else-if="column.key === 'op'">
                   <!-- 母公司不可移除(后端兜底拦截) -->
-                  <AccessControl :codes="['customer:update']" type="code">
+                  <AccessControl :codes="['customer:group_list']" type="code">
                     <Popconfirm
                       v-if="record.id !== detail?.parent_customer_id"
                       title="确认移除该成员？"
