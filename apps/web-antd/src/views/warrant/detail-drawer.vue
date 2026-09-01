@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
@@ -402,7 +402,7 @@ async function onDeleteConstruction(record: any) {
           <!-- 基础标识 -->
           <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
-          <DescriptionsItem label="所有权人" :span="4">
+          <DescriptionsItem label="所有权人">
             {{ (detail.owner_names as string[])?.join('、') || '—' }}
           </DescriptionsItem>
 
@@ -423,7 +423,7 @@ async function onDeleteConstruction(record: any) {
           <DescriptionsItem label="评估值">{{ (detail.evaluate_value as number)?.toLocaleString() ?? '—' }}</DescriptionsItem>
           <DescriptionsItem label="评估日期">{{ dash((detail as any).evaluate_date) }}</DescriptionsItem>
           <DescriptionsItem label="评估机构">{{ dash((detail as any).evaluate_company) }}</DescriptionsItem>
-          <DescriptionsItem label="评估说明" :span="4">{{ dash((detail as any).evaluate_explain) }}</DescriptionsItem>
+          <DescriptionsItem label="评估说明">{{ dash((detail as any).evaluate_explain) }}</DescriptionsItem>
 
           <!-- 流转时间 -->
           <DescriptionsItem label="入库会议">{{ dash((detail as any).meeting_date) }}</DescriptionsItem>
@@ -434,13 +434,13 @@ async function onDeleteConstruction(record: any) {
           <!-- 拍卖金额 -->
           <DescriptionsItem label="起拍价">{{ (detail as any).listing_price?.toLocaleString() ?? '—' }}</DescriptionsItem>
           <DescriptionsItem label="成交价">{{ (detail as any).auction_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="拍卖说明" :span="4">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
-          <DescriptionsItem label="入库说明" :span="4">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
-          <DescriptionsItem label="询价详情" :span="4">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
+          <DescriptionsItem label="拍卖说明">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
+          <DescriptionsItem label="入库说明">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
+          <DescriptionsItem label="询价详情">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
 
           <!-- 审计信息 -->
           <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
-          <DescriptionsItem label="登记时间" :span="3">{{ dash(detail.created_at) }}</DescriptionsItem>
+          <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
       </Card>
 
