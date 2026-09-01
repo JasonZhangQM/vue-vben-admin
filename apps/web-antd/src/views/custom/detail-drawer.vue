@@ -309,12 +309,18 @@ const groupedTags = computed(() => {
     arr.push(t);
     groups.set(t.type, arr);
   }
-  return [...groups.entries()].map(([type, items]) => ({
-    type,
-    label: TAG_TYPE_LABELS[type] ?? `类型${type}`,
-    allChecked: items.every((i) => checkedTagIds.value.includes(i.id)),
-    items,
-  }));
+  return [...groups.entries()].map(([type, items]) => {
+    const checkedCount = items.filter((i) => checkedTagIds.value.includes(i.id)).length;
+    return {
+      type,
+      label: TAG_TYPE_LABELS[type] ?? `类型${type}`,
+      allChecked: checkedCount === items.length,
+      indeterminate: checkedCount > 0 && checkedCount < items.length,
+      checkedCount,
+      total: items.length,
+      items,
+    };
+  });
 });
 
 /** 抽屉打开时加载标签清单并回显客户已选 */
@@ -641,17 +647,26 @@ async function saveTags() {
           <div
             v-for="group in groupedTags"
             :key="group.type"
-            class="mb-3 rounded border border-gray-200 p-3"
+            class="mb-3 overflow-hidden rounded border border-gray-200"
           >
-            <Checkbox
-              :checked="group.allChecked"
-              class="mb-2 font-medium"
-              @change="(e: any) => toggleTagGroup(group.type, e.target.checked)"
+            <!-- 分组标题行：整行可点击，点击全选/全不选 -->
+            <div
+              class="flex items-center gap-2 bg-gray-50 px-3 py-2 font-medium"
+              @click="toggleTagGroup(group.type, !group.allChecked)"
             >
-              {{ group.label }}
-            </Checkbox>
-            <!-- 不用 CheckboxGroup：多个 Group 绑同一数组会互相覆盖，改为独立 Checkbox 手动维护 -->
-            <div class="flex flex-wrap gap-y-1">
+              <Checkbox
+                :checked="group.allChecked"
+                :indeterminate="group.indeterminate"
+                @click.stop
+                @change="(e: any) => toggleTagGroup(group.type, e.target.checked)"
+              />
+              <span>{{ group.label }}</span>
+              <span class="ml-auto text-xs text-gray-400">
+                {{ group.checkedCount }} / {{ group.total }}
+              </span>
+            </div>
+            <!-- 子标签区 -->
+            <div class="flex flex-wrap gap-x-5 gap-y-2 p-3">
               <Checkbox
                 v-for="t in group.items"
                 :key="t.id"
