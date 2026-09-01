@@ -753,11 +753,11 @@ async function onDeleteConstruction(record: any) {
             <SearchSelect
               v-model:value="storageForm.storage_type"
               :options="dictStore.get('warrant.storage_type')"
-              size="small"
-              style="width: 120px"
+              placeholder="类型"
+              style="width: 180px"
             />
-            <DatePicker v-model:value="storageForm.storage_date" value-format="YYYY-MM-DD" size="small" style="width: 150px" />
-            <Input v-model:value="storageForm.storage_explain" placeholder="说明(可空)" size="small" style="width: 180px" />
+            <DatePicker v-model:value="storageForm.storage_date" value-format="YYYY-MM-DD" placeholder="日期" style="width: 180px" />
+            <Input v-model:value="storageForm.storage_explain" placeholder="说明(可空)" style="width: 260px" />
             <AccessControl :codes="['warrant:update']" type="code">
               <Button size="small" type="primary" @click="submitStorage">登记</Button>
             </AccessControl>
@@ -790,12 +790,12 @@ async function onDeleteConstruction(record: any) {
             <SearchSelect
               v-model:value="evaluateForm.evaluate_method"
               :options="dictStore.get('warrant.evaluate_method')"
-              size="small"
-              style="width: 110px"
+              placeholder="方式"
+              style="width: 160px"
             />
-            <InputNumber v-model:value="evaluateForm.evaluate_value" placeholder="评估值" size="small" style="width: 120px" />
-            <DatePicker v-model:value="evaluateForm.evaluate_date" value-format="YYYY-MM-DD" size="small" style="width: 150px" />
-            <Input v-model:value="evaluateForm.evaluate_company" placeholder="评估公司(可空)" size="small" style="width: 160px" />
+            <InputNumber v-model:value="evaluateForm.evaluate_value" placeholder="评估值" style="width: 160px" />
+            <DatePicker v-model:value="evaluateForm.evaluate_date" value-format="YYYY-MM-DD" placeholder="评估日期" style="width: 180px" />
+            <Input v-model:value="evaluateForm.evaluate_company" placeholder="评估公司(可空)" style="width: 220px" />
             <AccessControl :codes="['warrant:update']" type="code">
               <Button size="small" type="primary" @click="submitEvaluate">添加</Button>
             </AccessControl>
