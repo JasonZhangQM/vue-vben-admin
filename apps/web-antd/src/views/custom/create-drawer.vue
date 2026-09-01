@@ -23,10 +23,12 @@ import {
   Form,
   FormItem,
   Input,
+  InputNumber,
   message,
   Modal,
   RadioButton,
   RadioGroup,
+  Select,
   Switch,
   Table,
   TreeSelect,
@@ -37,6 +39,7 @@ import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { createCustomer, getGroupTree } from '#/api/basic/customer';
 import { getCreditRegionTree, getEmployeeDict, getIndustryTree } from '#/api/basic/dict';
+import { useDictStore } from '#/store';
 
 import { filterTreeOption, toTreeData } from '#/utils/format';
 import { useFormColumns } from '#/composables/useFormColumns';
@@ -45,6 +48,7 @@ const emit = defineEmits<{ created: [] }>();
 const open = defineModel<boolean>('open', { default: false });
 
 const userStore = useUserStore();
+const dictStore = useDictStore();
 
 // 表单响应式列数
 const { gridColsClass } = useFormColumns(3);
@@ -85,6 +89,22 @@ const createForm = reactive({
   industry_id: undefined as number | undefined,
   credit_region_id: undefined as number | undefined,
   group_id: undefined as number | undefined,
+});
+
+// 企业扩展字段（genre=1 时提交到 company）
+const companyForm = reactive({
+  decisionor: undefined as number | undefined,
+  custom_nature: undefined as number | undefined,
+  typing: undefined as number | undefined,
+  capital: undefined as number | undefined,
+  paid_capital: undefined as number | undefined,
+  representative: '',
+});
+
+// 个人扩展字段（genre=2 时提交到 personal）
+const personalForm = reactive({
+  marital_status: undefined as number | undefined,
+  household_nature: undefined as number | undefined,
 });
 
 /** 证件号/地址标签随 genre 动态切换 */
@@ -216,6 +236,41 @@ async function onSubmit() {
         remark: c.remark || undefined,
       }));
 
+    // 扩展信息：genre 决定传 company 还是 personal
+    let companyPayload = undefined;
+    let personalPayload = undefined;
+    if (createForm.genre === 1) {
+      // 企业扩展：有填写才传
+      const hasCompanyExt =
+        companyForm.decisionor !== undefined ||
+        companyForm.custom_nature !== undefined ||
+        companyForm.typing !== undefined ||
+        companyForm.capital !== undefined ||
+        companyForm.paid_capital !== undefined ||
+        companyForm.representative;
+      if (hasCompanyExt) {
+        companyPayload = {
+          decisionor: companyForm.decisionor,
+          custom_nature: companyForm.custom_nature,
+          typing: companyForm.typing,
+          capital: companyForm.capital ?? 0,
+          paid_capital: companyForm.paid_capital ?? 0,
+          representative: companyForm.representative || undefined,
+        };
+      }
+    } else {
+      // 个人扩展：有填写才传
+      const hasPersonalExt =
+        personalForm.marital_status !== undefined ||
+        personalForm.household_nature !== undefined;
+      if (hasPersonalExt) {
+        personalPayload = {
+          marital_status: personalForm.marital_status,
+          household_nature: personalForm.household_nature,
+        };
+      }
+    }
+
     await createCustomer({
       name: createForm.name,
       short_name: createForm.short_name,
@@ -228,6 +283,8 @@ async function onSubmit() {
       industry_id: createForm.industry_id,
       credit_region_id: createForm.credit_region_id,
       group_id: createForm.group_id,
+      company: companyPayload,
+      personal: personalPayload,
       contacts: contactPayload.length > 0 ? contactPayload : undefined,
     });
     message.success('客户已创建');
@@ -253,6 +310,18 @@ function resetAll() {
     industry_id: undefined,
     credit_region_id: undefined,
     group_id: undefined,
+  });
+  Object.assign(companyForm, {
+    decisionor: undefined,
+    custom_nature: undefined,
+    typing: undefined,
+    capital: undefined,
+    paid_capital: undefined,
+    representative: '',
+  });
+  Object.assign(personalForm, {
+    marital_status: undefined,
+    household_nature: undefined,
   });
   contactKeySeq = 0;
   contacts.value = [emptyContactRow(true)];
@@ -365,7 +434,84 @@ watch(open, (val) => {
         </Form>
       </Card>
 
-      <!-- Card 3 联系人(可编辑表格) -->
+      <!-- Card 3a 企业扩展信息(仅 genre=1) -->
+      <Card v-if="createForm.genre === 1" size="small" title="企业扩展信息">
+        <Form :label-col="{ span: 8 }" :model="companyForm" :wrapper-col="{ span: 16 }">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
+            <FormItem label="决策机构">
+              <Select
+                v-model:value="companyForm.decisionor"
+                :options="dictStore.get('customer.decisionor')"
+                allow-clear
+                placeholder="可空"
+              />
+            </FormItem>
+            <FormItem label="企业性质">
+              <Select
+                v-model:value="companyForm.custom_nature"
+                :options="dictStore.get('customer.custom_nature')"
+                allow-clear
+                placeholder="可空"
+              />
+            </FormItem>
+            <FormItem label="企业划型">
+              <Select
+                v-model:value="companyForm.typing"
+                :options="dictStore.get('customer.typing')"
+                allow-clear
+                placeholder="可空"
+              />
+            </FormItem>
+            <FormItem label="法人代表">
+              <Input v-model:value="companyForm.representative" placeholder="可空" />
+            </FormItem>
+            <FormItem label="注册资本(万元)">
+              <InputNumber
+                v-model:value="companyForm.capital"
+                :min="0"
+                :precision="2"
+                class="!w-full"
+                placeholder="可空"
+              />
+            </FormItem>
+            <FormItem label="实收资本(万元)">
+              <InputNumber
+                v-model:value="companyForm.paid_capital"
+                :min="0"
+                :precision="2"
+                class="!w-full"
+                placeholder="可空"
+              />
+            </FormItem>
+          </div>
+        </Form>
+      </Card>
+
+      <!-- Card 3b 个人扩展信息(仅 genre=2) -->
+      <Card v-if="createForm.genre === 2" size="small" title="个人扩展信息">
+        <Form :label-col="{ span: 8 }" :model="personalForm" :wrapper-col="{ span: 16 }">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
+            <FormItem label="婚姻状态">
+              <Select
+                v-model:value="personalForm.marital_status"
+                :options="dictStore.get('customer.marital_status')"
+                allow-clear
+                placeholder="可空"
+              />
+            </FormItem>
+            <FormItem label="户籍性质">
+              <Select
+                v-model:value="personalForm.household_nature"
+                :options="dictStore.get('customer.household_nature')"
+                allow-clear
+                placeholder="可空"
+              />
+            </FormItem>
+          </div>
+        </Form>
+      </Card>
+
+      <!-- Card 4 联系人(可编辑表格) -->
       <Card size="small" title="联系人">
         <template #extra>
           <Button size="small" type="link" @click="addContactRow">+ 增加</Button>

@@ -98,6 +98,7 @@ export interface CustomerCreateParams {
     industry_c?: number;
     paid_capital?: number;
     representative?: string;
+    typing?: number;
   };
   contacts?: CustomerContactCreate[];
   credit_region_id?: number;
