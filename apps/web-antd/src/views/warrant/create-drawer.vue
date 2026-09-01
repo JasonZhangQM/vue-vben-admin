@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 所有权人)+ 真实校验 + 类型切换保护。
  *
  * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
@@ -332,20 +332,20 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
   switch (createForm.warrant_type) {
     case WARRANT_TYPE_HOUSE: {
       const hasAny = houseRows.value.some(
-        (h) => h.house_locate || h.house_app || h.house_area,
+        (h) => h.region_id || h.house_locate || h.house_app || h.house_area,
       );
-      const valid = houseRows.value.filter((h) => h.house_locate && h.house_app && h.house_area);
+      const valid = houseRows.value.filter((h) => h.region_id && h.house_locate && h.house_app && h.house_area);
       if (valid.length === 0) {
-        message.warning(hasAny ? '房产行信息不完整(坐落 / 用途 / 面积均为必填)' : '房产权证需至少填写一行完整房产');
+        message.warning(hasAny ? '房产行信息不完整(行政区域 / 坐落 / 用途 / 面积均为必填)' : '房产权证需至少填写一行完整房产');
         return null;
       }
-      if (hasAny && valid.length < houseRows.value.filter((h) => h.house_locate || h.house_app || h.house_area).length) {
-        message.warning('存在信息不完整的房产行(坐落 / 用途 / 面积均为必填)，请补全或删除');
+      if (hasAny && valid.length < houseRows.value.filter((h) => h.region_id || h.house_locate || h.house_app || h.house_area).length) {
+        message.warning('存在信息不完整的房产行(行政区域 / 坐落 / 用途 / 面积均为必填)，请补全或删除');
         return null;
       }
       return {
         houses: valid.map((h) => ({
-          region_id: h.region_id ?? undefined,
+          region_id: h.region_id,
           house_locate: h.house_locate,
           house_app: h.house_app,
           house_area: h.house_area,
@@ -356,19 +356,19 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
       };
     }
     case WARRANT_TYPE_GROUND: {
-      const hasAny = groundRows.value.some((g) => g.ground_locate || g.ground_area);
-      const valid = groundRows.value.filter((g) => g.ground_locate && g.ground_area);
+      const hasAny = groundRows.value.some((g) => g.region_id || g.ground_locate || g.ground_area);
+      const valid = groundRows.value.filter((g) => g.region_id && g.ground_locate && g.ground_area);
       if (valid.length === 0) {
-        message.warning(hasAny ? '土地行信息不完整(详细地址 / 面积均为必填)' : '土地权证需至少填写一宗完整土地');
+        message.warning(hasAny ? '土地行信息不完整(行政区域 / 详细地址 / 面积均为必填)' : '土地权证需至少填写一宗完整土地');
         return null;
       }
-      if (hasAny && valid.length < groundRows.value.filter((g) => g.ground_locate || g.ground_area).length) {
-        message.warning('存在信息不完整的土地行，请补全或删除');
+      if (hasAny && valid.length < groundRows.value.filter((g) => g.region_id || g.ground_locate || g.ground_area).length) {
+        message.warning('存在信息不完整的土地行(行政区域 / 详细地址 / 面积均为必填)，请补全或删除');
         return null;
       }
       return {
         grounds: valid.map((g) => ({
-          region_id: g.region_id ?? undefined,
+          region_id: g.region_id,
           ground_locate: g.ground_locate,
           ground_app: g.ground_app || undefined,
           ground_area: g.ground_area,
@@ -376,19 +376,19 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
       };
     }
     case WARRANT_TYPE_CONSTRUCTION: {
-      const hasAny = constructionRows.value.some((c) => c.construct_locate || c.construct_area);
-      const valid = constructionRows.value.filter((c) => c.construct_locate && c.construct_area);
+      const hasAny = constructionRows.value.some((c) => c.region_id || c.construct_locate || c.construct_area);
+      const valid = constructionRows.value.filter((c) => c.region_id && c.construct_locate && c.construct_area);
       if (valid.length === 0) {
-        message.warning(hasAny ? '在建工程行信息不完整(详细地址 / 面积均为必填)' : '在建工程权证需至少填写一项完整工程');
+        message.warning(hasAny ? '在建工程行信息不完整(行政区域 / 详细地址 / 面积均为必填)' : '在建工程权证需至少填写一项完整工程');
         return null;
       }
-      if (hasAny && valid.length < constructionRows.value.filter((c) => c.construct_locate || c.construct_area).length) {
-        message.warning('存在信息不完整的在建工程行，请补全或删除');
+      if (hasAny && valid.length < constructionRows.value.filter((c) => c.region_id || c.construct_locate || c.construct_area).length) {
+        message.warning('存在信息不完整的在建工程行(行政区域 / 详细地址 / 面积均为必填)，请补全或删除');
         return null;
       }
       return {
         constructions: valid.map((c) => ({
-          region_id: c.region_id ?? undefined,
+          region_id: c.region_id,
           construct_locate: c.construct_locate,
           construct_app: c.construct_app || undefined,
           construct_area: c.construct_area,
@@ -634,7 +634,7 @@ onMounted(() => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'region_id'">
-                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" :status="attempted && !record.region_id ? 'error' : undefined" />
               </template>
               <template v-else-if="column.dataIndex === 'house_locate'">
                 <Input
@@ -686,7 +686,7 @@ onMounted(() => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'region_id'">
-                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" :status="attempted && !record.region_id ? 'error' : undefined" />
               </template>
               <template v-else-if="column.dataIndex === 'ground_locate'">
                 <Input
@@ -726,7 +726,7 @@ onMounted(() => {
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.dataIndex === 'region_id'">
-                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" />
+                <RegionTreeSelect v-model:value="record.region_id" allow-clear style="width: 100%" :status="attempted && !record.region_id ? 'error' : undefined" />
               </template>
               <template v-else-if="column.dataIndex === 'construct_locate'">
                 <Input

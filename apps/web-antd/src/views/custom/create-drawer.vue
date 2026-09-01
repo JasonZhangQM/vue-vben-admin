@@ -388,7 +388,6 @@ watch(open, (val) => {
             <FormItem name="contact_num" label="联系电话">
               <Input v-model:value="createForm.contact_num" />
             </FormItem>
-            <!-- 联系地址：长字段跨满整行 -->
             <FormItem :class="fullSpanClass" name="contact_addr" label="联系地址">
               <Input v-model:value="createForm.contact_addr" />
             </FormItem>
