@@ -459,10 +459,9 @@ async function onDeleteConstruction(record: any) {
               :options="remoteCustomerOptions"
               placeholder="搜索客户 *"
               allow-clear
-              style="width: 220px"
-              @search="onSearchCustomer"
+              style="width: 280px"
             />
-            <Input v-model:value="addOwnerForm.ownership_num" placeholder="产权证编号 *" style="width: 160px" />
+            <Input v-model:value="addOwnerForm.ownership_num" placeholder="产权证编号 *" style="width: 220px" />
             <InputNumber
               v-model:value="addOwnerForm.share_ratio"
               :min="0"
@@ -508,8 +507,8 @@ async function onDeleteConstruction(record: any) {
         <!-- 房产包(可独立添加/删除) -->
         <TabPane v-if="detail.warrant_type === 1" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
-            <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 200px" />
-            <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 180px" />
+            <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
+            <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 280px" />
             <Select
               v-model:value="addHouseForm.house_app"
               :options="houseAppOptions"
@@ -519,9 +518,9 @@ async function onDeleteConstruction(record: any) {
               option-filter-prop="label"
               @focus="loadHouseAppOptions"
             />
-            <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 140px" />
-            <Input v-model:value="addHouseForm.house_name" placeholder="建筑名称(可空)" style="width: 140px" />
-            <InputNumber v-model:value="addHouseForm.house_build_year" :min="1900" :max="2100" :precision="0" placeholder="建成年份" style="width: 120px" />
+            <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 110px" />
+            <Input v-model:value="addHouseForm.house_name" placeholder="建筑名称(可空)" style="width: 110px" />
+            <InputNumber v-model:value="addHouseForm.house_build_year" :min="1900" :max="2100" :precision="0" placeholder="建成年份" style="width: 90px" />
             <Select
               v-model:value="addHouseForm.house_usage"
               :options="dictStore.get('warrant.house_usage')"
@@ -570,8 +569,8 @@ async function onDeleteConstruction(record: any) {
         <!-- 土地包(type=5) -->
         <TabPane v-if="detail.warrant_type === 5" key="grounds" :tab="`土地(${detail.grounds?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
-            <RegionTreeSelect v-model:value="addGroundForm.region_id" placeholder="行政区域 *" allow-clear style="width: 200px" />
-            <Input v-model:value="addGroundForm.ground_locate" placeholder="详细地址 *" style="width: 200px" />
+            <RegionTreeSelect v-model:value="addGroundForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
+            <Input v-model:value="addGroundForm.ground_locate" placeholder="详细地址 *" style="width: 280px" />
             <Input v-model:value="addGroundForm.ground_app" placeholder="用途(可空)" style="width: 160px" />
             <InputNumber v-model:value="addGroundForm.ground_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 140px" />
             <AccessControl :codes="['warrant:update']" type="code">
@@ -612,8 +611,8 @@ async function onDeleteConstruction(record: any) {
         <!-- 在建工程包(type=6) -->
         <TabPane v-if="detail.warrant_type === 6" key="constructions" :tab="`在建工程(${detail.constructions?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
-            <RegionTreeSelect v-model:value="addConstructionForm.region_id" placeholder="行政区域 *" allow-clear style="width: 200px" />
-            <Input v-model:value="addConstructionForm.construct_locate" placeholder="详细地址 *" style="width: 200px" />
+            <RegionTreeSelect v-model:value="addConstructionForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
+            <Input v-model:value="addConstructionForm.construct_locate" placeholder="详细地址 *" style="width: 280px" />
             <Input v-model:value="addConstructionForm.construct_app" placeholder="用途 *" style="width: 160px" />
             <InputNumber v-model:value="addConstructionForm.construct_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 140px" />
             <AccessControl :codes="['warrant:update']" type="code">
