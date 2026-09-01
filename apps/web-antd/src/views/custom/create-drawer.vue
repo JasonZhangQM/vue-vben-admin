@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 新增客户抽屉：基本信息 + 关联归属 + 联系人可编辑表格。
  *
  * 布局策略：
@@ -437,7 +437,7 @@ watch(open, (val) => {
       <!-- Card 3a 企业扩展信息(仅 genre=1) -->
       <Card v-if="createForm.genre === 1" size="small" title="企业扩展信息">
         <Form :label-col="{ span: 8 }" :model="companyForm" :wrapper-col="{ span: 16 }">
-          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass4">
             <FormItem label="决策机构">
               <Select
                 v-model:value="companyForm.decisionor"
@@ -490,7 +490,7 @@ watch(open, (val) => {
       <!-- Card 3b 个人扩展信息(仅 genre=2) -->
       <Card v-if="createForm.genre === 2" size="small" title="个人扩展信息">
         <Form :label-col="{ span: 8 }" :model="personalForm" :wrapper-col="{ span: 16 }">
-          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
+          <div class="grid gap-x-6 gap-y-2" :class="gridColsClass4">
             <FormItem label="婚姻状态">
               <Select
                 v-model:value="personalForm.marital_status"

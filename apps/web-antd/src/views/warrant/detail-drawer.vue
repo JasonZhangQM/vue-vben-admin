@@ -22,6 +22,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Select,
   Table,
   Tabs,
   TabPane,
@@ -29,6 +30,8 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
+import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
@@ -36,7 +39,15 @@ import { dash, opt } from '#/utils/format';
 import {
   addEvaluate,
   addStorage,
+  addWarrantConstruction,
+  addWarrantGround,
+  addWarrantHouse,
+  addWarrantOwner,
   deleteWarrant,
+  deleteWarrantConstruction,
+  deleteWarrantGround,
+  deleteWarrantHouse,
+  deleteWarrantOwner,
   getWarrantDetail,
   updateWarrant,
   updateWarrantOwner,
@@ -219,6 +230,158 @@ async function submitEvaluate() {
   message.success('评估记录已添加');
   await refresh();
 }
+
+// ===== 客户远程搜索（detail-drawer 和 create-drawer 两处复用）=====
+const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
+async function onSearchCustomer(keyword: string) {
+  if (!keyword?.trim()) {
+    remoteCustomerOptions.value = [];
+    return;
+  }
+  try {
+    const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 20 });
+    remoteCustomerOptions.value = items.map((c: any) => ({
+      label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
+      value: c.id,
+    }));
+  } catch {
+    remoteCustomerOptions.value = [];
+  }
+}
+
+/** 房产用途选项(树形字典拍平) */
+const houseAppOptions = ref<{ label: string; value: number }[]>([]);
+async function loadHouseAppOptions() {
+  if (houseAppOptions.value.length > 0) return;
+  const flatten = (nodes: any[]) => {
+    for (const n of nodes ?? []) {
+      houseAppOptions.value.push({ label: n.name, value: n.id });
+      flatten(n.children);
+    }
+  };
+  flatten(await getHouseApps());
+}
+
+// ===== 所有权人添加 =====
+const addOwnerForm = reactive({
+  owner_id: undefined as number | undefined,
+  ownership_num: '',
+  share_ratio: undefined as number | undefined,
+});
+
+async function submitAddOwner() {
+  if (!detail.value || !addOwnerForm.owner_id || !addOwnerForm.ownership_num?.trim()) {
+    message.warning('请选择客户并填写产权证编号');
+    return;
+  }
+  await addWarrantOwner(detail.value.id, {
+    owner_id: addOwnerForm.owner_id,
+    ownership_num: addOwnerForm.ownership_num.trim(),
+    share_ratio: addOwnerForm.share_ratio,
+  });
+  Object.assign(addOwnerForm, { owner_id: undefined, ownership_num: '', share_ratio: undefined });
+  remoteCustomerOptions.value = [];
+  message.success('所有权人已添加');
+  await refresh();
+}
+
+async function onDeleteOwner(record: any) {
+  if (!detail.value) return;
+  await deleteWarrantOwner(detail.value.id, record.id);
+  message.success('所有权人已删除');
+  await refresh();
+}
+
+// ===== 房产/土地/在建 添加 =====
+const addHouseForm = reactive({
+  region_id: undefined as number | undefined,
+  house_locate: '',
+  house_app: undefined as number | undefined,
+  house_area: undefined as number | undefined,
+  house_name: '',
+  house_build_year: undefined as number | undefined,
+  house_usage: 10 as number,
+});
+async function submitAddHouse() {
+  if (!detail.value) return;
+  const { region_id, house_locate, house_app, house_area } = addHouseForm;
+  if (!region_id || !house_locate.trim() || !house_app || !house_area) {
+    message.warning('请填写行政区域、详细地址、用途和面积');
+    return;
+  }
+  await addWarrantHouse(detail.value.id, {
+    region_id, house_locate: house_locate.trim(),
+    house_app, house_area,
+    house_name: addHouseForm.house_name || undefined,
+    house_build_year: addHouseForm.house_build_year,
+    house_usage: addHouseForm.house_usage,
+  });
+  Object.assign(addHouseForm, { region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined, house_name: '', house_build_year: undefined, house_usage: 10 });
+  message.success('房产已添加');
+  await refresh();
+}
+async function onDeleteHouse(record: any) {
+  if (!detail.value) return;
+  await deleteWarrantHouse(detail.value.id, record.id);
+  message.success('房产已删除');
+  await refresh();
+}
+
+const addGroundForm = reactive({
+  region_id: undefined as number | undefined,
+  ground_locate: '',
+  ground_app: '',
+  ground_area: undefined as number | undefined,
+});
+async function submitAddGround() {
+  if (!detail.value) return;
+  const { region_id, ground_locate, ground_area } = addGroundForm;
+  if (!region_id || !ground_locate.trim() || !ground_area) {
+    message.warning('请填写行政区域、详细地址和面积');
+    return;
+  }
+  await addWarrantGround(detail.value.id, {
+    region_id, ground_locate: ground_locate.trim(),
+    ground_app: addGroundForm.ground_app || undefined, ground_area,
+  });
+  Object.assign(addGroundForm, { region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined });
+  message.success('土地已添加');
+  await refresh();
+}
+async function onDeleteGround(record: any) {
+  if (!detail.value) return;
+  await deleteWarrantGround(detail.value.id, record.id);
+  message.success('土地已删除');
+  await refresh();
+}
+
+const addConstructionForm = reactive({
+  region_id: undefined as number | undefined,
+  construct_locate: '',
+  construct_app: '',
+  construct_area: undefined as number | undefined,
+});
+async function submitAddConstruction() {
+  if (!detail.value) return;
+  const { region_id, construct_locate, construct_app, construct_area } = addConstructionForm;
+  if (!region_id || !construct_locate.trim() || !construct_app.trim() || !construct_area) {
+    message.warning('请填写行政区域、详细地址、用途和面积');
+    return;
+  }
+  await addWarrantConstruction(detail.value.id, {
+    region_id, construct_locate: construct_locate.trim(),
+    construct_app: construct_app.trim(), construct_area,
+  });
+  Object.assign(addConstructionForm, { region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined });
+  message.success('在建工程已添加');
+  await refresh();
+}
+async function onDeleteConstruction(record: any) {
+  if (!detail.value) return;
+  await deleteWarrantConstruction(detail.value.id, record.id);
+  message.success('在建工程已删除');
+  await refresh();
+}
 </script>
 
 <template>
@@ -240,8 +403,10 @@ async function submitEvaluate() {
         </template>
         <Descriptions :column="detailColumns" size="small">
           <!-- 基础标识 -->
-          <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
-          <DescriptionsItem label="类型">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
+          <DescriptionsItem label="权证号" :span="1">{{ dash(detail.warrant_num) }}</DescriptionsItem>
+          <DescriptionsItem label="类型" :span="1">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
+          <!-- 占位：强制所有权人换到新行（入库说明/询价详情同理） -->
+          <DescriptionsItem label="" :span="Math.max(0, detailColumns - 2)" class="hidden-label-colon" />
           <DescriptionsItem label="所有权人" :span="detailColumns">
             {{ (detail.owner_names as string[])?.join('、') || '—' }}
           </DescriptionsItem>
@@ -285,13 +450,37 @@ async function submitEvaluate() {
       </Card>
 
       <Tabs>
-        <!-- 所有权人：首列链接打开编辑 Modal -->
+        <!-- 所有权人：内联添加表单 + 表格(首列链接打开编辑 Modal + 删除) -->
         <TabPane key="owners" :tab="`所有权人(${detail.owners?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <SearchSelect
+              v-model:value="addOwnerForm.owner_id"
+              remote
+              :options="remoteCustomerOptions"
+              placeholder="搜索客户 *"
+              allow-clear
+              style="width: 220px"
+              @search="onSearchCustomer"
+            />
+            <Input v-model:value="addOwnerForm.ownership_num" placeholder="产权证编号 *" style="width: 160px" />
+            <InputNumber
+              v-model:value="addOwnerForm.share_ratio"
+              :min="0"
+              :max="100"
+              :precision="2"
+              placeholder="份额%(可空=共有)"
+              style="width: 170px"
+            />
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitAddOwner">添加</Button>
+            </AccessControl>
+          </div>
           <Table
             :columns="[
               { title: '姓名', dataIndex: 'owner_name' },
               { title: '权证编号', dataIndex: 'ownership_num' },
-              { title: '份额(%)', dataIndex: 'share_ratio' },
+              { title: '份额(%)', dataIndex: 'share_ratio', width: 100 },
+              { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
             :data-source="detail.owners"
             :pagination="false"
@@ -302,18 +491,47 @@ async function submitEvaluate() {
               <template v-if="column.dataIndex === 'owner_name'">
                 <a @click="openOwnerEdit(record)">{{ record.owner_name }}</a>
               </template>
-              <template v-else-if="column.dataIndex === 'ownership_num'">
-                {{ dash(record.ownership_num) }}
-              </template>
               <template v-else-if="column.dataIndex === 'share_ratio'">
                 {{ record.share_ratio ?? '共有' }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['warrant:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteOwner(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
               </template>
             </template>
           </Table>
         </TabPane>
 
-        <!-- 房产包(无独立 PATCH 端点，只读展示) -->
-        <TabPane v-if="(detail.houses?.length ?? 0) > 0" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
+        <!-- 房产包(可独立添加/删除) -->
+        <TabPane v-if="detail.warrant_type === 1" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 200px" />
+            <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 180px" />
+            <Select
+              v-model:value="addHouseForm.house_app"
+              :options="houseAppOptions"
+              placeholder="用途 *"
+              style="width: 130px"
+              show-search
+              option-filter-prop="label"
+              @focus="loadHouseAppOptions"
+            />
+            <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 140px" />
+            <Input v-model:value="addHouseForm.house_name" placeholder="建筑名称(可空)" style="width: 140px" />
+            <InputNumber v-model:value="addHouseForm.house_build_year" :min="1900" :max="2100" :precision="0" placeholder="建成年份" style="width: 120px" />
+            <Select
+              v-model:value="addHouseForm.house_usage"
+              :options="dictStore.get('warrant.house_usage')"
+              placeholder="使用状态"
+              style="width: 100px"
+            />
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitAddHouse">添加</Button>
+            </AccessControl>
+          </div>
           <Table
             :columns="[
               { title: '行政区域', dataIndex: 'region_name', width: 180 },
@@ -321,10 +539,11 @@ async function submitEvaluate() {
               { title: '面积(㎡)', dataIndex: 'house_area', width: 90 },
               { title: '用途', dataIndex: 'house_usage', width: 70 },
               { title: '建成年份', dataIndex: 'house_build_year', width: 90 },
+              { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
             :data-source="detail.houses"
             :pagination="false"
-            row-key="house_locate"
+            row-key="id"
             size="small"
           >
             <template #bodyCell="{ column, record }">
@@ -337,18 +556,35 @@ async function submitEvaluate() {
               <template v-else-if="column.dataIndex === 'house_build_year'">
                 {{ record.house_build_year ?? '—' }}
               </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['warrant:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteHouse(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </template>
             </template>
           </Table>
         </TabPane>
 
-        <!-- 土地包(type=5, 无独立 PATCH 端点，只读展示) -->
-        <TabPane v-if="(detail.grounds?.length ?? 0) > 0" key="grounds" :tab="`土地(${detail.grounds?.length ?? 0})`">
+        <!-- 土地包(type=5) -->
+        <TabPane v-if="detail.warrant_type === 5" key="grounds" :tab="`土地(${detail.grounds?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <RegionTreeSelect v-model:value="addGroundForm.region_id" placeholder="行政区域 *" allow-clear style="width: 200px" />
+            <Input v-model:value="addGroundForm.ground_locate" placeholder="详细地址 *" style="width: 200px" />
+            <Input v-model:value="addGroundForm.ground_app" placeholder="用途(可空)" style="width: 160px" />
+            <InputNumber v-model:value="addGroundForm.ground_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 140px" />
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitAddGround">添加</Button>
+            </AccessControl>
+          </div>
           <Table
             :columns="[
               { title: '行政区域', dataIndex: 'region_name', width: 180 },
               { title: '详细地址', dataIndex: 'ground_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'ground_area', width: 90 },
               { title: '用途', dataIndex: 'ground_app' },
+              { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
             :data-source="detail.grounds"
             :pagination="false"
@@ -362,18 +598,35 @@ async function submitEvaluate() {
               <template v-else-if="column.dataIndex === 'ground_app'">
                 {{ record.ground_app || '—' }}
               </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['warrant:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteGround(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </template>
             </template>
           </Table>
         </TabPane>
 
-        <!-- 在建工程包(type=6, 无独立 PATCH 端点，只读展示) -->
-        <TabPane v-if="(detail.constructions?.length ?? 0) > 0" key="constructions" :tab="`在建工程(${detail.constructions?.length ?? 0})`">
+        <!-- 在建工程包(type=6) -->
+        <TabPane v-if="detail.warrant_type === 6" key="constructions" :tab="`在建工程(${detail.constructions?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <RegionTreeSelect v-model:value="addConstructionForm.region_id" placeholder="行政区域 *" allow-clear style="width: 200px" />
+            <Input v-model:value="addConstructionForm.construct_locate" placeholder="详细地址 *" style="width: 200px" />
+            <Input v-model:value="addConstructionForm.construct_app" placeholder="用途 *" style="width: 160px" />
+            <InputNumber v-model:value="addConstructionForm.construct_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 140px" />
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitAddConstruction">添加</Button>
+            </AccessControl>
+          </div>
           <Table
             :columns="[
               { title: '行政区域', dataIndex: 'region_name', width: 180 },
               { title: '详细地址', dataIndex: 'construct_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'construct_area', width: 90 },
               { title: '用途', dataIndex: 'construct_app' },
+              { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
             :data-source="detail.constructions"
             :pagination="false"
@@ -386,6 +639,13 @@ async function submitEvaluate() {
               </template>
               <template v-else-if="column.dataIndex === 'construct_app'">
                 {{ record.construct_app || '—' }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['warrant:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteConstruction(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
               </template>
             </template>
           </Table>
@@ -642,4 +902,11 @@ async function submitEvaluate() {
     </Modal>
   </Drawer>
 </template>
+
+<style scoped>
+/* 空标签占位项：隐藏 label 单元格及冒号 */
+.hidden-label-colon :deep(.ant-descriptions-item-label) {
+  display: none;
+}
+</style>
 

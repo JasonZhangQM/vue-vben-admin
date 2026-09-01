@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 /** 客户详情抽屉：基本信息 / 企业扩展 / 股东 / 董事 / 核心企业额度 / 客户标签。 */
 
-import type { CustomerDetail, ExtraTag } from '#/api/basic/customer';
+import type { CustomerDetail, ExtraTag, ExtendItem } from '#/api/basic/customer';
 
 import { computed, reactive, ref, watch } from 'vue';
 
@@ -35,13 +35,16 @@ import {
   addCoreLimit,
   addCustomerContact,
   addDirector,
+  addExtend,
   addShareholder,
   deleteCustomerContact,
   deleteDirector,
+  deleteExtend,
   deleteShareholder,
   getCustomerDetail,
   getTagList,
   listDirectors,
+  listExtends,
   listShareholders,
   updateCustomer,
   updateCustomerContact,
@@ -49,9 +52,12 @@ import {
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
+import { useDictStore } from '#/store';
 import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
 
 import { getIndustryTree } from '#/api/basic/dict';
+
+const dictStore = useDictStore();
 
 const props = defineProps<{ customerId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -67,6 +73,15 @@ const loading = ref(false);
 const shareholderList = ref<any[]>([]);
 const directorList = ref<any[]>([]);
 
+// 经营快照
+const extendList = ref<ExtendItem[]>([]);
+const extendForm = reactive({
+  sales_revenue: undefined as number | undefined,
+  total_assets: undefined as number | undefined,
+  people_engaged: undefined as number | undefined,
+  data_date: undefined as string | undefined,
+});
+
 const classificationColor = (c: number) =>
   ({ 10: 'green', 20: 'blue', 30: 'orange', 40: 'red', 50: 'red' })[c] ?? 'default';
 /** 抽屉内操作完成后刷新抽屉 + 通知列表 */
@@ -80,17 +95,20 @@ async function load() {
   loading.value = true;
   try {
     detail.value = await getCustomerDetail(props.customerId);
-    // 仅企业客户才拉股东/董事（后端会对个人客户返回 4001，全局拦截器会弹 toast）
+    // 仅企业客户才拉股东/董事/经营快照
     if (detail.value.genre === 1) {
-      const [shareholders, directors] = await Promise.all([
+      const [shareholders, directors, extends_] = await Promise.all([
         listShareholders(props.customerId).catch(() => []),
         listDirectors(props.customerId).catch(() => []),
+        listExtends(props.customerId).catch(() => []),
       ]);
       shareholderList.value = shareholders;
       directorList.value = directors;
+      extendList.value = extends_;
     } else {
       shareholderList.value = [];
       directorList.value = [];
+      extendList.value = [];
     }
   } catch {
     // 详情拉取失败：自动关闭抽屉 + 错误提示，避免页面挂死
@@ -197,6 +215,36 @@ async function onDeleteDirector(record: any) {
   if (!detail.value) return;
   await deleteDirector(detail.value.id, record.id);
   message.success('董事已删除');
+  await refresh();
+}
+
+// ===== 经营快照 =====
+async function submitExtend() {
+  if (!detail.value) return;
+  if (!extendForm.sales_revenue || !extendForm.total_assets || !extendForm.people_engaged || !extendForm.data_date) {
+    message.warning('请完整填写营业收入、总资产、从业人数和基准日');
+    return;
+  }
+  await addExtend(detail.value.id, {
+    sales_revenue: extendForm.sales_revenue,
+    total_assets: extendForm.total_assets,
+    people_engaged: extendForm.people_engaged,
+    data_date: extendForm.data_date,
+  });
+  Object.assign(extendForm, {
+    sales_revenue: undefined,
+    total_assets: undefined,
+    people_engaged: undefined,
+    data_date: undefined,
+  });
+  message.success('经营快照已保存');
+  await refresh();
+}
+
+async function onDeleteExtend(record: any) {
+  if (!detail.value) return;
+  await deleteExtend(detail.value.id, record.id);
+  message.success('快照已删除');
   await refresh();
 }
 
@@ -397,7 +445,7 @@ async function saveTags() {
           <DescriptionsItem :label="detail.genre === 1 ? '统一社会信用代码' : '证件号码'">
             {{ dash(detail.license_num) }}
           </DescriptionsItem>
-          <DescriptionsItem :label="detail.genre === 1 ? '注册地址' : '户籍地址'" :span="detailColumns">
+          <DescriptionsItem :label="detail.genre === 1 ? '注册地址' : '户籍地址'">
             {{ dash(detail.license_addr) }}
           </DescriptionsItem>
 
@@ -444,15 +492,6 @@ async function saveTags() {
             <DescriptionsItem label="注册资本">{{ detail.company.capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="实收资本">{{ detail.company.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
           </Descriptions>
-          <div v-if="detail.latest_extend" class="mt-3">
-            <Card size="small" title="最新经营快照">
-              <Descriptions :column="detailColumns" size="small">
-                <DescriptionsItem label="营业收入">{{ detail.latest_extend.sales_revenue.toLocaleString() }}</DescriptionsItem>
-                <DescriptionsItem label="总资产">{{ detail.latest_extend.total_assets.toLocaleString() }}</DescriptionsItem>
-                <DescriptionsItem label="从业人数">{{ detail.latest_extend.people_engaged }}</DescriptionsItem>
-              </Descriptions>
-            </Card>
-          </div>
         </TabPane>
 
         <!-- 个人扩展 -->
@@ -678,6 +717,76 @@ async function saveTags() {
             </div>
           </div>
           <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签(请先在客户标签页创建)</div>
+        </TabPane>
+
+        <!-- 经营快照(仅企业客户，独立 API 拉取历史) -->
+        <TabPane v-if="detail.genre === 1" key="extends" :tab="`经营快照(${extendList.length})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <InputNumber
+              v-model:value="extendForm.sales_revenue"
+              :min="0"
+              :precision="2"
+              placeholder="营业收入 *"
+              style="width: 160px"
+            />
+            <InputNumber
+              v-model:value="extendForm.total_assets"
+              :min="0"
+              :precision="2"
+              placeholder="总资产 *"
+              style="width: 160px"
+            />
+            <InputNumber
+              v-model:value="extendForm.people_engaged"
+              :min="0"
+              :precision="0"
+              placeholder="从业人数 *"
+              style="width: 140px"
+            />
+            <DatePicker
+              v-model:value="extendForm.data_date"
+              value-format="YYYY-MM-DD"
+              placeholder="基准日 *"
+              style="width: 160px"
+            />
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="submitExtend">添加</Button>
+            </AccessControl>
+          </div>
+          <Table
+            :columns="[
+              { title: '基准日', dataIndex: 'data_date', width: 120 },
+              { title: '营业收入', dataIndex: 'sales_revenue', ellipsis: true },
+              { title: '总资产', dataIndex: 'total_assets', ellipsis: true },
+              { title: '从业人数', dataIndex: 'people_engaged', width: 100, align: 'right' },
+              { title: '划型', dataIndex: 'typing', width: 80, align: 'center' },
+              { title: '创建人', dataIndex: 'created_by_name', width: 100, ellipsis: true },
+              { title: '操作', key: 'op', width: 70, align: 'center' },
+            ]"
+            :data-source="extendList"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'sales_revenue'">
+                {{ Number(record.sales_revenue).toLocaleString() }}
+              </template>
+              <template v-else-if="column.dataIndex === 'total_assets'">
+                {{ Number(record.total_assets).toLocaleString() }}
+              </template>
+              <template v-else-if="column.dataIndex === 'typing'">
+                {{ dictStore.labelOf('customer.typing', record.typing) }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['customer:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteExtend(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </template>
+            </template>
+          </Table>
         </TabPane>
       </Tabs>
     </div>

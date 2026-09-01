@@ -4,10 +4,11 @@
  * ============================================================ */
 
 /* ---------- 表格行点击高亮（列表页通用） ----------
- * 同时覆盖普通态与 hover 态（穿透 antd 内部 CSS-in-JS 运行时样式）
+ * 同时覆盖普通态与 hover 态（穿透 antd 内部 CSS-in-JS 内联样式）
  * 选择器精确匹配：.row-active 类名由 useRowHighlight composable 的 rowClassName 注入
+ * 使用 !important 是因为 antd 给 td 加的是内联 style，类选择器优先级拼不过
  */
 .ant-table-tbody > tr.row-active > td,
 .ant-table-tbody > tr.row-active > td.ant-table-cell-row-hover {
-  background-color: #e6f4ff;
+  background-color: #e6f4ff !important;
 }

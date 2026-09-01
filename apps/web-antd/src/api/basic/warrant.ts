@@ -1,4 +1,4 @@
-﻿/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
+/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -35,7 +35,26 @@ export interface HouseItem {
   house_locate: string;
   house_name?: null | string;
   house_usage?: number;
-  region_id?: null | number;
+  id?: number;
+  region_id: number;
+  region_name?: null | string;
+}
+
+export interface GroundItem {
+  ground_app?: null | string;
+  ground_area: number;
+  ground_locate: string;
+  id?: number;
+  region_id: number;
+  region_name?: null | string;
+}
+
+export interface ConstructionItem {
+  construct_app: string;
+  construct_area: number;
+  construct_locate: string;
+  id?: number;
+  region_id: number;
   region_name?: null | string;
 }
 
@@ -82,7 +101,7 @@ export interface WarrantDetail {
   auction_state?: null | number;
   auction_state_display?: null | string;
   chattel?: null | { chattel_type: number; chattel_type_display: string; chattel_detail: string };
-  constructions?: Array<{ id: number; construct_locate: string; construct_app: string; construct_area: number; region_id?: null | number; region_name?: null | string }>;
+  constructions?: ConstructionItem[];
   created_at: string;
   created_by_name: string;
   draft?: null | { id: number; draft_type: number; draft_type_display: string; denomination: number; draft_detail: string };
@@ -94,7 +113,7 @@ export interface WarrantDetail {
   evaluate_method?: null | number;
   evaluate_method_display?: null | string;
   evaluate_value: null | number;
-  grounds?: Array<{ id: number; ground_locate: string; ground_app: string; ground_area: number; region_id?: null | number; region_name?: null | string }>;
+  grounds?: GroundItem[];
   houses: HouseItem[];
   id: number;
   inquiry_date?: null | string;
@@ -190,6 +209,42 @@ export function updateWarrantOwner(
     data,
     method: 'PATCH',
   });
+}
+
+/** 添加所有权人 */
+export function addWarrantOwner(
+  id: number,
+  data: { owner_id: number; ownership_num: string; share_ratio?: number },
+) {
+  return requestClient.post<{ id: number }>(`/warrants/${id}/owners`, data);
+}
+
+/** 删除所有权人 */
+export function deleteWarrantOwner(id: number, ownerRowId: number) {
+  return requestClient.delete(`/warrants/${id}/owners/${ownerRowId}`);
+}
+
+// ===== 房产 / 土地 / 在建工程 独立 CRUD =====
+
+export function addWarrantHouse(id: number, data: Omit<HouseItem, 'id' | 'region_name'>) {
+  return requestClient.post<{ id: number }>(`/warrants/${id}/houses`, data);
+}
+export function deleteWarrantHouse(id: number, houseId: number) {
+  return requestClient.delete(`/warrants/${id}/houses/${houseId}`);
+}
+
+export function addWarrantGround(id: number, data: Omit<GroundItem, 'id' | 'region_name'>) {
+  return requestClient.post<{ id: number }>(`/warrants/${id}/grounds`, data);
+}
+export function deleteWarrantGround(id: number, groundId: number) {
+  return requestClient.delete(`/warrants/${id}/grounds/${groundId}`);
+}
+
+export function addWarrantConstruction(id: number, data: Omit<ConstructionItem, 'id' | 'region_name'>) {
+  return requestClient.post<{ id: number }>(`/warrants/${id}/constructions`, data);
+}
+export function deleteWarrantConstruction(id: number, constructionId: number) {
+  return requestClient.delete(`/warrants/${id}/constructions/${constructionId}`);
 }
 
 // ===== 出入库 / 评估 =====

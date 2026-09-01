@@ -1,4 +1,4 @@
-﻿/** 基础数据：客户模块 API(创建/修改直接生效，无审批；子资源/核心额度/统计)。 */
+/** 基础数据：客户模块 API(创建/修改直接生效，无审批；子资源/核心额度/统计)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -222,7 +222,21 @@ export function deleteCustomerContact(id: number, contactId: number) {
   return requestClient.delete(`/customers/${id}/contacts/${contactId}`);
 }
 
-/** 经营快照(同日覆盖) */
+/** 经营快照 */
+export interface ExtendItem {
+  created_by_name: string;
+  data_date: string;
+  id: number;
+  people_engaged: number;
+  sales_revenue: number;
+  total_assets: number;
+  typing: number;
+}
+
+export function listExtends(id: number) {
+  return requestClient.get<ExtendItem[]>(`/customers/${id}/extends`);
+}
+
 export function addExtend(
   id: number,
   data: {
@@ -233,6 +247,10 @@ export function addExtend(
   },
 ) {
   return requestClient.post(`/customers/${id}/extends`, data);
+}
+
+export function deleteExtend(id: number, extendId: number) {
+  return requestClient.delete(`/customers/${id}/extends/${extendId}`);
 }
 
 /** 五级分类调整 */
