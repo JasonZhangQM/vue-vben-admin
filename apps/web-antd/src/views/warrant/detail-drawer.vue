@@ -42,11 +42,13 @@ import {
   addWarrantGround,
   addWarrantHouse,
   addWarrantOwner,
+  addWarrantReceiveExtend,
   deleteWarrant,
   deleteWarrantConstruction,
   deleteWarrantGround,
   deleteWarrantHouse,
   deleteWarrantOwner,
+  deleteWarrantReceiveExtend,
   getWarrantDetail,
   updateWarrant,
   updateWarrantOwner,
@@ -321,6 +323,27 @@ async function onDeleteHouse(record: any) {
   if (!detail.value) return;
   await deleteWarrantHouse(detail.value.id, record.id);
   message.success('房产已删除');
+  await refresh();
+}
+
+// ===== 应收明细(参照房产：内联添加 + 表格删除) =====
+const addReceiveUnitForm = reactive({ receive_unit: '' });
+async function submitAddReceiveUnit() {
+  if (!detail.value) return;
+  const unit = addReceiveUnitForm.receive_unit.trim();
+  if (!unit) {
+    message.warning('请填写应收单位名称');
+    return;
+  }
+  await addWarrantReceiveExtend(detail.value.id, { receive_unit: unit });
+  addReceiveUnitForm.receive_unit = '';
+  message.success('应收单位已添加');
+  await refresh();
+}
+async function onDeleteReceiveUnit(record: any) {
+  if (!detail.value) return;
+  await deleteWarrantReceiveExtend(detail.value.id, record.id);
+  message.success('应收单位已删除');
   await refresh();
 }
 
@@ -646,14 +669,41 @@ async function onDeleteConstruction(record: any) {
           </Table>
         </TabPane>
 
-        <!-- 应收(type=11) -->
-        <TabPane v-if="detail.receivable" key="receivable" tab="应收账款">
+        <!-- 应收详情(type=11 主信息) -->
+        <TabPane v-if="detail.warrant_type === 11" key="receivable" tab="应收详情">
           <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="说明" :span="2">{{ dash(detail.receivable.receivable_detail) }}</DescriptionsItem>
-            <DescriptionsItem label="应收单位" :span="2">
-              {{ (detail.receivable.receive_units ?? []).join('、') || '—' }}
-            </DescriptionsItem>
+            <DescriptionsItem label="应收详情" :span="2">{{ dash(detail.receivable?.receivable_detail) }}</DescriptionsItem>
           </Descriptions>
+        </TabPane>
+
+        <!-- 应收明细(type=11，参照房产 tab：内联添加 + 表格删除) -->
+        <TabPane v-if="detail.warrant_type === 11" key="receive-extends" :tab="`应收明细(${detail.receivable?.receive_units?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <Input v-model:value="addReceiveUnitForm.receive_unit" placeholder="应收单位名称 *" style="width: 280px" @pressEnter="submitAddReceiveUnit" />
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitAddReceiveUnit">添加</Button>
+            </AccessControl>
+          </div>
+          <Table
+            :columns="[
+              { title: '应收单位', dataIndex: 'receive_unit', ellipsis: true },
+              { title: '操作', key: 'op', width: 80, align: 'center' },
+            ]"
+            :data-source="detail.receivable?.receive_units ?? []"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'op'">
+                <AccessControl :codes="['warrant:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteReceiveUnit(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </template>
+            </template>
+          </Table>
         </TabPane>
 
         <!-- 股权(type=21) -->

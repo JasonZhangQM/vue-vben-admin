@@ -123,7 +123,7 @@ export interface WarrantDetail {
   other?: null | { other_type: number; other_type_display: string; cost: number; other_detail: string; patent?: any; software?: any };
   owners: OwnerItem[];
   owner_names?: string[];
-  receivable?: null | { id: number; receivable_detail: string; receive_units: string[] };
+  receivable?: null | { id: number; receivable_detail: string; receive_units: { id: number; receive_unit: string }[] };
   stock?: null | { stock_type: number; stock_type_display: string; target: string; ratio: number; registered_capital: number; paid_capital: number; remark?: null | string };
   storage_explain?: null | string;
   storages: StorageItem[];
@@ -245,6 +245,15 @@ export function addWarrantConstruction(id: number, data: Omit<ConstructionItem, 
 }
 export function deleteWarrantConstruction(id: number, constructionId: number) {
   return requestClient.delete(`/warrants/${id}/constructions/${constructionId}`);
+}
+
+// ===== 应收单位明细 =====
+
+export function addWarrantReceiveExtend(id: number, data: { receive_unit: string }) {
+  return requestClient.post<{ id: number }>(`/warrants/${id}/receive-extends`, data);
+}
+export function deleteWarrantReceiveExtend(id: number, extendId: number) {
+  return requestClient.delete(`/warrants/${id}/receive-extends/${extendId}`);
 }
 
 // ===== 出入库 / 评估 =====
