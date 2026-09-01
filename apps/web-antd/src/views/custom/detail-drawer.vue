@@ -223,6 +223,10 @@ async function submitLimit() {
 const contactForm = reactive({
   name: '',
   phone: '',
+  email: '',
+  addr: '',
+  is_primary: false,
+  remark: '',
 });
 
 const editContactVisible = ref(false);
@@ -243,7 +247,7 @@ async function submitContact() {
     return;
   }
   await addCustomerContact(detail.value.id, { ...contactForm });
-  Object.assign(contactForm, { name: '', phone: '' });
+  Object.assign(contactForm, { name: '', phone: '', email: '', addr: '', is_primary: false, remark: '' });
   message.success('联系人已添加');
   await refresh();
 }
@@ -427,57 +431,6 @@ async function saveTags() {
       </Card>
 
       <Tabs>
-        <!-- 联系人 -->
-        <TabPane key="contacts" :tab="`联系人(${detail.contacts?.length ?? 0})`">
-          <div class="mb-2 flex items-center gap-2">
-            <Input v-model:value="contactForm.name" placeholder="姓名 *" style="width: 140px" />
-            <Input v-model:value="contactForm.phone" placeholder="电话 *" style="width: 150px" />
-            <AccessControl :codes="['customer:update']" type="code">
-              <Button size="small" type="primary" @click="submitContact">添加</Button>
-            </AccessControl>
-          </div>
-          <Table
-            :columns="[
-              { title: '姓名', dataIndex: 'name', width: 120 },
-              { title: '电话', dataIndex: 'phone', width: 140 },
-              { title: '邮箱', dataIndex: 'email', width: 160 },
-              { title: '联系地址', dataIndex: 'addr' },
-              { title: '备注', dataIndex: 'remark', width: 120 },
-              { title: '首选', dataIndex: 'is_primary', width: 70, align: 'center' },
-              { title: '操作', key: 'op', width: 70, align: 'center' },
-            ]"
-            :data-source="detail.contacts ?? []"
-            :pagination="false"
-            row-key="id"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'name'">
-                <a @click="openContactEdit(record)">{{ dash(record.name) }}</a>
-              </template>
-              <template v-else-if="column.dataIndex === 'email'">
-                {{ dash(record.email) }}
-              </template>
-              <template v-else-if="column.dataIndex === 'addr'">
-                {{ dash(record.addr) }}
-              </template>
-              <template v-else-if="column.dataIndex === 'remark'">
-                {{ dash(record.remark) }}
-              </template>
-              <template v-else-if="column.dataIndex === 'is_primary'">
-                <Tag v-if="record.is_primary" color="blue">首选</Tag>
-              </template>
-              <template v-else-if="column.key === 'op'">
-                <AccessControl :codes="['customer:update']" type="code">
-                  <Popconfirm @confirm="() => onDeleteContact(record)">
-                    <Button danger size="small" type="link">删除</Button>
-                  </Popconfirm>
-                </AccessControl>
-              </template>
-            </template>
-          </Table>
-        </TabPane>
-
         <!-- 企业扩展 -->
         <TabPane v-if="detail.company" key="company" tab="企业信息">
           <Descriptions :column="detailColumns" size="small">
@@ -502,6 +455,68 @@ async function saveTags() {
             <DescriptionsItem label="婚姻状态">{{ dash(detail.personal.marital_status_display) }}</DescriptionsItem>
             <DescriptionsItem label="户籍性质">{{ dash(detail.personal.household_nature_display) }}</DescriptionsItem>
           </Descriptions>
+        </TabPane>
+
+        <!-- 联系人 -->
+        <TabPane key="contacts" :tab="`联系人(${detail.contacts?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <Input v-model:value="contactForm.name" placeholder="姓名 *" style="width: 120px" />
+            <Input v-model:value="contactForm.phone" placeholder="电话 *" style="width: 140px" />
+            <Input v-model:value="contactForm.email" placeholder="邮箱" style="width: 160px" />
+            <Input v-model:value="contactForm.addr" placeholder="联系地址" style="width: 200px" />
+            <Checkbox v-model:checked="contactForm.is_primary">首选</Checkbox>
+            <Input v-model:value="contactForm.remark" placeholder="备注" style="width: 140px" />
+            <AccessControl :codes="['customer:update']" type="code">
+              <Button size="small" type="primary" @click="submitContact">添加</Button>
+            </AccessControl>
+          </div>
+          <Table
+            :columns="[
+              { title: '姓名', dataIndex: 'name', width: 110 },
+              { title: '电话', dataIndex: 'phone', width: 140 },
+              { title: '邮箱', dataIndex: 'email', width: 170, ellipsis: true },
+              { title: '联系地址', dataIndex: 'addr', ellipsis: true },
+              { title: '备注', dataIndex: 'remark', width: 140, ellipsis: true },
+              { title: '首选', dataIndex: 'is_primary', width: 70, align: 'center' },
+              { title: '创建人', dataIndex: 'created_by_name', width: 100, ellipsis: true },
+              { title: '操作', key: 'op', width: 70, align: 'center' },
+            ]"
+            :data-source="detail.contacts ?? []"
+            :pagination="false"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'name'">
+                <a @click="openContactEdit(record)">{{ dash(record.name) }}</a>
+              </template>
+              <template v-else-if="column.dataIndex === 'phone'">
+                {{ dash(record.phone) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'email'">
+                {{ dash(record.email) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'addr'">
+                {{ dash(record.addr) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'remark'">
+                {{ dash(record.remark) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'is_primary'">
+                <Tag v-if="record.is_primary" color="blue">首选</Tag>
+              </template>
+              <template v-else-if="column.dataIndex === 'created_by_name'">
+                {{ dash(record.created_by_name) }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['customer:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteContact(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </template>
+            </template>
+          </Table>
         </TabPane>
 
         <!-- 股东(独立 API 拉取) -->
