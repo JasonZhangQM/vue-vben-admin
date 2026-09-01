@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
@@ -32,7 +32,6 @@ import {
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
-import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
 
@@ -58,8 +57,6 @@ import { auctionStateColor, warrantStateColor } from './constants';
 const props = defineProps<{ warrantId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
 
-// 详情基本信息响应式列数(视口越宽列越多)
-const { columns: detailColumns } = useDetailColumns();
 const dictStore = useDictStore();
 
 const open = defineModel<boolean>('open', { default: false });
@@ -401,13 +398,11 @@ async function onDeleteConstruction(record: any) {
             </AccessControl>
           </div>
         </template>
-        <Descriptions :column="detailColumns" size="small">
+        <Descriptions :column="4" size="small">
           <!-- 基础标识 -->
-          <DescriptionsItem label="权证号" :span="1">{{ dash(detail.warrant_num) }}</DescriptionsItem>
-          <DescriptionsItem label="类型" :span="1">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
-          <!-- 占位：强制所有权人换到新行（入库说明/询价详情同理） -->
-          <DescriptionsItem label="" :span="Math.max(0, detailColumns - 2)" class="hidden-label-colon" />
-          <DescriptionsItem label="所有权人" :span="detailColumns">
+          <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
+          <DescriptionsItem label="类型">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
+          <DescriptionsItem label="所有权人" :span="4">
             {{ (detail.owner_names as string[])?.join('、') || '—' }}
           </DescriptionsItem>
 
@@ -428,7 +423,7 @@ async function onDeleteConstruction(record: any) {
           <DescriptionsItem label="评估值">{{ (detail.evaluate_value as number)?.toLocaleString() ?? '—' }}</DescriptionsItem>
           <DescriptionsItem label="评估日期">{{ dash((detail as any).evaluate_date) }}</DescriptionsItem>
           <DescriptionsItem label="评估机构">{{ dash((detail as any).evaluate_company) }}</DescriptionsItem>
-          <DescriptionsItem label="评估说明" :span="detailColumns">{{ dash((detail as any).evaluate_explain) }}</DescriptionsItem>
+          <DescriptionsItem label="评估说明" :span="4">{{ dash((detail as any).evaluate_explain) }}</DescriptionsItem>
 
           <!-- 流转时间 -->
           <DescriptionsItem label="入库会议">{{ dash((detail as any).meeting_date) }}</DescriptionsItem>
@@ -439,13 +434,13 @@ async function onDeleteConstruction(record: any) {
           <!-- 拍卖金额 -->
           <DescriptionsItem label="起拍价">{{ (detail as any).listing_price?.toLocaleString() ?? '—' }}</DescriptionsItem>
           <DescriptionsItem label="成交价">{{ (detail as any).auction_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="拍卖说明" :span="detailColumns">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
-          <DescriptionsItem label="入库说明" :span="detailColumns">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
-          <DescriptionsItem label="询价详情" :span="detailColumns">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
+          <DescriptionsItem label="拍卖说明" :span="4">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
+          <DescriptionsItem label="入库说明" :span="4">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
+          <DescriptionsItem label="询价详情" :span="4">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
 
           <!-- 审计信息 -->
           <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
-          <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
+          <DescriptionsItem label="登记时间" :span="3">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
       </Card>
 
@@ -460,6 +455,7 @@ async function onDeleteConstruction(record: any) {
               placeholder="搜索客户 *"
               allow-clear
               style="width: 280px"
+              @search="onSearchCustomer"
             />
             <Input v-model:value="addOwnerForm.ownership_num" placeholder="产权证编号 *" style="width: 220px" />
             <InputNumber
@@ -491,7 +487,7 @@ async function onDeleteConstruction(record: any) {
                 <a @click="openOwnerEdit(record)">{{ record.owner_name }}</a>
               </template>
               <template v-else-if="column.dataIndex === 'share_ratio'">
-                {{ record.share_ratio ?? '共有' }}
+                {{ record.share_ratio ?? '—' }}
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
@@ -901,11 +897,3 @@ async function onDeleteConstruction(record: any) {
     </Modal>
   </Drawer>
 </template>
-
-<style scoped>
-/* 空标签占位项：隐藏 label 单元格及冒号 */
-.hidden-label-colon :deep(.ant-descriptions-item-label) {
-  display: none;
-}
-</style>
-
