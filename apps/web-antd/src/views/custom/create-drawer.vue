@@ -87,7 +87,7 @@ async function onSearchSpouse(keyword: string) {
       page_size: 20,
     });
     spouseOptions.value = items.map((c: any) => ({
-      label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
+      label: c.license_num ? `${c.name}(${c.license_num.slice(-6)})` : c.name,
       value: c.id,
     }));
   } catch {

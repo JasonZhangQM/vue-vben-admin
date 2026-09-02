@@ -111,10 +111,11 @@ async function openEditPersonal() {
   editPersonalForm.spouse_id = detail.value.personal.spouse?.id;
   // 预加载当前配偶的选项（remote 模式需要选项里有才能显示 label）
   if (detail.value.personal.spouse) {
+    const s = detail.value.personal.spouse;
     editPersonalSpouseOptions.value = [
       {
-        label: detail.value.personal.spouse.name,
-        value: detail.value.personal.spouse.id,
+        label: s.license_num ? `${s.name}(${s.license_num.slice(-6)})` : s.name,
+        value: s.id,
       },
     ];
   } else {
@@ -138,7 +139,7 @@ async function onSearchSpouse(keyword: string) {
     editPersonalSpouseOptions.value = items
       .filter((c) => c.id !== props.customerId)
       .map((c: any) => ({
-        label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
+        label: c.license_num ? `${c.name}(${c.license_num.slice(-6)})` : c.name,
         value: c.id,
       }));
   } catch {
