@@ -74,6 +74,7 @@ const attempted = ref(false);
 const createForm = reactive({
   warrant_num: '',
   warrant_type: 1 as number,
+  remark: '',
   // 土地
   ground_region_id: undefined as number | undefined,
   ground_locate: '',
@@ -92,8 +93,6 @@ const createForm = reactive({
   stock_paid_capital: 0,
   stock_remark: '',
   // 票据
-  draft_type: 20,
-  denomination: undefined as number | undefined,
   draft_detail: '',
   // 车辆
   frame_num: '',
@@ -313,7 +312,7 @@ function isExtDirty(): boolean {
   }
   const fieldsByType: Record<number, (string | number | undefined)[]> = {
     21: [createForm.stock_target, createForm.stock_ratio, createForm.stock_remark],
-    31: [createForm.denomination, createForm.draft_detail],
+    31: [createForm.draft_detail],
     41: [createForm.frame_num, createForm.plate_num, createForm.vehicle_brand],
     11: [createForm.receivable_detail],
     51: [createForm.chattel_detail],
@@ -329,7 +328,7 @@ function resetExtFields() {
   Object.assign(createForm, {
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
-    draft_type: 20, denomination: undefined, draft_detail: '',
+    draft_detail: '',
     frame_num: '', plate_num: '', vehicle_brand: '',
     chattel_type: 10, chattel_detail: '',
     other_type: 99, other_detail: '', receivable_detail: '贷款期间所有应收账款',
@@ -428,11 +427,11 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
       };
     }
     case WARRANT_TYPE_DRAFT: {
-      if (!createForm.denomination || !createForm.draft_detail) {
-        message.warning('请填写票据面额与票面信息');
+      if (!createForm.draft_detail) {
+        message.warning('请填写票面信息');
         return null;
       }
-      return { ext: { draft_type: createForm.draft_type, denomination: createForm.denomination, draft_detail: createForm.draft_detail } };
+      return { ext: { draft_detail: createForm.draft_detail } };
     }
     case WARRANT_TYPE_VEHICLE: {
       if (!createForm.frame_num || !createForm.plate_num || !createForm.vehicle_brand) {
@@ -512,6 +511,7 @@ async function onSubmit() {
   const payload: WarrantCreateParams = {
     warrant_num: createForm.warrant_num,
     warrant_type: createForm.warrant_type,
+    remark: createForm.remark || undefined,
     owners: owners.map((o) => ({
       owner_id: o.owner_id!,
       ownership_num: o.ownership_num,
@@ -544,12 +544,12 @@ async function onSubmit() {
 /** 打开时重置为初始空白状态 */
 function resetAll() {
   Object.assign(createForm, {
-    warrant_num: '', warrant_type: 1,
+    warrant_num: '', warrant_type: 1, remark: '',
     ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
     construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
-    draft_type: 20, denomination: undefined, draft_detail: '',
+    draft_detail: '',
     frame_num: '', plate_num: '', vehicle_brand: '',
     chattel_type: 10, chattel_detail: '',
     other_type: 99, other_detail: '', receivable_detail: '贷款期间所有应收账款',
@@ -592,6 +592,9 @@ onMounted(() => {
             <!-- 应收账款类型：应收详情上移到基本信息 -->
             <FormItem v-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE" label="应收详情">
               <Input v-model:value="createForm.receivable_detail" placeholder="贷款期间所有应收账款" />
+            </FormItem>
+            <FormItem label="备注">
+              <Input v-model:value="createForm.remark" placeholder="可空" :maxlength="128" />
             </FormItem>
           </div>
         </Form>
@@ -807,12 +810,6 @@ onMounted(() => {
 
             <!-- 票据 -->
             <template v-else-if="createForm.warrant_type === WARRANT_TYPE_DRAFT">
-              <FormItem label="票据主类型" required>
-                <SearchSelect v-model:value="createForm.draft_type" :options="dictStore.get('warrant.draft_main_type')" />
-              </FormItem>
-              <FormItem label="面额(元)" required>
-                <InputNumber v-model:value="createForm.denomination" :min="0.01" class="w-full" />
-              </FormItem>
               <FormItem label="票面信息" required>
                 <Input v-model:value="createForm.draft_detail" placeholder="出票人 / 到期日等" />
               </FormItem>

@@ -104,7 +104,7 @@ export interface WarrantDetail {
   constructions?: ConstructionItem[];
   created_at: string;
   created_by_name: string;
-  draft?: null | { id: number; draft_type: number; draft_type_display: string; denomination: number; draft_detail: string };
+  draft?: null | { id: number; draft_detail: string };
   draft_extends?: DraftExtendItem[];
   evaluates: EvaluateItem[];
   evaluate_company?: null | string;
@@ -124,6 +124,7 @@ export interface WarrantDetail {
   owners: OwnerItem[];
   owner_names?: string[];
   receivable?: null | { id: number; receivable_detail: string; receive_units: { id: number; receive_unit: string }[] };
+  remark?: null | string;
   stock?: null | { stock_type: number; stock_type_display: string; target: string; ratio: number; registered_capital: number; paid_capital: number; remark?: null | string };
   storage_explain?: null | string;
   storages: StorageItem[];
@@ -150,7 +151,7 @@ export interface WarrantListParams {
 export interface WarrantCreateParams {
   chattel?: { chattel_type: number; chattel_detail: string };
   constructions?: Array<{ construct_locate: string; construct_app: string; construct_area: number; region_id?: number }>;
-  draft?: { denomination: number; draft_detail: string; draft_type: number };
+  draft?: { draft_detail: string };
   grounds?: Array<{ ground_app: string; ground_area: number; ground_locate: string; region_id?: number }>;
   houses?: HouseItem[];
   other?: { other_type: number; cost?: number; other_detail: string; patent?: any; software?: any };
@@ -167,6 +168,7 @@ export interface WarrantCreateParams {
   vehicle?: { frame_num: string; plate_num: string; vehicle_brand: string; remark?: string };
   warrant_num: string;
   warrant_type: number;
+  remark?: string;
 }
 
 /** 权证列表(data_scope 按 created_by 过滤) */

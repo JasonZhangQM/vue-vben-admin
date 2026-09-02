@@ -106,6 +106,7 @@ const editForm = reactive({
   evaluate_value: undefined as number | undefined,
   evaluate_date: '',
   evaluate_company: '',
+  remark: '',
 });
 
 function openEdit() {
@@ -115,6 +116,7 @@ function openEdit() {
     evaluate_value: detail.value.evaluate_value ?? undefined,
     evaluate_date: '',
     evaluate_company: '',
+    remark: detail.value.remark ?? '',
   });
   editVisible.value = true;
 }
@@ -128,6 +130,7 @@ async function submitEdit() {
       evaluate_value: editForm.evaluate_value,
       evaluate_date: editForm.evaluate_date || undefined,
       evaluate_company: opt(editForm.evaluate_company),
+      remark: opt(editForm.remark),
     });
     message.success('权证信息已更新');
     editVisible.value = false;
@@ -460,6 +463,7 @@ async function onDeleteConstruction(record: any) {
           <DescriptionsItem label="拍卖说明">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
           <DescriptionsItem label="入库说明">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
           <DescriptionsItem label="询价详情">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
+          <DescriptionsItem label="备注">{{ dash(detail.remark) }}</DescriptionsItem>
 
           <!-- 审计信息 -->
           <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
@@ -721,8 +725,6 @@ async function onDeleteConstruction(record: any) {
         <!-- 票据主表(type=31) -->
         <TabPane v-if="detail.draft" key="draft" tab="票据信息">
           <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="票据类型">{{ dash(detail.draft.draft_type_display) }}</DescriptionsItem>
-            <DescriptionsItem label="票面总额">{{ detail.draft.denomination?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="票面信息" :span="2">{{ dash(detail.draft.draft_detail) }}</DescriptionsItem>
           </Descriptions>
         </TabPane>
@@ -913,6 +915,9 @@ async function onDeleteConstruction(record: any) {
         </FormItem>
         <FormItem label="评估公司">
           <Input v-model:value="editForm.evaluate_company" :disabled="!canUpdate" />
+        </FormItem>
+        <FormItem label="备注">
+          <Input v-model:value="editForm.remark" :disabled="!canUpdate" :maxlength="128" placeholder="可空" />
         </FormItem>
       </Form>
     </Modal>
