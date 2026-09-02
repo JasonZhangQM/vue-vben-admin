@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 权证管理：列表 / 批量操作 / 详情抽屉 / 新建抽屉(create-drawer.vue)。 */
 
 import type { WarrantListItem } from '#/api/basic/warrant';
@@ -54,8 +54,6 @@ const query = reactive({
   q: '',
   warrant_type: undefined as number | undefined,
   warrant_state: undefined as number | undefined,
-  auction_state: undefined as number | undefined,
-  evaluate_method: undefined as number | undefined,
   owner_id: undefined as number | undefined,
 });
 
@@ -84,8 +82,6 @@ function resetQuery() {
   query.q = '';
   query.warrant_type = undefined;
   query.warrant_state = undefined;
-  query.auction_state = undefined;
-  query.evaluate_method = undefined;
   query.owner_id = undefined;
   ownerOptions.value = []; // 清远程搜索下拉缓存
   query.page = 1;
@@ -133,7 +129,6 @@ const columns: TableColumnType[] = [
   { title: '类型', dataIndex: 'warrant_type', width: 90 },
   { title: '状态', dataIndex: 'warrant_state', width: 90 },
   { title: '所有权人', dataIndex: 'owner_names', ellipsis: true },
-  { title: '评估值', dataIndex: 'evaluate_value', width: 100 },
   { title: '最近出入库', dataIndex: 'storage_latest', width: 140 },
   { title: '登记时间', dataIndex: 'created_at', ellipsis: true },
   { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
@@ -279,20 +274,6 @@ onMounted(() => {
           style="width: 120px"
         />
         <SearchSelect
-          v-model:value="query.auction_state"
-          :options="dictStore.get('warrant.auction_state')"
-          allow-clear
-          placeholder="拍卖状态"
-          style="width: 120px"
-        />
-        <SearchSelect
-          v-model:value="query.evaluate_method"
-          :options="dictStore.get('warrant.evaluate_method')"
-          allow-clear
-          placeholder="评估方式"
-          style="width: 120px"
-        />
-        <SearchSelect
           v-model:value="query.owner_id"
           :options="ownerOptions"
           :loading="ownerLoading"
@@ -363,9 +344,6 @@ onMounted(() => {
           </template>
           <template v-else-if="column.dataIndex === 'owner_names'">
             {{ (record.owner_names as string[])?.join('、') || '—' }}
-          </template>
-          <template v-else-if="column.dataIndex === 'evaluate_value'">
-            {{ record.evaluate_value?.toLocaleString() ?? '—' }}
           </template>
           <template v-else-if="column.dataIndex === 'storage_latest'">
             <template v-if="record.storage_latest">

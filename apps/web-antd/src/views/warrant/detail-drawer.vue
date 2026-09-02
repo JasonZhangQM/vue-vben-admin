@@ -54,7 +54,7 @@ import {
   updateWarrantOwner,
 } from '#/api/basic/warrant';
 
-import { auctionStateColor, warrantStateColor } from './constants';
+import { warrantStateColor } from './constants';
 
 const props = defineProps<{ warrantId: null | number }>();
 const emit = defineEmits<{ updated: [] }>();
@@ -95,27 +95,21 @@ watch(
   },
 );
 
-// ===== 编辑(WarrantUpdate 自由字段子集：评估字段) =====
+// ===== 编辑(WarrantUpdate 仅 warrant_state + remark；评估/拍卖/出入库走子表接口) =====
 const { hasAccessByCodes } = useAccess();
 const canUpdate = computed(() => hasAccessByCodes(['warrant:update']));
 
 const editVisible = ref(false);
 const editLoading = ref(false);
 const editForm = reactive({
-  evaluate_method: undefined as number | undefined,
-  evaluate_value: undefined as number | undefined,
-  evaluate_date: '',
-  evaluate_company: '',
+  warrant_state: undefined as number | undefined,
   remark: '',
 });
 
 function openEdit() {
   if (!detail.value) return;
   Object.assign(editForm, {
-    evaluate_method: (detail.value as any).evaluate_method ?? undefined,
-    evaluate_value: detail.value.evaluate_value ?? undefined,
-    evaluate_date: '',
-    evaluate_company: '',
+    warrant_state: detail.value.warrant_state ?? undefined,
     remark: detail.value.remark ?? '',
   });
   editVisible.value = true;
@@ -126,10 +120,7 @@ async function submitEdit() {
   editLoading.value = true;
   try {
     await updateWarrant(detail.value.id, {
-      evaluate_method: editForm.evaluate_method,
-      evaluate_value: editForm.evaluate_value,
-      evaluate_date: editForm.evaluate_date || undefined,
-      evaluate_company: opt(editForm.evaluate_company),
+      warrant_state: editForm.warrant_state,
       remark: opt(editForm.remark),
     });
     message.success('权证信息已更新');
@@ -432,40 +423,15 @@ async function onDeleteConstruction(record: any) {
             {{ (detail.owner_names as string[])?.join('、') || '—' }}
           </DescriptionsItem>
 
-          <!-- 状态/分类 -->
+          <!-- 状态 -->
           <DescriptionsItem label="权证状态">
             <Tag :color="warrantStateColor((detail as any).warrant_state)">
               {{ dash((detail as any).warrant_state_display) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="拍卖状态">
-            <Tag :color="auctionStateColor((detail as any).auction_state)">
-              {{ dash((detail as any).auction_state_display) }}
-            </Tag>
-          </DescriptionsItem>
 
-          <!-- 评估信息 -->
-          <DescriptionsItem label="评估方式">{{ dash((detail as any).evaluate_method_display) }}</DescriptionsItem>
-          <DescriptionsItem label="评估值">{{ (detail.evaluate_value as number)?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="评估日期">{{ dash((detail as any).evaluate_date) }}</DescriptionsItem>
-          <DescriptionsItem label="评估机构">{{ dash((detail as any).evaluate_company) }}</DescriptionsItem>
-          <DescriptionsItem label="评估说明">{{ dash((detail as any).evaluate_explain) }}</DescriptionsItem>
-
-          <!-- 流转时间 -->
-          <DescriptionsItem label="入库会议">{{ dash((detail as any).meeting_date) }}</DescriptionsItem>
-          <DescriptionsItem label="询价日期">{{ dash((detail as any).inquiry_date) }}</DescriptionsItem>
-          <DescriptionsItem label="拍卖日期">{{ dash((detail as any).auction_date) }}</DescriptionsItem>
-          <DescriptionsItem label="交易日期">{{ dash((detail as any).transaction_date) }}</DescriptionsItem>
-
-          <!-- 拍卖金额 -->
-          <DescriptionsItem label="起拍价">{{ (detail as any).listing_price?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="成交价">{{ (detail as any).auction_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
-          <DescriptionsItem label="拍卖说明">{{ dash((detail as any).auction_remark) }}</DescriptionsItem>
-          <DescriptionsItem label="入库说明">{{ dash((detail as any).storage_explain) }}</DescriptionsItem>
-          <DescriptionsItem label="询价详情">{{ dash((detail as any).inquiry_detail) }}</DescriptionsItem>
+          <!-- 备注 + 审计 -->
           <DescriptionsItem label="备注">{{ dash(detail.remark) }}</DescriptionsItem>
-
-          <!-- 审计信息 -->
           <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
           <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
@@ -863,44 +829,23 @@ async function onDeleteConstruction(record: any) {
       </Tabs>
     </div>
 
-    <!-- 权证编辑 Modal(字段对齐后端 WarrantUpdate 评估字段子集) -->
+    <!-- 权证编辑 Modal(仅主表基础字段；评估/拍卖/出入库走子表接口) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑权证(评估信息)"
+      title="编辑权证"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
-      <Alert banner class="mb-3" message="评估日期 / 评估公司留空表示保持不变" type="info" />
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
-        <FormItem label="评估方式">
+        <FormItem label="权证状态">
           <SearchSelect
-              v-model:value="editForm.evaluate_method"
-              :disabled="!canUpdate"
-              :options="dictStore.get('warrant.evaluate_method')"
-              allow-clear
-              placeholder="留空保持不变"
-            />
-        </FormItem>
-        <FormItem label="评估值">
-          <InputNumber
-            v-model:value="editForm.evaluate_value"
+            v-model:value="editForm.warrant_state"
             :disabled="!canUpdate"
-            :min="0"
-            class="w-full"
+            :options="dictStore.get('warrant.warrant_state')"
+            allow-clear
           />
-        </FormItem>
-        <FormItem label="评估日期">
-          <DatePicker
-            v-model:value="editForm.evaluate_date"
-            :disabled="!canUpdate"
-            class="w-full"
-            value-format="YYYY-MM-DD"
-          />
-        </FormItem>
-        <FormItem label="评估公司">
-          <Input v-model:value="editForm.evaluate_company" :disabled="!canUpdate" />
         </FormItem>
         <FormItem label="备注">
           <Input v-model:value="editForm.remark" :disabled="!canUpdate" :maxlength="128" placeholder="可空" />

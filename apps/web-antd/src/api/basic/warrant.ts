@@ -5,13 +5,8 @@ import type { PageResult } from '#/api/system/user';
 import { requestClient } from '#/api/request';
 
 export interface WarrantListItem {
-  auction_state?: null | number;
-  auction_state_display?: null | string;
   created_at: string;
   created_by_name: string;
-  evaluate_method?: null | number;
-  evaluate_method_display?: null | string;
-  evaluate_value: null | number;
   id: number;
   owner_names?: string[];
   storage_latest?: null | {
@@ -95,39 +90,22 @@ export interface DraftExtendItem {
 }
 
 export interface WarrantDetail {
-  auction_amount?: null | number;
-  auction_date?: null | string;
-  auction_remark?: null | string;
-  auction_state?: null | number;
-  auction_state_display?: null | string;
   chattel?: null | { chattel_type: number; chattel_type_display: string; chattel_detail: string };
   constructions?: ConstructionItem[];
   created_at: string;
   created_by_name: string;
   draft_extends?: DraftExtendItem[];
   evaluates: EvaluateItem[];
-  evaluate_company?: null | string;
-  evaluate_date?: null | string;
-  evaluate_explain?: null | string;
-  evaluate_method?: null | number;
-  evaluate_method_display?: null | string;
-  evaluate_value: null | number;
   grounds?: GroundItem[];
   houses: HouseItem[];
   id: number;
-  inquiry_date?: null | string;
-  inquiry_detail?: null | string;
-  listing_price?: null | number;
-  meeting_date?: null | string;
   other?: null | { other_type: number; other_type_display: string; cost: number; other_detail: string; patent?: any; software?: any };
   owners: OwnerItem[];
   owner_names?: string[];
   receive_units?: { id: number; receive_unit: string }[];
   remark?: null | string;
   stock?: null | { stock_type: number; stock_type_display: string; target: string; ratio: number; registered_capital: number; paid_capital: number; remark?: null | string };
-  storage_explain?: null | string;
   storages: StorageItem[];
-  transaction_date?: null | string;
   vehicle?: null | { frame_num: string; plate_num: string; vehicle_brand: string; remark?: null | string };
   warrant_num: string;
   warrant_state: number;
@@ -137,8 +115,6 @@ export interface WarrantDetail {
 }
 
 export interface WarrantListParams {
-  auction_state?: number;
-  evaluate_method?: number;
   owner_id?: number;
   page?: number;
   page_size?: number;
