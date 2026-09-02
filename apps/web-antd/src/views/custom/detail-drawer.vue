@@ -43,6 +43,7 @@ import {
   deleteExtend,
   deleteShareholder,
   getCustomerDetail,
+  getGroupTree,
   getTagList,
   listDirectors,
   listExtends,
@@ -54,12 +55,10 @@ import {
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import SearchSelect from '#/components/SearchSelect/index.vue';
-import { getCustomerDict } from '#/api/basic/dict';
+import { getCreditRegionTree, getCustomerDict, getIndustryTree } from '#/api/basic/dict';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useDictStore } from '#/store';
 import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
-
-import { getIndustryTree } from '#/api/basic/dict';
 
 const dictStore = useDictStore();
 
@@ -211,28 +210,35 @@ const canUpdate = computed(() => hasAccessByCodes(['customer:update']));
 const editVisible = ref(false);
 const editLoading = ref(false);
 const industryTreeData = ref<any[]>([]);
+const creditRegionTreeData = ref<any[]>([]);
+const groupTreeData = ref<any[]>([]);
 const editForm = reactive({
   name: '',
   short_name: '',
-  credit_amount: undefined as number | undefined,
-  managementor_id: undefined as number | undefined,
   region_id: undefined as number | undefined,
+  license_addr: '',
+  credit_region_id: undefined as number | undefined,
   industry_id: undefined as number | undefined,
+  group_id: undefined as number | undefined,
 });
 
 async function openEdit() {
   if (!detail.value) return;
-  // 编辑需要行业全量(仅首次加载)；区域懒加载/搜索已封装进 RegionTreeSelect 组件
-  if (!industryTreeData.value.length) {
-    industryTreeData.value = toTreeData(await getIndustryTree());
-  }
+  // 懒加载树数据（仅首次）
+  const jobs: Promise<any>[] = [];
+  if (!industryTreeData.value.length) jobs.push(getIndustryTree().then((t) => (industryTreeData.value = toTreeData(t))));
+  if (!creditRegionTreeData.value.length) jobs.push(getCreditRegionTree().then((t) => (creditRegionTreeData.value = toTreeData(t))));
+  if (!groupTreeData.value.length) jobs.push(getGroupTree().then((t) => (groupTreeData.value = toTreeData(t))));
+  if (jobs.length) await Promise.all(jobs);
+
   Object.assign(editForm, {
     name: detail.value.name ?? '',
     short_name: detail.value.short_name ?? '',
-    credit_amount: detail.value.credit_amount ?? undefined,
-    managementor_id: undefined, // 留空保持不变
-    region_id: undefined, // 留空保持不变(后端 exclude_unset)
-    industry_id: undefined,
+    region_id: detail.value.region_id,
+    license_addr: detail.value.license_addr ?? '',
+    credit_region_id: detail.value.credit_region_id,
+    industry_id: detail.value.industry_id,
+    group_id: detail.value.group_id,
   });
   editVisible.value = true;
 }
@@ -244,10 +250,11 @@ async function submitEdit() {
     await updateCustomer(detail.value.id, {
       name: opt(editForm.name),
       short_name: opt(editForm.short_name),
-      credit_amount: editForm.credit_amount,
-      managementor_id: editForm.managementor_id,
       region_id: editForm.region_id,
+      license_addr: opt(editForm.license_addr),
+      credit_region_id: editForm.credit_region_id,
       industry_id: editForm.industry_id,
+      group_id: editForm.group_id,
     });
     message.success('客户信息已更新');
     editVisible.value = false;
@@ -884,7 +891,7 @@ async function saveTags() {
       </Tabs>
     </div>
 
-    <!-- 客户编辑 Modal(字段对齐后端 CustomerUpdate，留空表示保持不变) -->
+    <!-- 客户编辑 Modal(仅允许编辑指定 7 个字段) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
@@ -893,23 +900,33 @@ async function saveTags() {
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
-      <Alert banner class="mb-3" message="留空字段保持原值不变" type="info" />
-      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
         <FormItem label="客户名称">
-          <Input v-model:value="editForm.name" :disabled="!canUpdate" placeholder="留空保持不变" />
+          <Input v-model:value="editForm.name" :disabled="!canUpdate" />
         </FormItem>
         <FormItem label="简称">
-          <Input v-model:value="editForm.short_name" :disabled="!canUpdate" placeholder="留空保持不变" />
-        </FormItem>
-        <FormItem label="授信额度">
-          <InputNumber v-model:value="editForm.credit_amount" :disabled="!canUpdate" :min="0" :precision="2" class="!w-full" placeholder="留空保持不变" />
+          <Input v-model:value="editForm.short_name" :disabled="!canUpdate" />
         </FormItem>
         <FormItem label="行政区域">
           <RegionTreeSelect
             v-model:value="editForm.region_id"
             :disabled="!canUpdate"
             allow-clear
-            placeholder="留空保持不变"
+          />
+        </FormItem>
+        <FormItem label="注册地址">
+          <Input v-model:value="editForm.license_addr" :disabled="!canUpdate" placeholder="详细地址" />
+        </FormItem>
+        <FormItem label="授信区域">
+          <TreeSelect
+            show-search
+            :filter-tree-node="filterTreeOption"
+            v-model:value="editForm.credit_region_id"
+            :disabled="!canUpdate"
+            :field-names="{ label: 'title', value: 'value', children: 'children' }"
+            :tree-data="creditRegionTreeData"
+            allow-clear
+            tree-default-expand-all
           />
         </FormItem>
         <FormItem label="行业分类">
@@ -921,7 +938,18 @@ async function saveTags() {
             :field-names="{ label: 'title', value: 'value', children: 'children' }"
             :tree-data="industryTreeData"
             allow-clear
-            placeholder="留空保持不变"
+            tree-default-expand-all
+          />
+        </FormItem>
+        <FormItem label="所属集团">
+          <TreeSelect
+            show-search
+            :filter-tree-node="filterTreeOption"
+            v-model:value="editForm.group_id"
+            :disabled="!canUpdate"
+            :field-names="{ label: 'title', value: 'value', children: 'children' }"
+            :tree-data="groupTreeData"
+            allow-clear
             tree-default-expand-all
           />
         </FormItem>
