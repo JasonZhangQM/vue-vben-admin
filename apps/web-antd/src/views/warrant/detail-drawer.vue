@@ -673,15 +673,8 @@ async function onDeleteConstruction(record: any) {
           </Table>
         </TabPane>
 
-        <!-- 应收详情(type=11 主信息) -->
-        <TabPane v-if="detail.warrant_type === 11" key="receivable" tab="应收详情">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="应收详情" :span="2">{{ dash(detail.receivable?.receivable_detail) }}</DescriptionsItem>
-          </Descriptions>
-        </TabPane>
-
         <!-- 应收明细(type=11，参照房产 tab：内联添加 + 表格删除) -->
-        <TabPane v-if="detail.warrant_type === 11" key="receive-extends" :tab="`应收明细(${detail.receivable?.receive_units?.length ?? 0})`">
+        <TabPane v-if="detail.warrant_type === 11" key="receive-extends" :tab="`应收明细(${detail.receive_units?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <Input v-model:value="addReceiveUnitForm.receive_unit" placeholder="应收单位名称 *" style="width: 280px" @pressEnter="submitAddReceiveUnit" />
             <AccessControl :codes="['warrant:update']" type="code">
@@ -693,7 +686,7 @@ async function onDeleteConstruction(record: any) {
               { title: '应收单位', dataIndex: 'receive_unit', ellipsis: true },
               { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
-            :data-source="detail.receivable?.receive_units ?? []"
+            :data-source="detail.receive_units ?? []"
             :pagination="false"
             row-key="id"
             size="small"
@@ -719,13 +712,6 @@ async function onDeleteConstruction(record: any) {
             <DescriptionsItem label="注册资本">{{ detail.stock.registered_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="实缴资本">{{ detail.stock.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
             <DescriptionsItem label="备注">{{ dash(detail.stock.remark) }}</DescriptionsItem>
-          </Descriptions>
-        </TabPane>
-
-        <!-- 票据主表(type=31) -->
-        <TabPane v-if="detail.draft" key="draft" tab="票据信息">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="票面信息" :span="2">{{ dash(detail.draft.draft_detail) }}</DescriptionsItem>
           </Descriptions>
         </TabPane>
 

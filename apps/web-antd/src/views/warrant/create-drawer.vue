@@ -46,7 +46,6 @@ const WARRANT_TYPE_GROUND = 5;
 const WARRANT_TYPE_CONSTRUCTION = 6;
 const WARRANT_TYPE_RECEIVABLE = 11;
 const WARRANT_TYPE_STOCK = 21;
-const WARRANT_TYPE_DRAFT = 31;
 const WARRANT_TYPE_VEHICLE = 41;
 const WARRANT_TYPE_CHATTEL = 51;
 const WARRANT_TYPE_OTHER = 55;
@@ -58,7 +57,6 @@ const EXT_TITLES: Record<number, string> = {
   6: '在建工程信息',
   11: '应收账款信息(可为空)',
   21: '股权信息',
-  31: '票据信息',
   41: '车辆信息',
   51: '动产信息',
   55: '其他权证信息',
@@ -92,18 +90,15 @@ const createForm = reactive({
   stock_registered_capital: 0,
   stock_paid_capital: 0,
   stock_remark: '',
-  // 票据
-  draft_detail: '',
   // 车辆
   frame_num: '',
   plate_num: '',
   vehicle_brand: '',
-  // 动产 / 其他 / 应收
+  // 动产 / 其他
   chattel_type: 10,
   chattel_detail: '',
   other_type: 99,
   other_detail: '',
-  receivable_detail: '贷款期间所有应收账款',
 });
 
 const rules = {
@@ -312,9 +307,7 @@ function isExtDirty(): boolean {
   }
   const fieldsByType: Record<number, (string | number | undefined)[]> = {
     21: [createForm.stock_target, createForm.stock_ratio, createForm.stock_remark],
-    31: [createForm.draft_detail],
     41: [createForm.frame_num, createForm.plate_num, createForm.vehicle_brand],
-    11: [createForm.receivable_detail],
     51: [createForm.chattel_detail],
     55: [createForm.other_detail],
   };
@@ -328,10 +321,9 @@ function resetExtFields() {
   Object.assign(createForm, {
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
-    draft_detail: '',
     frame_num: '', plate_num: '', vehicle_brand: '',
     chattel_type: 10, chattel_detail: '',
-    other_type: 99, other_detail: '', receivable_detail: '贷款期间所有应收账款',
+    other_type: 99, other_detail: '',
   });
   houseRows.value = [emptyHouseRow()];
   groundRows.value = [emptyGroundRow()];
@@ -426,13 +418,6 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
         },
       };
     }
-    case WARRANT_TYPE_DRAFT: {
-      if (!createForm.draft_detail) {
-        message.warning('请填写票面信息');
-        return null;
-      }
-      return { ext: { draft_detail: createForm.draft_detail } };
-    }
     case WARRANT_TYPE_VEHICLE: {
       if (!createForm.frame_num || !createForm.plate_num || !createForm.vehicle_brand) {
         message.warning('请填写车架号、车牌与品牌型号');
@@ -441,14 +426,11 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
       return { ext: { frame_num: createForm.frame_num, plate_num: createForm.plate_num, vehicle_brand: createForm.vehicle_brand } };
     }
     case WARRANT_TYPE_RECEIVABLE: {
-      if (!createForm.receivable_detail) {
-        message.warning('请填写应收详情');
-        return null;
-      }
+      // 应收明细直连主表，可为空；仅收集已填单位
       const receive_units = receiveUnitRows.value
         .map((r) => r.receive_unit.trim())
         .filter(Boolean);
-      return { ext: { receivable_detail: createForm.receivable_detail, receive_units } };
+      return { ext: { receive_units } };
     }
     case WARRANT_TYPE_CHATTEL: {
       if (!createForm.chattel_detail) {
@@ -521,9 +503,13 @@ async function onSubmit() {
     grounds: extResult.grounds,
     constructions: extResult.constructions,
   } as WarrantCreateParams;
+  // 应收明细直连主表：receive_units 顶层提交
+  if (createForm.warrant_type === WARRANT_TYPE_RECEIVABLE) {
+    (payload as any).receive_units = (extResult.ext as any)?.receive_units ?? [];
+  }
   const extKeyByType: Record<number, string> = {
-    21: 'stock', 31: 'draft',
-    41: 'vehicle', 11: 'receivable', 51: 'chattel', 55: 'other',
+    21: 'stock',
+    41: 'vehicle', 51: 'chattel', 55: 'other',
   };
   const extKey = extKeyByType[createForm.warrant_type];
   if (extKey && extResult.ext) {
@@ -549,10 +535,9 @@ function resetAll() {
     construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
-    draft_detail: '',
     frame_num: '', plate_num: '', vehicle_brand: '',
     chattel_type: 10, chattel_detail: '',
-    other_type: 99, other_detail: '', receivable_detail: '贷款期间所有应收账款',
+    other_type: 99, other_detail: '',
   });
   houseRows.value = [emptyHouseRow()];
   ownerRows.value = [emptyOwnerRow()];
@@ -588,10 +573,6 @@ onMounted(() => {
             </FormItem>
             <FormItem label="权证号" name="warrant_num">
               <Input v-model:value="createForm.warrant_num" placeholder="不动产权证号 / 票据号等" />
-            </FormItem>
-            <!-- 应收账款类型：应收详情上移到基本信息 -->
-            <FormItem v-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE" label="应收详情">
-              <Input v-model:value="createForm.receivable_detail" placeholder="贷款期间所有应收账款" />
             </FormItem>
             <FormItem label="备注">
               <Input v-model:value="createForm.remark" placeholder="可空" :maxlength="128" />
@@ -643,8 +624,8 @@ onMounted(() => {
         </Table>
       </Card>
 
-      <!-- 分区三：类型扩展(标题随类型变化；房产/土地/在建均为可编辑表格，其余为两列表单) -->
-      <Card size="small" :title="extTitle">
+      <!-- 分区三：类型扩展(标题随类型变化；房产/土地/在建均为可编辑表格，其余为两列表单；票据类型无扩展信息) -->
+      <Card v-if="extTitle" size="small" :title="extTitle">
         <template #extra>
           <Button v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE" size="small" type="link" @click="addHouseRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_GROUND" size="small" type="link" @click="addGroundRow">+ 增加</Button>
@@ -805,13 +786,6 @@ onMounted(() => {
               </FormItem>
               <FormItem label="备注">
                 <Input v-model:value="createForm.stock_remark" placeholder="可空" />
-              </FormItem>
-            </template>
-
-            <!-- 票据 -->
-            <template v-else-if="createForm.warrant_type === WARRANT_TYPE_DRAFT">
-              <FormItem label="票面信息" required>
-                <Input v-model:value="createForm.draft_detail" placeholder="出票人 / 到期日等" />
               </FormItem>
             </template>
 

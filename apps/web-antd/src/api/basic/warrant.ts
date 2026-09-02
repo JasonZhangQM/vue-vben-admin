@@ -104,7 +104,6 @@ export interface WarrantDetail {
   constructions?: ConstructionItem[];
   created_at: string;
   created_by_name: string;
-  draft?: null | { id: number; draft_detail: string };
   draft_extends?: DraftExtendItem[];
   evaluates: EvaluateItem[];
   evaluate_company?: null | string;
@@ -123,7 +122,7 @@ export interface WarrantDetail {
   other?: null | { other_type: number; other_type_display: string; cost: number; other_detail: string; patent?: any; software?: any };
   owners: OwnerItem[];
   owner_names?: string[];
-  receivable?: null | { id: number; receivable_detail: string; receive_units: { id: number; receive_unit: string }[] };
+  receive_units?: { id: number; receive_unit: string }[];
   remark?: null | string;
   stock?: null | { stock_type: number; stock_type_display: string; target: string; ratio: number; registered_capital: number; paid_capital: number; remark?: null | string };
   storage_explain?: null | string;
@@ -151,12 +150,11 @@ export interface WarrantListParams {
 export interface WarrantCreateParams {
   chattel?: { chattel_type: number; chattel_detail: string };
   constructions?: Array<{ construct_locate: string; construct_app: string; construct_area: number; region_id?: number }>;
-  draft?: { draft_detail: string };
   grounds?: Array<{ ground_app: string; ground_area: number; ground_locate: string; region_id?: number }>;
   houses?: HouseItem[];
   other?: { other_type: number; cost?: number; other_detail: string; patent?: any; software?: any };
   owners: { owner_id: number; ownership_num: string; share_ratio?: number }[];
-  receivable?: { receivable_detail: string; receive_units?: string[] };
+  receive_units?: string[];
   stock?: {
     stock_type: number;
     target: string;
