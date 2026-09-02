@@ -109,15 +109,41 @@ async function openEditPersonal() {
   editPersonalForm.marital_status = detail.value.personal.marital_status;
   editPersonalForm.household_nature = detail.value.personal.household_nature;
   editPersonalForm.spouse_id = detail.value.personal.spouse?.id;
-  // 加载个人客户字典（排除当前客户自己）
-  const r = await getCustomerDict({ genre: 2, page_size: 200 });
-  editPersonalSpouseOptions.value = r.items
-    .filter((c) => c.id !== props.customerId)
-    .map((c) => ({
-      label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
-      value: c.id,
-    }));
+  // 预加载当前配偶的选项（remote 模式需要选项里有才能显示 label）
+  if (detail.value.personal.spouse) {
+    editPersonalSpouseOptions.value = [
+      {
+        label: detail.value.personal.spouse.name,
+        value: detail.value.personal.spouse.id,
+      },
+    ];
+  } else {
+    editPersonalSpouseOptions.value = [];
+  }
   editPersonalVisible.value = true;
+}
+
+async function onSearchSpouse(keyword: string) {
+  if (!keyword?.trim()) {
+    editPersonalSpouseOptions.value = [];
+    return;
+  }
+  try {
+    const { items } = await getCustomerDict({
+      q: keyword.trim(),
+      genre: 2,
+      page: 1,
+      page_size: 20,
+    });
+    editPersonalSpouseOptions.value = items
+      .filter((c) => c.id !== props.customerId)
+      .map((c: any) => ({
+        label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
+        value: c.id,
+      }));
+  } catch {
+    editPersonalSpouseOptions.value = [];
+  }
 }
 
 async function submitEditPersonal() {
@@ -127,19 +153,14 @@ async function submitEditPersonal() {
     household_nature: editPersonalForm.household_nature,
     spouse_id: editPersonalForm.spouse_id ?? null,
   };
-  console.log('[submitEditPersonal] payload:', JSON.stringify(payload));
   try {
     await updatePersonalProfile(props.customerId!, payload);
     message.success('个人信息已更新');
     editPersonalVisible.value = false;
     await refresh();
   } catch (e: any) {
-    console.error('[submitEditPersonal] error:', e);
-    console.error('[submitEditPersonal] error keys:', Object.keys(e || {}));
-    console.error('[submitEditPersonal] error.response:', e?.response);
-    // vben request 的 ApiError 结构: { message, response, ... }
-    const msg = e?.message ?? e?.response?.data?.message ?? e?.response?.data?.detail ?? JSON.stringify(e).slice(0, 100);
-    message.error(`保存失败: ${msg}`);
+    const msg = e?.message ?? e?.response?.data?.message ?? e?.response?.data?.detail ?? '保存失败';
+    message.error(msg);
   } finally {
     editPersonalLoading.value = false;
   }
@@ -966,10 +987,12 @@ async function saveTags() {
         <FormItem label="配偶">
           <SearchSelect
             v-model:value="editPersonalForm.spouse_id"
+            remote
             :options="editPersonalSpouseOptions"
-            placeholder="选择配偶（可清空以解绑）"
+            placeholder="输入姓名搜索（可清空以解绑）"
             allow-clear
             style="width: 100%"
+            @search="onSearchSpouse"
           />
         </FormItem>
       </Form>

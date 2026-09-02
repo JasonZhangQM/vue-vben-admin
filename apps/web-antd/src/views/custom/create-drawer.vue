@@ -59,24 +59,40 @@ const pmOptions = ref<{ label: string; value: number }[]>([]);
 const industryTreeData = ref<any[]>([]);
 const creditRegionTreeData = ref<any[]>([]);
 const groupTreeData = ref<any[]>([]);
-const personOptions = ref<{ label: string; value: number }[]>([]); // 个人客户（配偶选择）
+const spouseOptions = ref<{ label: string; value: number }[]>([]); // 配偶远程搜索结果
 
 async function loadOptions() {
-  const [pms, industries, creditRegions, groups, persons] = await Promise.all([
+  const [pms, industries, creditRegions, groups] = await Promise.all([
     getEmployeeDict({ role: 'pm' }),
     getIndustryTree(),
     getCreditRegionTree(),
     getGroupTree(),
-    getCustomerDict({ genre: 2, page_size: 200 }).then((r) => r.items),
   ]);
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   industryTreeData.value = toTreeData(industries);
   creditRegionTreeData.value = toTreeData(creditRegions);
   groupTreeData.value = toTreeData(groups);
-  personOptions.value = persons.map((p) => ({
-    label: `${p.name}${p.short_name ? ` (${p.short_name})` : ''}`,
-    value: p.id,
-  }));
+}
+
+async function onSearchSpouse(keyword: string) {
+  if (!keyword?.trim()) {
+    spouseOptions.value = [];
+    return;
+  }
+  try {
+    const { items } = await getCustomerDict({
+      q: keyword.trim(),
+      genre: 2,
+      page: 1,
+      page_size: 20,
+    });
+    spouseOptions.value = items.map((c: any) => ({
+      label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
+      value: c.id,
+    }));
+  } catch {
+    spouseOptions.value = [];
+  }
 }
 
 // ================= 主表单 =================
@@ -520,9 +536,11 @@ watch(open, (val) => {
             <FormItem label="配偶">
               <SearchSelect
                 v-model:value="personalForm.spouse_id"
-                :options="personOptions"
+                remote
+                :options="spouseOptions"
+                @search="onSearchSpouse"
                 allow-clear
-                placeholder="选择已有个人客户"
+                placeholder="输入姓名搜索（可空）"
               />
             </FormItem>
           </div>
