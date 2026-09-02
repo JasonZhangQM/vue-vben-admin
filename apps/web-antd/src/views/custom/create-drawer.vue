@@ -38,7 +38,7 @@ import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { createCustomer, getGroupTree } from '#/api/basic/customer';
-import { getCreditRegionTree, getEmployeeDict, getIndustryTree } from '#/api/basic/dict';
+import { getCreditRegionTree, getCustomerDict, getEmployeeDict, getIndustryTree } from '#/api/basic/dict';
 import { useDictStore } from '#/store';
 
 import { filterTreeOption, toTreeData } from '#/utils/format';
@@ -59,18 +59,24 @@ const pmOptions = ref<{ label: string; value: number }[]>([]);
 const industryTreeData = ref<any[]>([]);
 const creditRegionTreeData = ref<any[]>([]);
 const groupTreeData = ref<any[]>([]);
+const personOptions = ref<{ label: string; value: number }[]>([]); // 个人客户（配偶选择）
 
 async function loadOptions() {
-  const [pms, industries, creditRegions, groups] = await Promise.all([
+  const [pms, industries, creditRegions, groups, persons] = await Promise.all([
     getEmployeeDict({ role: 'pm' }),
     getIndustryTree(),
     getCreditRegionTree(),
     getGroupTree(),
+    getCustomerDict({ genre: 2, page_size: 200 }).then((r) => r.items),
   ]);
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   industryTreeData.value = toTreeData(industries);
   creditRegionTreeData.value = toTreeData(creditRegions);
   groupTreeData.value = toTreeData(groups);
+  personOptions.value = persons.map((p) => ({
+    label: `${p.name}${p.short_name ? ` (${p.short_name})` : ''}`,
+    value: p.id,
+  }));
 }
 
 // ================= 主表单 =================
@@ -105,6 +111,7 @@ const companyForm = reactive({
 const personalForm = reactive({
   marital_status: undefined as number | undefined,
   household_nature: undefined as number | undefined,
+  spouse_id: undefined as number | undefined,
 });
 
 /** 证件号/地址标签随 genre 动态切换 */
@@ -253,8 +260,8 @@ async function onSubmit() {
           decisionor: companyForm.decisionor,
           custom_nature: companyForm.custom_nature,
           typing: companyForm.typing,
-          capital: companyForm.capital ?? 0,
-          paid_capital: companyForm.paid_capital ?? 0,
+          capital: companyForm.capital,
+          paid_capital: companyForm.paid_capital,
           representative: companyForm.representative || undefined,
         };
       }
@@ -262,11 +269,13 @@ async function onSubmit() {
       // 个人扩展：有填写才传
       const hasPersonalExt =
         personalForm.marital_status !== undefined ||
-        personalForm.household_nature !== undefined;
+        personalForm.household_nature !== undefined ||
+        personalForm.spouse_id !== undefined;
       if (hasPersonalExt) {
         personalPayload = {
           marital_status: personalForm.marital_status,
           household_nature: personalForm.household_nature,
+          spouse_id: personalForm.spouse_id,
         };
       }
     }
@@ -322,6 +331,7 @@ function resetAll() {
   Object.assign(personalForm, {
     marital_status: undefined,
     household_nature: undefined,
+    spouse_id: undefined,
   });
   contactKeySeq = 0;
   contacts.value = [emptyContactRow(true)];
@@ -507,6 +517,14 @@ watch(open, (val) => {
                 placeholder="可空"
               />
             </FormItem>
+            <FormItem label="配偶">
+              <SearchSelect
+                v-model:value="personalForm.spouse_id"
+                :options="personOptions"
+                allow-clear
+                placeholder="选择已有个人客户"
+              />
+            </FormItem>
           </div>
         </Form>
       </Card>
@@ -544,7 +562,6 @@ watch(open, (val) => {
             </template>
             <template v-else-if="column.dataIndex === '_op'">
               <Button
-                v-if="contacts.length > 1"
                 danger
                 size="small"
                 type="link"

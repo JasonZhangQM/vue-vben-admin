@@ -112,6 +112,7 @@ export interface CustomerCreateParams {
   personal?: {
     household_nature?: number;
     marital_status?: number;
+    spouse_id?: number;
   };
   region_id?: number;
   short_name: string;
@@ -396,6 +397,20 @@ export function addGroupMembers(id: number, customerIds: number[]) {
 /** 移除成员企业(母公司不可移除，后端拦截) */
 export function removeGroupMember(id: number, customerId: number) {
   return requestClient.delete(`/customer-groups/${id}/members/${customerId}`);
+}
+
+// ===== 配偶 =====
+
+/** 绑定配偶(双向关联 + 双方置已婚) */
+export function bindSpouse(customerId: number, spouseCustomerId: number) {
+  return requestClient.post(`/customers/${customerId}/spouse`, {
+    spouse_customer_id: spouseCustomerId,
+  });
+}
+
+/** 解绑配偶(双向解绑 + 双方婚姻状态回默认) */
+export function unbindSpouse(customerId: number) {
+  return requestClient.delete(`/customers/${customerId}/spouse`);
 }
 
 // ===== 统计 =====

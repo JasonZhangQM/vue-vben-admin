@@ -37,6 +37,7 @@ import {
   addDirector,
   addExtend,
   addShareholder,
+  bindSpouse,
   deleteCustomerContact,
   deleteDirector,
   deleteExtend,
@@ -46,11 +47,14 @@ import {
   listDirectors,
   listExtends,
   listShareholders,
+  unbindSpouse,
   updateCustomer,
   updateCustomerContact,
   updateCustomerTags,
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
+import SearchSelect from '#/components/SearchSelect/index.vue';
+import { getCustomerDict } from '#/api/basic/dict';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useDictStore } from '#/store';
 import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
@@ -88,6 +92,51 @@ const classificationColor = (c: number) =>
 async function refresh() {
   await load();
   emit('updated');
+}
+
+// ===== 配偶绑定/解绑 =====
+const bindSpouseVisible = ref(false);
+const bindSpouseLoading = ref(false);
+const bindSpouseOptions = ref<{ label: string; value: number }[]>([]);
+const bindSpouseForm = reactive({ spouse_customer_id: undefined as number | undefined });
+
+async function openBindSpouse() {
+  bindSpouseForm.spouse_customer_id = undefined;
+  // 加载个人客户字典（排除当前客户自己）
+  const r = await getCustomerDict({ genre: 2, page_size: 200 });
+  bindSpouseOptions.value = r.items
+    .filter((c) => c.id !== props.customerId)
+    .map((c) => ({
+      label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
+      value: c.id,
+    }));
+  bindSpouseVisible.value = true;
+}
+
+async function submitBindSpouse() {
+  if (!bindSpouseForm.spouse_customer_id) {
+    message.warning('请选择配偶');
+    return;
+  }
+  bindSpouseLoading.value = true;
+  try {
+    await bindSpouse(props.customerId!, bindSpouseForm.spouse_customer_id);
+    message.success('配偶已绑定');
+    bindSpouseVisible.value = false;
+    await refresh();
+  } finally {
+    bindSpouseLoading.value = false;
+  }
+}
+
+async function submitUnbindSpouse() {
+  try {
+    await unbindSpouse(props.customerId!);
+    message.success('配偶已解绑');
+    await refresh();
+  } catch (e: any) {
+    message.error(e?.response?.data?.detail ?? '解绑失败');
+  }
 }
 
 async function load() {
@@ -489,17 +538,45 @@ async function saveTags() {
         <TabPane v-if="detail.company" key="company" tab="企业信息">
           <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
-            <DescriptionsItem label="注册资本">{{ detail.company.capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="实收资本">{{ detail.company.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="注册资本">{{ detail.company.capital != null ? detail.company.capital.toLocaleString() : '—' }}</DescriptionsItem>
+            <DescriptionsItem label="实收资本">{{ detail.company.paid_capital != null ? detail.company.paid_capital.toLocaleString() : '—' }}</DescriptionsItem>
           </Descriptions>
         </TabPane>
 
         <!-- 个人扩展 -->
         <TabPane v-if="detail.personal" key="personal" tab="个人信息">
-          <Descriptions :column="detailColumns" size="small">
-            <DescriptionsItem label="婚姻状态">{{ dash(detail.personal.marital_status_display) }}</DescriptionsItem>
-            <DescriptionsItem label="户籍性质">{{ dash(detail.personal.household_nature_display) }}</DescriptionsItem>
-          </Descriptions>
+          <Card size="small">
+            <template #extra>
+              <AccessControl :codes="['customer:update']" type="code">
+                <Button
+                  v-if="!detail.personal.spouse"
+                  size="small"
+                  type="primary"
+                  @click="openBindSpouse"
+                >关联配偶</Button>
+                <Popconfirm
+                  v-else
+                  title="确认解绑配偶？"
+                  content="解绑后双方婚姻状态将回到默认（未知）"
+                  ok-text="确认解绑"
+                  cancel-text="取消"
+                  @confirm="submitUnbindSpouse"
+                >
+                  <Button size="small" danger type="primary">解绑配偶</Button>
+                </Popconfirm>
+              </AccessControl>
+            </template>
+            <Descriptions :column="detailColumns" size="small">
+              <DescriptionsItem label="婚姻状态">{{ dash(detail.personal.marital_status_display) }}</DescriptionsItem>
+              <DescriptionsItem label="户籍性质">{{ dash(detail.personal.household_nature_display) }}</DescriptionsItem>
+              <DescriptionsItem label="配偶">
+                <template v-if="detail.personal.spouse">
+                  {{ dash(detail.personal.spouse.name) }}
+                </template>
+                <template v-else>—</template>
+              </DescriptionsItem>
+            </Descriptions>
+          </Card>
         </TabPane>
 
         <!-- 联系人 -->
@@ -862,6 +939,26 @@ async function saveTags() {
           <Input v-model:value="editContactForm.remark" placeholder="可空" />
         </FormItem>
       </Form>
+    </Modal>
+
+    <!-- 绑定配偶 Modal -->
+    <Modal
+      v-model:open="bindSpouseVisible"
+      title="关联配偶"
+      :confirm-loading="bindSpouseLoading"
+      ok-text="确认绑定"
+      cancel-text="取消"
+      @ok="submitBindSpouse"
+    >
+      <div class="py-2">
+        <div class="mb-2 text-sm text-gray-500">选择要绑定的个人客户（双方婚姻状态将置为"已婚"）：</div>
+        <SearchSelect
+          v-model:value="bindSpouseForm.spouse_customer_id"
+          :options="bindSpouseOptions"
+          placeholder="输入客户名搜索"
+          style="width: 100%"
+        />
+      </div>
     </Modal>
   </Drawer>
 </template>
