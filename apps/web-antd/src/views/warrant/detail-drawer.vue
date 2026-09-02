@@ -95,23 +95,19 @@ watch(
   },
 );
 
-// ===== 编辑(WarrantUpdate 仅 warrant_state + remark；评估/拍卖/出入库走子表接口) =====
+// ===== 编辑(WarrantUpdate 仅 remark；状态变更走出入库子表接口) =====
 const { hasAccessByCodes } = useAccess();
 const canUpdate = computed(() => hasAccessByCodes(['warrant:update']));
 
 const editVisible = ref(false);
 const editLoading = ref(false);
 const editForm = reactive({
-  warrant_state: undefined as number | undefined,
   remark: '',
 });
 
 function openEdit() {
   if (!detail.value) return;
-  Object.assign(editForm, {
-    warrant_state: detail.value.warrant_state ?? undefined,
-    remark: detail.value.remark ?? '',
-  });
+  editForm.remark = detail.value.remark ?? '';
   editVisible.value = true;
 }
 
@@ -120,7 +116,6 @@ async function submitEdit() {
   editLoading.value = true;
   try {
     await updateWarrant(detail.value.id, {
-      warrant_state: editForm.warrant_state,
       remark: opt(editForm.remark),
     });
     message.success('权证信息已更新');
@@ -829,24 +824,16 @@ async function onDeleteConstruction(record: any) {
       </Tabs>
     </div>
 
-    <!-- 权证编辑 Modal(仅主表基础字段；评估/拍卖/出入库走子表接口) -->
+    <!-- 权证编辑 Modal(仅基本信息；状态变更走出入库子表接口) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑权证"
+      title="编辑备注"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
-        <FormItem label="权证状态">
-          <SearchSelect
-            v-model:value="editForm.warrant_state"
-            :disabled="!canUpdate"
-            :options="dictStore.get('warrant.warrant_state')"
-            allow-clear
-          />
-        </FormItem>
         <FormItem label="备注">
           <Input v-model:value="editForm.remark" :disabled="!canUpdate" :maxlength="128" placeholder="可空" />
         </FormItem>
