@@ -410,7 +410,10 @@ export function updatePersonalProfile(
     spouse_id?: number | null;
   },
 ) {
-  return requestClient.patch(`/customers/${customerId}/personal`, data);
+  return requestClient.request(`/customers/${customerId}/personal`, {
+    data,
+    method: 'PATCH',
+  });
 }
 
 // ===== 统计 =====
