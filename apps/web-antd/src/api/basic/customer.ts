@@ -228,9 +228,9 @@ export interface ExtendItem {
   created_by_name: string;
   data_date: string;
   id: number;
-  people_engaged: number;
-  sales_revenue: number;
-  total_assets: number;
+  people_engaged: number | null;
+  sales_revenue: number | null;
+  total_assets: number | null;
   typing: number;
 }
 
@@ -399,18 +399,18 @@ export function removeGroupMember(id: number, customerId: number) {
   return requestClient.delete(`/customer-groups/${id}/members/${customerId}`);
 }
 
-// ===== 配偶 =====
+// ===== 个人扩展 =====
 
-/** 绑定配偶(双向关联 + 双方置已婚) */
-export function bindSpouse(customerId: number, spouseCustomerId: number) {
-  return requestClient.post(`/customers/${customerId}/spouse`, {
-    spouse_customer_id: spouseCustomerId,
-  });
-}
-
-/** 解绑配偶(双向解绑 + 双方婚姻状态回默认) */
-export function unbindSpouse(customerId: number) {
-  return requestClient.delete(`/customers/${customerId}/spouse`);
+/** 更新个人扩展信息（婚姻状态/户籍性质/配偶，三个字段一起编辑） */
+export function updatePersonalProfile(
+  customerId: number,
+  data: {
+    marital_status?: number;
+    household_nature?: number;
+    spouse_id?: number | null;
+  },
+) {
+  return requestClient.patch(`/customers/${customerId}/personal`, data);
 }
 
 // ===== 统计 =====

@@ -23,6 +23,7 @@ import {
   message,
   Modal,
   Popconfirm,
+  Select,
   Switch,
   Table,
   Tabs,
@@ -37,7 +38,6 @@ import {
   addDirector,
   addExtend,
   addShareholder,
-  bindSpouse,
   deleteCustomerContact,
   deleteDirector,
   deleteExtend,
@@ -47,10 +47,10 @@ import {
   listDirectors,
   listExtends,
   listShareholders,
-  unbindSpouse,
   updateCustomer,
   updateCustomerContact,
   updateCustomerTags,
+  updatePersonalProfile,
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import SearchSelect from '#/components/SearchSelect/index.vue';
@@ -94,48 +94,54 @@ async function refresh() {
   emit('updated');
 }
 
-// ===== 配偶绑定/解绑 =====
-const bindSpouseVisible = ref(false);
-const bindSpouseLoading = ref(false);
-const bindSpouseOptions = ref<{ label: string; value: number }[]>([]);
-const bindSpouseForm = reactive({ spouse_customer_id: undefined as number | undefined });
+// ===== 个人信息编辑 =====
+const editPersonalVisible = ref(false);
+const editPersonalLoading = ref(false);
+const editPersonalForm = reactive({
+  marital_status: undefined as number | undefined,
+  household_nature: undefined as number | undefined,
+  spouse_id: undefined as number | undefined,
+});
+const editPersonalSpouseOptions = ref<{ label: string; value: number }[]>([]);
 
-async function openBindSpouse() {
-  bindSpouseForm.spouse_customer_id = undefined;
+async function openEditPersonal() {
+  if (!detail.value?.personal) return;
+  editPersonalForm.marital_status = detail.value.personal.marital_status;
+  editPersonalForm.household_nature = detail.value.personal.household_nature;
+  editPersonalForm.spouse_id = detail.value.personal.spouse?.id;
   // 加载个人客户字典（排除当前客户自己）
   const r = await getCustomerDict({ genre: 2, page_size: 200 });
-  bindSpouseOptions.value = r.items
+  editPersonalSpouseOptions.value = r.items
     .filter((c) => c.id !== props.customerId)
     .map((c) => ({
       label: `${c.name}${c.short_name ? ` (${c.short_name})` : ''}`,
       value: c.id,
     }));
-  bindSpouseVisible.value = true;
+  editPersonalVisible.value = true;
 }
 
-async function submitBindSpouse() {
-  if (!bindSpouseForm.spouse_customer_id) {
-    message.warning('请选择配偶');
-    return;
-  }
-  bindSpouseLoading.value = true;
+async function submitEditPersonal() {
+  editPersonalLoading.value = true;
+  const payload = {
+    marital_status: editPersonalForm.marital_status,
+    household_nature: editPersonalForm.household_nature,
+    spouse_id: editPersonalForm.spouse_id ?? null,
+  };
+  console.log('[submitEditPersonal] payload:', JSON.stringify(payload));
   try {
-    await bindSpouse(props.customerId!, bindSpouseForm.spouse_customer_id);
-    message.success('配偶已绑定');
-    bindSpouseVisible.value = false;
-    await refresh();
-  } finally {
-    bindSpouseLoading.value = false;
-  }
-}
-
-async function submitUnbindSpouse() {
-  try {
-    await unbindSpouse(props.customerId!);
-    message.success('配偶已解绑');
+    await updatePersonalProfile(props.customerId!, payload);
+    message.success('个人信息已更新');
+    editPersonalVisible.value = false;
     await refresh();
   } catch (e: any) {
-    message.error(e?.response?.data?.detail ?? '解绑失败');
+    console.error('[submitEditPersonal] error:', e);
+    console.error('[submitEditPersonal] error keys:', Object.keys(e || {}));
+    console.error('[submitEditPersonal] error.response:', e?.response);
+    // vben request 的 ApiError 结构: { message, response, ... }
+    const msg = e?.message ?? e?.response?.data?.message ?? e?.response?.data?.detail ?? JSON.stringify(e).slice(0, 100);
+    message.error(`保存失败: ${msg}`);
+  } finally {
+    editPersonalLoading.value = false;
   }
 }
 
@@ -548,22 +554,7 @@ async function saveTags() {
           <Card size="small">
             <template #extra>
               <AccessControl :codes="['customer:update']" type="code">
-                <Button
-                  v-if="!detail.personal.spouse"
-                  size="small"
-                  type="primary"
-                  @click="openBindSpouse"
-                >关联配偶</Button>
-                <Popconfirm
-                  v-else
-                  title="确认解绑配偶？"
-                  content="解绑后双方婚姻状态将回到默认（未知）"
-                  ok-text="确认解绑"
-                  cancel-text="取消"
-                  @confirm="submitUnbindSpouse"
-                >
-                  <Button size="small" danger type="primary">解绑配偶</Button>
-                </Popconfirm>
+                <Button size="small" type="primary" @click="openEditPersonal">编辑</Button>
               </AccessControl>
             </template>
             <Descriptions :column="detailColumns" size="small">
@@ -847,10 +838,13 @@ async function saveTags() {
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'sales_revenue'">
-                {{ Number(record.sales_revenue).toLocaleString() }}
+                {{ record.sales_revenue != null ? Number(record.sales_revenue).toLocaleString() : '—' }}
               </template>
               <template v-else-if="column.dataIndex === 'total_assets'">
-                {{ Number(record.total_assets).toLocaleString() }}
+                {{ record.total_assets != null ? Number(record.total_assets).toLocaleString() : '—' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'people_engaged'">
+                {{ record.people_engaged != null ? Number(record.people_engaged).toLocaleString() : '—' }}
               </template>
               <template v-else-if="column.dataIndex === 'typing'">
                 {{ dictStore.labelOf('customer.typing', record.typing) }}
@@ -941,24 +935,44 @@ async function saveTags() {
       </Form>
     </Modal>
 
-    <!-- 绑定配偶 Modal -->
+    <!-- 编辑个人信息 Modal -->
     <Modal
-      v-model:open="bindSpouseVisible"
-      title="关联配偶"
-      :confirm-loading="bindSpouseLoading"
-      ok-text="确认绑定"
+      v-model:open="editPersonalVisible"
+      title="编辑个人信息"
+      :confirm-loading="editPersonalLoading"
+      ok-text="保存"
       cancel-text="取消"
-      @ok="submitBindSpouse"
+      @ok="submitEditPersonal"
     >
-      <div class="py-2">
-        <div class="mb-2 text-sm text-gray-500">选择要绑定的个人客户（双方婚姻状态将置为"已婚"）：</div>
-        <SearchSelect
-          v-model:value="bindSpouseForm.spouse_customer_id"
-          :options="bindSpouseOptions"
-          placeholder="输入客户名搜索"
-          style="width: 100%"
-        />
-      </div>
+      <Form :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
+        <FormItem label="婚姻状态">
+          <Select
+            v-model:value="editPersonalForm.marital_status"
+            :options="dictStore.get('customer.marital_status')"
+            placeholder="请选择"
+            allow-clear
+            style="width: 100%"
+          />
+        </FormItem>
+        <FormItem label="户籍性质">
+          <Select
+            v-model:value="editPersonalForm.household_nature"
+            :options="dictStore.get('customer.household_nature')"
+            placeholder="请选择"
+            allow-clear
+            style="width: 100%"
+          />
+        </FormItem>
+        <FormItem label="配偶">
+          <SearchSelect
+            v-model:value="editPersonalForm.spouse_id"
+            :options="editPersonalSpouseOptions"
+            placeholder="选择配偶（可清空以解绑）"
+            allow-clear
+            style="width: 100%"
+          />
+        </FormItem>
+      </Form>
     </Modal>
   </Drawer>
 </template>
