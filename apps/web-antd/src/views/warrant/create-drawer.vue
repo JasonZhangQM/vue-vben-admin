@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 所有权人)+ 真实校验 + 类型切换保护。
  *
  * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
@@ -50,6 +50,7 @@ const WARRANT_TYPE_STOCK = 21;
 const WARRANT_TYPE_VEHICLE = 41;
 const WARRANT_TYPE_CHATTEL = 51;
 const WARRANT_TYPE_OTHER = 55;
+const WARRANT_TYPE_DRAFT = 31;
 
 // 类型扩展区标题(分区 Card 标题随类型动态变化)
 const EXT_TITLES: Record<number, string> = {
@@ -570,9 +571,12 @@ async function onSubmit() {
     grounds: extResult.grounds,
     constructions: extResult.constructions,
   } as WarrantCreateParams;
-  // 应收明细直连主表：receive_units 顶层提交
+  // 应收明细/票据明细：都是顶层字段（schema 里 receive_units 和 draft_extends 都在 _ExtBase 上）
   if (createForm.warrant_type === WARRANT_TYPE_RECEIVABLE) {
     (payload as any).receive_units = (extResult.ext as any)?.receive_units ?? [];
+  }
+  if (createForm.warrant_type === WARRANT_TYPE_DRAFT) {
+    (payload as any).draft_extends = (extResult.ext as any)?.draft_extends ?? [];
   }
   const extKeyByType: Record<number, string> = {
     21: 'stock',
@@ -980,3 +984,5 @@ onMounted(() => {
     </template>
   </Drawer>
 </template>
+
+

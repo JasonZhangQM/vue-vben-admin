@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
@@ -31,7 +31,7 @@ import {
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
-import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
+import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/api/basic/dict';
 import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
 
@@ -343,9 +343,19 @@ async function onDeleteReceiveUnit(record: any) {
   await refresh();
 }
 
-// ===== 票据明细(参照应收/土地：内联添加 + 表格删除) =====
-const acceptorCustomerSearch = createCustomerSearch();
-const coreCustomerSearch = createCustomerSearch();
+// ===== 票据明细：承兑人/核心企业下拉预加载(与 create-drawer 保持一致) =====
+const draftAcceptorOptions = ref<{ label: string; value: number }[]>([]);
+const draftCoreOptions = ref<{ label: string; value: number }[]>([]);
+async function loadDraftOptions() {
+  if (draftAcceptorOptions.value.length && draftCoreOptions.value.length) return;
+  try {
+    const [acceptors, cores] = await Promise.all([getAcceptorDict(), getCoreDict()]);
+    draftAcceptorOptions.value = acceptors.map((c: any) => ({ label: c.name, value: c.id }));
+    draftCoreOptions.value = cores.map((c: any) => ({ label: c.name, value: c.id }));
+  } catch {
+    // 预加载失败不阻断详情展示
+  }
+}
 const addDraftForm = reactive({
   draft_type: 10,
   draft_num: '',
@@ -380,8 +390,6 @@ async function submitAddDraft() {
     draft_type: 10, draft_num: '', acceptor_id: undefined, core_id: undefined,
     draft_amount: undefined, issue_date: '', due_date: '',
   });
-  acceptorCustomerSearch.options.value = [];
-  coreCustomerSearch.options.value = [];
   message.success('票据明细已添加');
   await refresh();
 }
@@ -744,21 +752,19 @@ async function onDeleteConstruction(record: any) {
             <Input v-model:value="addDraftForm.draft_num" placeholder="票据号 *" style="width: 200px" @pressEnter="submitAddDraft" />
             <SearchSelect
               v-model:value="addDraftForm.acceptor_id"
-              remote
-              :options="acceptorCustomerSearch.options.value"
-              placeholder="输入客户名搜索承兑人 *"
+              :options="draftAcceptorOptions"
+              placeholder="承兑人 *"
               allow-clear
               style="width: 220px"
-              @search="acceptorCustomerSearch.onSearch"
+              @focus="loadDraftOptions"
             />
             <SearchSelect
               v-model:value="addDraftForm.core_id"
-              remote
-              :options="coreCustomerSearch.options.value"
-              placeholder="输入客户名搜索核心企业 *"
+              :options="draftCoreOptions"
+              placeholder="核心企业 *"
               allow-clear
               style="width: 220px"
-              @search="coreCustomerSearch.onSearch"
+              @focus="loadDraftOptions"
             />
             <InputNumber
               v-model:value="addDraftForm.draft_amount"
@@ -785,14 +791,14 @@ async function onDeleteConstruction(record: any) {
           </div>
           <Table
             :columns="[
-              { title: '票据号', dataIndex: 'draft_num', ellipsis: true },
-              { title: '类型', dataIndex: 'draft_type' },
+              { title: '票据号', dataIndex: 'draft_num' },
+              { title: '类型', dataIndex: 'draft_type', width: 110 },
               { title: '承兑人', dataIndex: 'acceptor_name' },
               { title: '核心企业', dataIndex: 'core_name' },
-              { title: '金额', dataIndex: 'draft_amount' },
-              { title: '出票日', dataIndex: 'issue_date' },
-              { title: '到期日', dataIndex: 'due_date' },
-              { title: '状态', dataIndex: 'draft_state' },
+              { title: '金额', dataIndex: 'draft_amount', width: 110 },
+              { title: '出票日', dataIndex: 'issue_date', width: 110 },
+              { title: '到期日', dataIndex: 'due_date', width: 110 },
+              { title: '状态', dataIndex: 'draft_state', width: 90 },
               { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
             :data-source="detail.draft_extends ?? []"
@@ -985,3 +991,7 @@ async function onDeleteConstruction(record: any) {
     </Modal>
   </Drawer>
 </template>
+
+
+
+
