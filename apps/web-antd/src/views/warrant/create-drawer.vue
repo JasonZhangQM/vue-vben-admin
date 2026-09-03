@@ -57,6 +57,7 @@ const EXT_TITLES: Record<number, string> = {
   6: '在建工程信息',
   11: '应收账款信息(可为空)',
   21: '股权信息',
+  31: '票据信息',
   41: '车辆信息',
   51: '动产信息',
   55: '其他权证信息',
@@ -146,6 +147,17 @@ interface ReceiveUnitRow {
   _key: number;
 }
 
+interface DraftRow {
+  draft_type: number;
+  draft_num: string;
+  acceptor_id: number | undefined;
+  core_id: number | undefined;
+  draft_amount: number | undefined;
+  issue_date: string;
+  due_date: string;
+  _key: number;
+}
+
 let rowKeySeq = 0;
 const nextKey = () => ++rowKeySeq;
 
@@ -162,10 +174,15 @@ const emptyReceiveUnitRow = (): ReceiveUnitRow => ({
   receive_unit: '',
   _key: nextKey(),
 });
+const emptyDraftRow = (): DraftRow => ({
+  draft_type: 10, draft_num: '', acceptor_id: undefined, core_id: undefined,
+  draft_amount: undefined, issue_date: '', due_date: '', _key: nextKey(),
+});
 
 const houseRows = ref<HouseRow[]>([emptyHouseRow()]);
 const ownerRows = ref<OwnerRow[]>([emptyOwnerRow()]);
 const receiveUnitRows = ref<ReceiveUnitRow[]>([]);
+const draftRows = ref<DraftRow[]>([]);
 
 // 可编辑表格列：必填列标题带 *，行内输入组件经 bodyCell 插槽渲染
 const houseColumns: TableColumnType[] = [
@@ -208,6 +225,8 @@ function removeOwnerRow(index: number) {
 }
 function addReceiveUnitRow() { receiveUnitRows.value.push(emptyReceiveUnitRow()); }
 function removeReceiveUnitRow(index: number) { receiveUnitRows.value.splice(index, 1); }
+function addDraftRow() { draftRows.value.push(emptyDraftRow()); }
+function removeDraftRow(index: number) { draftRows.value.splice(index, 1); }
 
 const groundRows = ref<GroundRow[]>([emptyGroundRow()]);
 const constructionRows = ref<ConstructionRow[]>([emptyConstructionRow()]);
@@ -229,6 +248,16 @@ const constructionColumns: TableColumnType[] = [
 ];
 const receiveUnitColumns: TableColumnType[] = [
   { title: '应收单位', dataIndex: 'receive_unit' },
+  { title: '操作', dataIndex: '_op', width: 60 },
+];
+const draftColumns: TableColumnType[] = [
+  { title: '票据类型', dataIndex: 'draft_type', width: 120 },
+  { title: '票据号 *', dataIndex: 'draft_num', width: 180 },
+  { title: '承兑人 *', dataIndex: 'acceptor_id', width: 200 },
+  { title: '核心企业 *', dataIndex: 'core_id', width: 200 },
+  { title: '金额 *', dataIndex: 'draft_amount', width: 120 },
+  { title: '出票日 *', dataIndex: 'issue_date', width: 140 },
+  { title: '到期日 *', dataIndex: 'due_date', width: 140 },
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 
@@ -305,6 +334,9 @@ function isExtDirty(): boolean {
   if (createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION) {
     return constructionRows.value.some((c) => c.construct_locate || c.construct_app || c.construct_area);
   }
+  if (createForm.warrant_type === 31) {
+    return draftRows.value.some((d) => d.draft_num || d.acceptor_id || d.core_id || d.draft_amount || d.issue_date || d.due_date);
+  }
   const fieldsByType: Record<number, (string | number | undefined)[]> = {
     21: [createForm.stock_target, createForm.stock_ratio, createForm.stock_remark],
     41: [createForm.frame_num, createForm.plate_num, createForm.vehicle_brand],
@@ -328,6 +360,8 @@ function resetExtFields() {
   houseRows.value = [emptyHouseRow()];
   groundRows.value = [emptyGroundRow()];
   constructionRows.value = [emptyConstructionRow()];
+  receiveUnitRows.value = [];
+  draftRows.value = [];
 }
 
 // ================= 提交 =================
@@ -431,6 +465,32 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
         .map((r) => r.receive_unit.trim())
         .filter(Boolean);
       return { ext: { receive_units } };
+    }
+    case 31: {
+      // 票据明细：每行需完整（票据号/承兑人/核心企业/金额/出票日/到期日均必填）
+      const hasAny = draftRows.value.some(
+        (d) => d.draft_num || d.acceptor_id || d.core_id || d.draft_amount || d.issue_date || d.due_date,
+      );
+      const valid = draftRows.value.filter(
+        (d) => d.draft_num.trim() && d.acceptor_id && d.core_id && d.draft_amount && d.issue_date && d.due_date,
+      );
+      if (valid.length === 0) {
+        message.warning(hasAny ? '票据行信息不完整(票据号/承兑人/核心企业/金额/出票日/到期日均必填)' : '票据类型需至少填写一行完整票据');
+        return null;
+      }
+      return {
+        ext: {
+          draft_extends: valid.map((d) => ({
+            draft_type: d.draft_type,
+            draft_num: d.draft_num.trim(),
+            acceptor_id: d.acceptor_id,
+            core_id: d.core_id,
+            draft_amount: d.draft_amount,
+            issue_date: d.issue_date,
+            due_date: d.due_date,
+          })),
+        },
+      };
     }
     case WARRANT_TYPE_CHATTEL: {
       if (!createForm.chattel_detail) {
@@ -542,6 +602,7 @@ function resetAll() {
   houseRows.value = [emptyHouseRow()];
   ownerRows.value = [emptyOwnerRow()];
   receiveUnitRows.value = [];
+  draftRows.value = [];
   lastType = 1;
   attempted.value = false;
   formRef.value?.clearValidate();
@@ -624,13 +685,14 @@ onMounted(() => {
         </Table>
       </Card>
 
-      <!-- 分区三：类型扩展(标题随类型变化；房产/土地/在建均为可编辑表格，其余为两列表单；票据类型无扩展信息) -->
+      <!-- 分区三：类型扩展(标题随类型变化；房产/土地/在建/应收/票据为可编辑表格，其余为两列表单) -->
       <Card v-if="extTitle" size="small" :title="extTitle">
         <template #extra>
           <Button v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE" size="small" type="link" @click="addHouseRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_GROUND" size="small" type="link" @click="addGroundRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION" size="small" type="link" @click="addConstructionRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE" size="small" type="link" @click="addReceiveUnitRow">+ 增加</Button>
+          <Button v-else-if="createForm.warrant_type === 31" size="small" type="link" @click="addDraftRow">+ 增加</Button>
         </template>
         <!-- 房产：1:N 房产包，可编辑表格 -->
         <template v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE">
@@ -843,6 +905,60 @@ onMounted(() => {
               </template>
               <template v-else-if="column.dataIndex === '_op'">
                 <Button danger size="small" type="link" @click="removeReceiveUnitRow(index)">删除</Button>
+              </template>
+            </template>
+          </Table>
+        </template>
+        <!-- type=31 票据明细表格 -->
+        <template v-if="createForm.warrant_type === 31">
+          <Table
+            :columns="draftColumns"
+            :data-source="draftRows"
+            :pagination="false"
+            :row-key="(r: any) => r._key"
+            size="small"
+            class="mt-3"
+          >
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.dataIndex === 'draft_type'">
+                <SearchSelect
+                  v-model:value="record.draft_type"
+                  :options="dictStore.get('warrant.draft_type')"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'draft_num'">
+                <Input v-model:value="record.draft_num" placeholder="票据号" style="width: 100%" />
+              </template>
+              <template v-else-if="column.dataIndex === 'acceptor_id'">
+                <SearchSelect
+                  v-model:value="record.acceptor_id"
+                  remote
+                  :options="remoteCustomerOptions"
+                  placeholder="承兑人"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'core_id'">
+                <SearchSelect
+                  v-model:value="record.core_id"
+                  remote
+                  :options="remoteCustomerOptions"
+                  placeholder="核心企业"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'draft_amount'">
+                <InputNumber v-model:value="record.draft_amount" :min="0" class="w-full" />
+              </template>
+              <template v-else-if="column.dataIndex === 'issue_date'">
+                <DatePicker v-model:value="record.issue_date" class="w-full" value-format="YYYY-MM-DD" />
+              </template>
+              <template v-else-if="column.dataIndex === 'due_date'">
+                <DatePicker v-model:value="record.due_date" class="w-full" value-format="YYYY-MM-DD" />
+              </template>
+              <template v-else-if="column.dataIndex === '_op'">
+                <Button danger size="small" type="link" @click="removeDraftRow(index)">删除</Button>
               </template>
             </template>
           </Table>

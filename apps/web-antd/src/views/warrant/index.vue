@@ -27,7 +27,7 @@ import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store/dict';
 import { dash } from '#/utils/format';
 
-import { warrantStateColor, STORAGE_TYPE_COLOR } from './constants';
+import { warrantStateColor } from './constants';
 
 import { getUserList } from '#/api/system/user';
 import { getCustomerList } from '#/api/basic/customer';
@@ -127,10 +127,8 @@ const createOpen = ref(false);
 const columns: TableColumnType[] = [
   { title: '权证号', dataIndex: 'warrant_num' }, // 详情入口链接列：不加 ellipsis
   { title: '类型', dataIndex: 'warrant_type', width: 90 },
-  { title: '状态', dataIndex: 'warrant_state', width: 90 },
   { title: '所有权人', dataIndex: 'owner_names', ellipsis: true },
-  { title: '最近出入库', dataIndex: 'storage_latest', width: 140 },
-  { title: '登记时间', dataIndex: 'created_at', ellipsis: true },
+  { title: '状态', dataIndex: 'warrant_state', width: 90 },
   { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
@@ -344,15 +342,6 @@ onMounted(() => {
           </template>
           <template v-else-if="column.dataIndex === 'owner_names'">
             {{ (record.owner_names as string[])?.join('、') || '—' }}
-          </template>
-          <template v-else-if="column.dataIndex === 'storage_latest'">
-            <template v-if="record.storage_latest">
-              <Tag size="small" :color="STORAGE_TYPE_COLOR[record.storage_latest.storage_type] ?? 'default'">
-                {{ dictStore.labelOf('warrant.storage_type', record.storage_latest.storage_type) }}
-              </Tag>
-              <span class="text-xs text-gray-500 ml-1">{{ record.storage_latest.storage_date }}</span>
-            </template>
-            <template v-else>—</template>
           </template>
           <template v-else-if="column.dataIndex === 'created_by_name'">
             {{ dash(record.created_by_name) }}
