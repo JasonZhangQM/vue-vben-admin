@@ -120,10 +120,13 @@ export interface CustomerCreateParams {
 
 export interface CustomerListParams {
   classification?: number;
+  controler_id?: number;
   genre?: number;
+  managementor_id?: number;
   page?: number;
   page_size?: number;
   q?: string;
+  region_id?: number;
 }
 
 /** 客户列表(data_scope 过滤) */
@@ -303,7 +306,6 @@ export function addCoreLimit(
 /** 集团树节点(成员数/在保汇均为合并口径：本集团 + 全部子集团) */
 export interface GroupTreeNode {
   children: GroupTreeNode[];
-  code: string;
   credit_amount: number;
   id: number;
   member_count: number;
@@ -334,7 +336,6 @@ export interface GroupDetail extends GroupTreeNode {
 }
 
 export interface GroupCreateParams {
-  code: string;
   credit_amount?: number;
   description?: string;
   name: string;

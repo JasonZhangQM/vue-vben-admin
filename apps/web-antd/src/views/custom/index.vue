@@ -11,9 +11,11 @@ import { Page } from '@vben/common-ui';
 
 import { Button, Card, Input, Table, Tag } from 'ant-design-vue';
 
+import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import SearchSelect from '#/components/SearchSelect/index.vue';
 
 import { getCustomerList } from '#/api/basic/customer';
+import { getEmployeeDict } from '#/api/basic/dict';
 
 import CreateDrawer from './create-drawer.vue';
 import DetailDrawer from './detail-drawer.vue';
@@ -40,7 +42,14 @@ const query = reactive({
   q: '',
   genre: undefined as number | undefined,
   classification: undefined as number | undefined,
+  region_id: undefined as number | undefined,
+  managementor_id: undefined as number | undefined,
+  controler_id: undefined as number | undefined,
 });
+
+/** 管护经理/风控专员下拉（一次性全量加载，人数有限） */
+const pmOptions = ref<{ label: string; value: number }[]>([]);
+const controlerOptions = ref<{ label: string; value: number }[]>([]);
 
 async function loadList() {
   loading.value = true;
@@ -58,6 +67,9 @@ function resetQuery() {
   query.q = '';
   query.genre = undefined;
   query.classification = undefined;
+  query.region_id = undefined;
+  query.managementor_id = undefined;
+  query.controler_id = undefined;
   query.page = 1;
   loadList();
 }
@@ -86,6 +98,8 @@ const columns: TableColumnType[] = [
   { title: '客户名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
   { title: '简称', dataIndex: 'short_name', ellipsis: true },
   { title: '类型', dataIndex: 'genre', ellipsis: true },
+  { title: '证件号/信用代码', dataIndex: 'license_num', ellipsis: true },
+  { title: '行政区域', dataIndex: 'region_name', ellipsis: true },
   { title: '五级分类', dataIndex: 'classification', ellipsis: true },
   { title: '管护经理', dataIndex: 'managementor_name', ellipsis: true },
   { title: '风控专员', dataIndex: 'controler_name', ellipsis: true },
@@ -94,7 +108,18 @@ const columns: TableColumnType[] = [
   { title: '创建人', dataIndex: 'created_by_name', ellipsis: true },
 ];
 
-onMounted(() => {
+onMounted(async () => {
+  // 管护经理 / 风控专员字典（人数有限，全量加载一次）
+  try {
+    const [pms, controlers] = await Promise.all([
+      getEmployeeDict({ role: 'pm' }),
+      getEmployeeDict({ role: 'controler' }),
+    ]);
+    pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
+    controlerOptions.value = controlers.map((u) => ({ label: u.name, value: u.id }));
+  } catch {
+    /* 字典加载失败不阻塞列表 */
+  }
   loadList();
 });
 </script>
@@ -125,6 +150,26 @@ onMounted(() => {
           allow-clear
           placeholder="五级分类"
           style="width: 110px"
+        />
+        <RegionTreeSelect
+          v-model:value="query.region_id"
+          allow-clear
+          placeholder="行政区域"
+          style="width: 160px"
+        />
+        <SearchSelect
+          v-model:value="query.managementor_id"
+          :options="pmOptions"
+          allow-clear
+          placeholder="管护经理"
+          style="width: 130px"
+        />
+        <SearchSelect
+          v-model:value="query.controler_id"
+          :options="controlerOptions"
+          allow-clear
+          placeholder="风控专员"
+          style="width: 130px"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
         <Button @click="resetQuery">重置</Button>
@@ -167,6 +212,12 @@ onMounted(() => {
           </template>
           <template v-else-if="column.dataIndex === 'genre'">
             {{ dictStore.labelOf('customer.genre', record.genre) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'license_num'">
+            {{ dash(record.license_num) }}
+          </template>
+          <template v-else-if="column.dataIndex === 'region_name'">
+            {{ dash(record.region_name) }}
           </template>
           <template v-else-if="column.dataIndex === 'classification'">
             <Tag :color="classificationColor(record.classification)">

@@ -32,13 +32,13 @@ import {
   addGroupMembers,
   createGroup,
   deleteGroup,
-  getCustomerList,
   getGroupDetail,
   getGroupTree,
   listGroupMembers,
   removeGroupMember,
   updateGroup,
 } from '#/api/basic/customer';
+import { getCustomerDict } from '#/api/basic/dict';
 import type { GroupDetail, GroupTreeNode } from '#/api/basic/customer';
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
@@ -71,8 +71,7 @@ function normalize(nodes: GroupTreeNode[]): GroupTreeNode[] {
 /** 关键字本地过滤树：命中保留整棵子树；子孙命中则保留路径节点 */
 function filterTree(nodes: GroupTreeNode[], kw: string): GroupTreeNode[] {
   return nodes.reduce<GroupTreeNode[]>((acc, n) => {
-    const hit =
-      n.name.toLowerCase().includes(kw) || n.code.toLowerCase().includes(kw);
+    const hit = n.name.toLowerCase().includes(kw);
     if (hit) {
       acc.push(n);
     } else {
@@ -131,7 +130,6 @@ const parentTreeData = computed(() => [
 
 const columns: TableColumnType[] = [
   { title: '集团名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
-  { title: '编码', dataIndex: 'code', ellipsis: true },
   { title: '母公司', dataIndex: 'parent_customer_name', ellipsis: true },
   { title: '成员数', dataIndex: 'member_count', width: 90, ellipsis: true },
   { title: '在保汇总', dataIndex: 'total_insure_amount', width: 140, ellipsis: true },
@@ -140,29 +138,34 @@ const columns: TableColumnType[] = [
 ];
 
 // ================= 客户远程搜索(母公司 / 添加成员共用) =================
+// 与权证所有权人保持一致：走 /dicts/customers 字典接口，remote 模式不全量预拉取
 const customerOptions = ref<{ label: string; value: number }[]>([]);
-let customerSearchToken = 0;
 
 async function searchCustomers(kw: string) {
-  const token = ++customerSearchToken; // 防乱序回写
-  const data = await getCustomerList({
-    q: kw || undefined,
-    genre: 1, // 母公司/成员必须是企业客户
-    page: 1,
-    page_size: 20,
-  });
-  if (token !== customerSearchToken) return;
-  customerOptions.value = data.items.map((c) => ({
-    label: c.name,
-    value: c.id,
-  }));
+  if (!kw?.trim()) {
+    customerOptions.value = [];
+    return;
+  }
+  try {
+    const { items } = await getCustomerDict({
+      q: kw.trim(),
+      genre: 1, // 母公司/成员必须是企业客户
+      page: 1,
+      page_size: 20,
+    });
+    customerOptions.value = items.map((c) => ({
+      label: c.name,
+      value: c.id,
+    }));
+  } catch {
+    customerOptions.value = [];
+  }
 }
 
 // ================= 新建 =================
 const createVisible = ref(false);
 const createLoading = ref(false);
 const createForm = reactive({
-  code: '',
   name: '',
   parent_id: 0 as number,
   parent_customer_id: undefined as number | undefined,
@@ -172,7 +175,6 @@ const createForm = reactive({
 
 function openCreate() {
   Object.assign(createForm, {
-    code: '',
     name: '',
     parent_id: 0,
     parent_customer_id: undefined,
@@ -181,12 +183,11 @@ function openCreate() {
   });
   customerOptions.value = [];
   createVisible.value = true;
-  searchCustomers(''); // 预加载企业客户：不输关键字也有默认选项
 }
 
 async function submitCreate() {
-  if (!createForm.code.trim() || !createForm.name.trim()) {
-    message.warning('请填写集团编码与名称');
+  if (!createForm.name.trim()) {
+    message.warning('请填写集团名称');
     return;
   }
   if (!createForm.parent_customer_id) {
@@ -196,7 +197,6 @@ async function submitCreate() {
   createLoading.value = true;
   try {
     await createGroup({
-      code: createForm.code.trim(),
       name: createForm.name.trim(),
       parent_id: createForm.parent_id || undefined,
       parent_customer_id: createForm.parent_customer_id,
@@ -296,7 +296,6 @@ function openMemberAdd() {
   memberAddIds.value = [];
   customerOptions.value = [];
   memberAddVisible.value = true;
-  searchCustomers(''); // 预加载企业客户
 }
 
 async function submitMemberAdd() {
@@ -320,7 +319,6 @@ async function submitMemberAdd() {
 // ---- 子集团 Tab ----
 const subColumns: TableColumnType[] = [
   { title: '集团名称', dataIndex: 'name' }, // 链接列：打开子集团详情
-  { title: '编码', dataIndex: 'code', ellipsis: true },
   { title: '母公司', dataIndex: 'parent_customer_name', ellipsis: true },
   { title: '成员数', dataIndex: 'member_count', width: 90, ellipsis: true },
   { title: '在保汇总', dataIndex: 'total_insure_amount', width: 140, ellipsis: true },
@@ -457,9 +455,6 @@ onMounted(() => {
       @ok="submitCreate"
     >
       <Form :label-col="{ span: 5 }" :model="createForm" :wrapper-col="{ span: 17 }">
-        <FormItem label="集团编码" required>
-          <Input v-model:value="createForm.code" placeholder="如：G-2026-001" />
-        </FormItem>
         <FormItem label="集团名称" required>
           <Input v-model:value="createForm.name" />
         </FormItem>
@@ -517,7 +512,6 @@ onMounted(() => {
           </template>
           <Descriptions :column="detailColumns" size="small">
             <DescriptionsItem label="名称">{{ dash(detail.name) }}</DescriptionsItem>
-            <DescriptionsItem label="编码">{{ dash(detail.code) }}</DescriptionsItem>
             <DescriptionsItem label="母公司">
               {{ dash(detail.parent_customer_name) }}
             </DescriptionsItem>
