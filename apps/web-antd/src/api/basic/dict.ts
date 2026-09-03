@@ -99,6 +99,16 @@ export function getCustomerDict(params?: {
   }>('/dicts/customers', { params });
 }
 
+/** 承兑人下拉字典(全量，本地搜索) */
+export function getAcceptorDict() {
+  return requestClient.get<CustomerDictItem[]>('/dicts/acceptors');
+}
+
+/** 核心企业下拉字典(全量，本地搜索) */
+export function getCoreDict() {
+  return requestClient.get<CustomerDictItem[]>('/dicts/cores');
+}
+
 /** 授信区域树(下拉选择用) */
 export function getCreditRegionTree() {
   return requestClient.get<TreeNode[]>('/dicts/credit-regions/tree');

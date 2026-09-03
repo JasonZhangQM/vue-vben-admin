@@ -23,6 +23,8 @@ import {
   message,
   Modal,
   Popconfirm,
+  Radio,
+  RadioGroup,
   Select,
   Switch,
   Table,
@@ -220,6 +222,8 @@ const editForm = reactive({
   credit_region_id: undefined as number | undefined,
   industry_id: undefined as number | undefined,
   group_id: undefined as number | undefined,
+  is_core: false,
+  is_acceptor: false,
 });
 
 async function openEdit() {
@@ -239,6 +243,9 @@ async function openEdit() {
     credit_region_id: detail.value.credit_region_id,
     industry_id: detail.value.industry_id,
     group_id: detail.value.group_id,
+    // bool → 单选框 0/1
+    is_core: detail.value.is_core ? 1 : 0,
+    is_acceptor: detail.value.is_acceptor ? 1 : 0,
   });
   editVisible.value = true;
 }
@@ -255,6 +262,9 @@ async function submitEdit() {
       credit_region_id: editForm.credit_region_id,
       industry_id: editForm.industry_id,
       group_id: editForm.group_id,
+      // 单选框 0/1 → bool
+      is_core: !!editForm.is_core,
+      is_acceptor: !!editForm.is_acceptor,
     });
     message.success('客户信息已更新');
     editVisible.value = false;
@@ -547,6 +557,8 @@ async function saveTags() {
               {{ dash(detail.classification_display) }}
             </Tag>
           </DescriptionsItem>
+          <DescriptionsItem label="是否核心企业" v-if="detail.genre === 1">{{ detail.is_core ? '是' : '否' }}</DescriptionsItem>
+          <DescriptionsItem label="是否承兑人" v-if="detail.genre === 1">{{ detail.is_acceptor ? '是' : '否' }}</DescriptionsItem>
 
           <!-- 金额/汇总 -->
           <DescriptionsItem label="授信额度">{{ detail.credit_amount?.toLocaleString() ?? '—' }}</DescriptionsItem>
@@ -952,6 +964,18 @@ async function saveTags() {
             allow-clear
             tree-default-expand-all
           />
+        </FormItem>
+        <FormItem label="是否核心企业" v-if="detail?.genre === 1">
+          <RadioGroup v-model:value="editForm.is_core">
+            <Radio :value="1" :disabled="!canUpdate">是</Radio>
+            <Radio :value="0" :disabled="!canUpdate">否</Radio>
+          </RadioGroup>
+        </FormItem>
+        <FormItem label="是否承兑人" v-if="detail?.genre === 1">
+          <RadioGroup v-model:value="editForm.is_acceptor">
+            <Radio :value="1" :disabled="!canUpdate">是</Radio>
+            <Radio :value="0" :disabled="!canUpdate">否</Radio>
+          </RadioGroup>
         </FormItem>
       </Form>
     </Modal>

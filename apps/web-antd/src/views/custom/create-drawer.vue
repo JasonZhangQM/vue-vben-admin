@@ -26,6 +26,7 @@ import {
   InputNumber,
   message,
   Modal,
+  Radio,
   RadioButton,
   RadioGroup,
   Select,
@@ -111,6 +112,8 @@ const createForm = reactive({
   industry_id: undefined as number | undefined,
   credit_region_id: undefined as number | undefined,
   group_id: undefined as number | undefined,
+  is_core: 0,
+  is_acceptor: 0,
 });
 
 // 企业扩展字段（genre=1 时提交到 company）
@@ -308,6 +311,9 @@ async function onSubmit() {
       industry_id: createForm.industry_id,
       credit_region_id: createForm.credit_region_id,
       group_id: createForm.group_id,
+      // 单选框 0/1 转为 bool 提交
+      is_core: !!createForm.is_core,
+      is_acceptor: !!createForm.is_acceptor,
       company: companyPayload,
       personal: personalPayload,
       contacts: contactPayload.length > 0 ? contactPayload : undefined,
@@ -335,6 +341,8 @@ function resetAll() {
     industry_id: undefined,
     credit_region_id: undefined,
     group_id: undefined,
+    is_core: 0,
+    is_acceptor: 0,
   });
   Object.assign(companyForm, {
     decisionor: undefined,
@@ -399,6 +407,18 @@ watch(open, (val) => {
             </FormItem>
             <FormItem :label="licenseAddrLabel">
               <Input v-model:value="createForm.license_addr" placeholder="详细地址" />
+            </FormItem>
+            <FormItem v-if="createForm.genre === 1" label="是否核心企业">
+              <RadioGroup v-model:value="createForm.is_core">
+                <Radio :value="1">是</Radio>
+                <Radio :value="0">否</Radio>
+              </RadioGroup>
+            </FormItem>
+            <FormItem v-if="createForm.genre === 1" label="是否承兑人">
+              <RadioGroup v-model:value="createForm.is_acceptor">
+                <Radio :value="1">是</Radio>
+                <Radio :value="0">否</Radio>
+              </RadioGroup>
             </FormItem>
           </div>
         </Form>

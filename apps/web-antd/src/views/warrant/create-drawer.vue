@@ -12,6 +12,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import {
   Button,
   Card,
+  DatePicker,
   Drawer,
   Form,
   FormItem,
@@ -28,7 +29,7 @@ import { useDictStore } from '#/store/dict';
 
 import type { WarrantCreateParams } from '#/api/basic/warrant';
 
-import { getCustomerDict, getHouseApps } from '#/api/basic/dict';
+import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/api/basic/dict';
 import { createWarrant } from '#/api/basic/warrant';
 import { useFormColumns } from '#/composables/useFormColumns';
 
@@ -266,6 +267,8 @@ const draftColumns: TableColumnType[] = [
 /** 远程客户搜索选项（外键关联模式：按需拉取，生产客户量可达千级） */
 const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
 const houseAppOptions = ref<{ label: string; value: number }[]>([]);
+const acceptorOptions = ref<{ label: string; value: number }[]>([]);
+const coreOptions = ref<{ label: string; value: number }[]>([]);
 
 /** 远程客户搜索 handler：走 /dicts/customers（无 data_scope，全量客户可选） */
 async function onSearchCustomer(keyword: string) {
@@ -285,7 +288,7 @@ async function onSearchCustomer(keyword: string) {
 }
 
 async function loadOptions() {
-  // 只加载字典型数据（房产用途树）；客户选远程搜索
+  // 房产用途树
   const houseApps = await getHouseApps();
   const flatten = (nodes: any[]) => {
     for (const n of nodes ?? []) {
@@ -294,6 +297,10 @@ async function loadOptions() {
     }
   };
   flatten(houseApps);
+  // 承兑人 / 核心企业 全量拉取，本地搜索
+  const [acceptors, cores] = await Promise.all([getAcceptorDict(), getCoreDict()]);
+  acceptorOptions.value = acceptors.map((c) => ({ label: c.name, value: c.id }));
+  coreOptions.value = cores.map((c) => ({ label: c.name, value: c.id }));
 }
 
 // ================= 类型切换保护 =================
@@ -933,18 +940,18 @@ onMounted(() => {
               <template v-else-if="column.dataIndex === 'acceptor_id'">
                 <SearchSelect
                   v-model:value="record.acceptor_id"
-                  remote
-                  :options="remoteCustomerOptions"
+                  :options="acceptorOptions"
                   placeholder="承兑人"
+                  allow-clear
                   style="width: 100%"
                 />
               </template>
               <template v-else-if="column.dataIndex === 'core_id'">
                 <SearchSelect
                   v-model:value="record.core_id"
-                  remote
-                  :options="remoteCustomerOptions"
+                  :options="coreOptions"
                   placeholder="核心企业"
+                  allow-clear
                   style="width: 100%"
                 />
               </template>

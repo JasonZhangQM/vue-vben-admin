@@ -18,6 +18,7 @@ export interface CustomerListItem {
   id: number;
   managementor_name: string;
   name: string;
+  region_id: null | number;
   region_name: null | string;
   short_name: string;
   created_by_name: string;
