@@ -88,7 +88,7 @@ function resetQuery() {
   loadList();
 }
 
-// 所有权人远程搜索(对接后端 list_warrants 的 owner_id 筛选)
+// 产权人远程搜索(对接后端 list_warrants 的 owner_id 筛选)
 const ownerOptions = ref<{ label: string; value: number }[]>([]);
 const ownerLoading = ref(false);
 async function onSearchOwner(keyword: string) {
@@ -127,7 +127,7 @@ const createOpen = ref(false);
 const columns: TableColumnType[] = [
   { title: '权证号', dataIndex: 'warrant_num' }, // 详情入口链接列：不加 ellipsis
   { title: '类型', dataIndex: 'warrant_type', width: 90 },
-  { title: '所有权人', dataIndex: 'owner_names', ellipsis: true },
+  { title: '产权人', dataIndex: 'owner_names', ellipsis: true },
   { title: '状态', dataIndex: 'warrant_state', width: 90 },
   { title: '登记人', dataIndex: 'created_by_name', ellipsis: true },
 ];
@@ -276,7 +276,7 @@ onMounted(() => {
           :options="ownerOptions"
           :loading="ownerLoading"
           allow-clear
-          placeholder="所有权人"
+          placeholder="产权人"
           remote
           style="min-width: 240px; width: fit-content"
           @search="onSearchOwner"

@@ -4,7 +4,7 @@
  * 布局策略：
  * - Drawer 宽度 66%，Card size="small" 分区布局
  * - 响应式 grid：useFormColumns composable 提供
- * - 联系人参考 warrant/create-drawer.vue 的所有权人可编辑表格模式
+ * - 联系人参考 warrant/create-drawer.vue 的产权人可编辑表格模式
  * - watch(open) → resetAll 打开即重置 + 加载下拉选项
  * - genre 类型切换保护：已有 license_num/license_addr 时弹窗确认清空
  */

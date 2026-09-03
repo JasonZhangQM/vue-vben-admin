@@ -81,7 +81,10 @@ export interface CustomerDetail extends CustomerListItem {
   entrusted_loan: number;
   // ---- 以下与后端 get_detail 实际响应逐字段对齐 ----
   contacts: CustomerContact[];
+  industry_id: null | number;
   industry_name: null | string;
+  is_core: boolean;
+  is_acceptor: boolean;
   last_provide_date: null | string;
   last_review_date: null | string;
   last_synced_at: null | string;
@@ -117,6 +120,8 @@ export interface CustomerCreateParams {
   };
   region_id?: number;
   short_name: string;
+  is_core?: boolean;
+  is_acceptor?: boolean;
 }
 
 export interface CustomerListParams {

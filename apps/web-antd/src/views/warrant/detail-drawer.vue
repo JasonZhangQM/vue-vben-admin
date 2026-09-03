@@ -1,5 +1,5 @@
 ﻿<script lang="ts" setup>
-/** 权证详情抽屉：基本信息 / 所有权人 / 房产 / 出入库(联动状态)/ 评估。 */
+/** 权证详情抽屉：基本信息 / 产权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
 
@@ -137,7 +137,7 @@ async function onDelete() {
   emit('updated');
 }
 
-// ===== 所有权人编辑(OwnershipUpdate 自由字段) =====
+// ===== 产权人编辑(OwnershipUpdate 自由字段) =====
 const ownerEditVisible = ref(false);
 const ownerEditLoading = ref(false);
 const ownerEditForm = reactive({
@@ -165,7 +165,7 @@ async function submitOwnerEdit() {
       ownership_num: opt(ownerEditForm.ownership_num),
       share_ratio: ownerEditForm.share_ratio,
     });
-    message.success('所有权人已更新');
+    message.success('产权人已更新');
     ownerEditVisible.value = false;
     await refresh();
   } finally {
@@ -222,7 +222,7 @@ async function submitEvaluate() {
 }
 
 // ===== 客户远程搜索（detail-drawer 和 create-drawer 两处复用）=====
-/** 工厂：每个 SearchSelect 实例独立 options（所有权人/承兑人/核心企业复用） */
+/** 工厂：每个 SearchSelect 实例独立 options（产权人/承兑人/核心企业复用） */
 function createCustomerSearch() {
   const options = ref<{ label: string; value: number }[]>([]);
   async function onSearch(keyword: string) {
@@ -257,7 +257,7 @@ async function loadHouseAppOptions() {
   flatten(await getHouseApps());
 }
 
-// ===== 所有权人添加 =====
+// ===== 产权人添加 =====
 const addOwnerForm = reactive({
   owner_id: undefined as number | undefined,
   ownership_num: '',
@@ -276,14 +276,14 @@ async function submitAddOwner() {
   });
   Object.assign(addOwnerForm, { owner_id: undefined, ownership_num: '', share_ratio: undefined });
   ownerCustomerSearch.options.value = [];
-  message.success('所有权人已添加');
+  message.success('产权人已添加');
   await refresh();
 }
 
 async function onDeleteOwner(record: any) {
   if (!detail.value) return;
   await deleteWarrantOwner(detail.value.id, record.id);
-  message.success('所有权人已删除');
+  message.success('产权人已删除');
   await refresh();
 }
 
@@ -478,7 +478,7 @@ async function onDeleteConstruction(record: any) {
           <!-- 基础标识 -->
           <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
-          <DescriptionsItem label="所有权人">
+          <DescriptionsItem label="产权人">
             {{ (detail.owner_names as string[])?.join('、') || '—' }}
           </DescriptionsItem>
 
@@ -497,8 +497,8 @@ async function onDeleteConstruction(record: any) {
       </Card>
 
       <Tabs>
-        <!-- 所有权人：内联添加表单 + 表格(首列链接打开编辑 Modal + 删除) -->
-        <TabPane key="owners" :tab="`所有权人(${detail.owners?.length ?? 0})`">
+        <!-- 产权人：内联添加表单 + 表格(首列链接打开编辑 Modal + 删除) -->
+        <TabPane key="owners" :tab="`产权人(${detail.owners?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <SearchSelect
               v-model:value="addOwnerForm.owner_id"
@@ -961,17 +961,17 @@ async function onDeleteConstruction(record: any) {
       </Form>
     </Modal>
 
-    <!-- 所有权人编辑 Modal(字段对齐后端 OwnershipUpdate) -->
+    <!-- 产权人编辑 Modal(字段对齐后端 OwnershipUpdate) -->
     <Modal
       v-model:open="ownerEditVisible"
       :confirm-loading="ownerEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑所有权人"
+      title="编辑产权人"
       @ok="submitOwnerEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
-        <FormItem label="所有权人">
+        <FormItem label="产权人">
           <Input :value="ownerEditForm.owner_name" disabled />
         </FormItem>
         <FormItem label="权证编号">

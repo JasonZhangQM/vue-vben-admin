@@ -138,7 +138,7 @@ const columns: TableColumnType[] = [
 ];
 
 // ================= 客户远程搜索(母公司 / 添加成员共用) =================
-// 与权证所有权人保持一致：走 /dicts/customers 字典接口，remote 模式不全量预拉取
+// 与权证产权人保持一致：走 /dicts/customers 字典接口，remote 模式不全量预拉取
 const customerOptions = ref<{ label: string; value: number }[]>([]);
 
 async function searchCustomers(kw: string) {

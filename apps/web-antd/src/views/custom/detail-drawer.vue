@@ -903,11 +903,12 @@ async function saveTags() {
       </Tabs>
     </div>
 
-    <!-- 客户编辑 Modal(仅允许编辑指定 7 个字段) -->
+    <!-- 客户编辑 Modal(仅允许编辑指定 7 个字段)；关闭即销毁：重开时行政区域等懒加载组件重新挂载回显 -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
+      destroy-on-close
       title="编辑客户"
       @ok="submitEdit"
     >

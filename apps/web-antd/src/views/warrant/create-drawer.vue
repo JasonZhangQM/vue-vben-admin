@@ -1,5 +1,5 @@
 ﻿<script lang="ts" setup>
-/** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 所有权人)+ 真实校验 + 类型切换保护。
+/** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 产权人)+ 真实校验 + 类型切换保护。
  *
  * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
  */
@@ -97,6 +97,7 @@ const createForm = reactive({
   frame_num: '',
   plate_num: '',
   vehicle_brand: '',
+  vehicle_remark: '',
   // 动产 / 其他
   chattel_type: 10,
   chattel_detail: '',
@@ -197,7 +198,7 @@ const houseColumns: TableColumnType[] = [
   { title: '操作', dataIndex: '_op', width: 60 },
 ];
 const ownerColumns: TableColumnType[] = [
-  { title: '所有权人 *', dataIndex: 'owner_id', width: 300 },
+  { title: '产权人 *', dataIndex: 'owner_id', width: 300 },
   { title: '产权证编号 *', dataIndex: 'ownership_num' },
   { title: '份额%(可空=共有)', dataIndex: 'share_ratio', width: 140 },
   { title: '操作', dataIndex: '_op', width: 60 },
@@ -361,7 +362,7 @@ function resetExtFields() {
   Object.assign(createForm, {
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
-    frame_num: '', plate_num: '', vehicle_brand: '',
+    frame_num: '', plate_num: '', vehicle_brand: '', vehicle_remark: '',
     chattel_type: 10, chattel_detail: '',
     other_type: 99, other_detail: '',
   });
@@ -465,7 +466,7 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
         message.warning('请填写车架号、车牌与品牌型号');
         return null;
       }
-      return { ext: { frame_num: createForm.frame_num, plate_num: createForm.plate_num, vehicle_brand: createForm.vehicle_brand } };
+      return { ext: { frame_num: createForm.frame_num, plate_num: createForm.plate_num, vehicle_brand: createForm.vehicle_brand, remark: createForm.vehicle_remark || undefined } };
     }
     case WARRANT_TYPE_RECEIVABLE: {
       // 应收明细直连主表，可为空；仅收集已填单位
@@ -519,20 +520,20 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
   }
 }
 
-/** 校验所有权人行：全空行忽略；部分填写(客户或权证编号缺失)报错定位行号 */
+/** 校验产权人行：全空行忽略；部分填写(客户或权证编号缺失)报错定位行号 */
 function validateOwners() {
   const rows = ownerRows.value;
   for (let i = 0; i < rows.length; i++) {
     const { owner_id, ownership_num, share_ratio } = rows[i]!;
     const hasAny = owner_id || ownership_num || share_ratio !== undefined;
     if (hasAny && (!owner_id || !ownership_num)) {
-      message.warning(`第 ${i + 1} 行所有权人信息不完整(客户与权证编号均为必填)`);
+      message.warning(`第 ${i + 1} 行产权人信息不完整(客户与权证编号均为必填)`);
       return null;
     }
   }
   const owners = rows.filter((o) => o.owner_id && o.ownership_num);
   if (owners.length === 0) {
-    message.warning('请至少填写一行完整所有权人(客户 + 权证编号)');
+    message.warning('请至少填写一行完整产权人(客户 + 权证编号)');
     return null;
   }
   return owners;
@@ -545,7 +546,7 @@ async function onSubmit() {
   } catch {
     return;
   }
-  // 2) 类型扩展 + 所有权人动态行校验
+  // 2) 类型扩展 + 产权人动态行校验
   const extResult = validateExt();
   if (extResult === null) {
     attempted.value = true;
@@ -606,7 +607,7 @@ function resetAll() {
     construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
     stock_registered_capital: 0, stock_paid_capital: 0, stock_remark: '',
-    frame_num: '', plate_num: '', vehicle_brand: '',
+    frame_num: '', plate_num: '', vehicle_brand: '', vehicle_remark: '',
     chattel_type: 10, chattel_detail: '',
     other_type: 99, other_detail: '',
   });
@@ -653,8 +654,8 @@ onMounted(() => {
         </Form>
       </Card>
 
-      <!-- 分区二：所有权人(可编辑表格)——提到类型扩展之前，业务上应先明确"是谁的证" -->
-      <Card size="small" title="所有权人(统一中间表，支持共有)">
+      <!-- 分区二：产权人(可编辑表格)——提到类型扩展之前，业务上应先明确"是谁的证" -->
+      <Card size="small" title="产权人(统一中间表，支持共有)">
         <template #extra>
           <Button size="small" type="link" @click="addOwnerRow">+ 增加</Button>
         </template>
@@ -872,6 +873,9 @@ onMounted(() => {
               </FormItem>
               <FormItem label="品牌型号" required>
                 <Input v-model:value="createForm.vehicle_brand" />
+              </FormItem>
+              <FormItem label="备注">
+                <Input v-model:value="createForm.vehicle_remark" />
               </FormItem>
             </template>
 

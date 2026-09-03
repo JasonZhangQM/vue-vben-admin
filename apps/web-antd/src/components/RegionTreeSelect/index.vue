@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /**
  * 行政区域下拉选择(全局通用组件)。
  *
@@ -11,7 +11,7 @@
  */
 import type { PropType } from 'vue';
 
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { TreeSelect } from 'ant-design-vue';
 
@@ -23,7 +23,9 @@ import {
 } from '#/api/basic/dict';
 
 const props = defineProps({
-  modelValue: {
+  // 协议与调用方 v-model:value 对齐(而非标准 v-model 的 modelValue)：
+  // 声明为 prop 后不再进入 fallthrough attrs，避免透传 value 覆盖内部 :value 绑定
+  value: {
     type: [Number, Object] as PropType<number | null | undefined>,
     default: undefined,
   },
@@ -35,7 +37,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:value']);
 
 const regionTreeData = ref<any[]>([]);
 
@@ -88,6 +90,8 @@ function onRegionSearch(input: string) {
     if (Date.now() - lastRegionSearchTime < 1500) return;
     if (regionRootsBackup.value.length) {
       regionTreeData.value = regionRootsBackup.value;
+      // 备份覆盖后回显临时节点已丢失，需重新插入
+      if (typeof props.value === 'number') ensureEchoNode(props.value);
     }
     return;
   }
@@ -121,18 +125,32 @@ async function ensureEchoNode(id: number) {
 }
 
 watch(
-  () => props.modelValue,
+  () => props.value,
   (v) => {
     if (typeof v === 'number') ensureEchoNode(v);
   },
 );
 
+/**
+ * 回显保护：value 对应节点尚未插入树中(roots/详情接口在途)时传 undefined，
+ * 让 TreeSelect 显示 placeholder 而非裸数字 ID；节点就位后自动切换为完整路径。
+ */
+const displayValue = computed(() => {
+  if (
+    typeof props.value === 'number' &&
+    !findNodeInTree(regionTreeData.value, props.value)
+  ) {
+    return undefined;
+  }
+  return props.value;
+});
+
 onMounted(async () => {
   const roots = await getRegionRoots();
   regionTreeData.value = toRegionNodes(roots);
   regionRootsBackup.value = regionTreeData.value;
-  if (typeof props.modelValue === 'number') {
-    ensureEchoNode(props.modelValue);
+  if (typeof props.value === 'number') {
+    ensureEchoNode(props.value);
   }
 });
 </script>
@@ -146,9 +164,9 @@ onMounted(async () => {
     :load-data="loadRegionChildren"
     :placeholder="placeholder"
     :tree-data="regionTreeData"
-    :value="modelValue"
+    :value="displayValue"
     show-search
     @search="onRegionSearch"
-    @update:value="(v: any) => emit('update:modelValue', v)"
+    @update:value="(v: any) => emit('update:value', v)"
   />
 </template>

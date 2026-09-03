@@ -1,4 +1,4 @@
-/** 基础数据：权证模块 API(主表 / 所有权人 / 出入库 / 评估 / 批量操作)。 */
+/** 基础数据：权证模块 API(主表 / 产权人 / 出入库 / 评估 / 批量操作)。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -156,12 +156,12 @@ export function getWarrantList(params: WarrantListParams) {
   });
 }
 
-/** 权证详情(聚合扩展 / 所有权人 / 出入库 / 评估) */
+/** 权证详情(聚合扩展 / 产权人 / 出入库 / 评估) */
 export function getWarrantDetail(id: number) {
   return requestClient.get<WarrantDetail>(`/warrants/${id}`);
 }
 
-/** 创建权证(主表 + 类型扩展 + 所有权人，单事务) */
+/** 创建权证(主表 + 类型扩展 + 产权人，单事务) */
 export function createWarrant(data: WarrantCreateParams) {
   return requestClient.post<{ id: number }>('/warrants', data);
 }
@@ -174,12 +174,20 @@ export function updateWarrant(id: number, data: object) {
   });
 }
 
+/** 按类型更新扩展信息(整体替换) */
+export function updateWarrantTypeDetail(id: number, data: object) {
+  return requestClient.request(`/warrants/${id}/type-detail`, {
+    data,
+    method: 'PUT',
+  });
+}
+
 /** 删除权证(拦截：已入库 / 已流转走注销流程) */
 export function deleteWarrant(id: number) {
   return requestClient.delete(`/warrants/${id}`);
 }
 
-/** 修改所有权人(OwnershipUpdate 自由字段，留空不序列化保持原值) */
+/** 修改产权人(OwnershipUpdate 自由字段，留空不序列化保持原值) */
 export function updateWarrantOwner(
   id: number,
   ownerRowId: number,
@@ -191,7 +199,7 @@ export function updateWarrantOwner(
   });
 }
 
-/** 添加所有权人 */
+/** 添加产权人 */
 export function addWarrantOwner(
   id: number,
   data: { owner_id: number; ownership_num: string; share_ratio?: number },
@@ -199,7 +207,7 @@ export function addWarrantOwner(
   return requestClient.post<{ id: number }>(`/warrants/${id}/owners`, data);
 }
 
-/** 删除所有权人 */
+/** 删除产权人 */
 export function deleteWarrantOwner(id: number, ownerRowId: number) {
   return requestClient.delete(`/warrants/${id}/owners/${ownerRowId}`);
 }

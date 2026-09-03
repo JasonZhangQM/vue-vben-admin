@@ -83,7 +83,7 @@ export function getTags() {
 
 // createTag/deleteTag 统一在 api/basic/customer.ts(标签管理页引用，避免桶导出重名冲突)
 
-/** 客户下拉字典(表单选择用，无 data_scope 过滤——选所有权人时需看到全量客户) */
+/** 客户下拉字典(表单选择用，无 data_scope 过滤——选产权人时需看到全量客户) */
 export function getCustomerDict(params?: {
   genre?: number;
   managementor_id?: number;
