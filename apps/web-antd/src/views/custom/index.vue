@@ -96,7 +96,6 @@ const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
 const columns: TableColumnType[] = [
   { title: '客户名称', dataIndex: 'name' }, // 详情入口链接列：不加 ellipsis
-  { title: '简称', dataIndex: 'short_name', ellipsis: true },
   { title: '类型', dataIndex: 'genre', ellipsis: true },
   { title: '证件号/信用代码', dataIndex: 'license_num', ellipsis: true },
   { title: '行政区域', dataIndex: 'region_name', ellipsis: true },
@@ -206,9 +205,6 @@ onMounted(async () => {
           <template v-if="column.dataIndex === 'name'">
             <!-- 名称列即详情入口(不加 ellipsis) -->
             <a @click="openDetail(record)">{{ record.name }}</a>
-          </template>
-          <template v-else-if="column.dataIndex === 'short_name'">
-            {{ dash(record.short_name) }}
           </template>
           <template v-else-if="column.dataIndex === 'genre'">
             {{ dictStore.labelOf('customer.genre', record.genre) }}

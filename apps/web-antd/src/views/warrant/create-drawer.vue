@@ -562,7 +562,7 @@ onMounted(() => {
     <div class="space-y-4">
       <!-- 分区一：基本信息 -->
       <Card size="small" title="基本信息">
-        <Form ref="formRef" :label-col="{ span: 6 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 18 }">
+        <Form ref="formRef" :label-col="{ span: 8 }" :model="createForm" :rules="rules" :wrapper-col="{ span: 16 }">
           <div class="grid grid-cols-1 gap-x-6 gap-y-2 md:grid-cols-2 xl:grid-cols-3">
             <FormItem label="权证类型" name="warrant_type">
               <SearchSelect
@@ -765,7 +765,7 @@ onMounted(() => {
         </template>
 
         <!-- 其余类型：两列表单 -->
-        <Form v-else :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <Form v-else :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
           <div class="grid gap-x-6 gap-y-2" :class="gridColsClass">
             <!-- 股权 -->
             <template v-if="createForm.warrant_type === WARRANT_TYPE_STOCK">
@@ -778,10 +778,10 @@ onMounted(() => {
               <FormItem label="股权类型">
                 <SearchSelect v-model:value="createForm.stock_type" :options="dictStore.get('warrant.stock_type')" />
               </FormItem>
-              <FormItem label="注册资本">
+              <FormItem label="注册资本(万元)">
                 <InputNumber v-model:value="createForm.stock_registered_capital" :min="0" class="w-full" />
               </FormItem>
-              <FormItem label="实缴资本">
+              <FormItem label="实缴资本(万元)">
                 <InputNumber v-model:value="createForm.stock_paid_capital" :min="0" class="w-full" />
               </FormItem>
               <FormItem label="备注">
