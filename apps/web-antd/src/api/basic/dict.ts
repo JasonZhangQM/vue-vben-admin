@@ -104,11 +104,10 @@ export function getCreditRegionTree() {
   return requestClient.get<TreeNode[]>('/dicts/credit-regions/tree');
 }
 
-/** 权证类型字典(含票据主类型 / 明细类型) */
+/** 权证类型字典(含票据类型) */
 export function getWarrantTypesDict() {
   return requestClient.get<{
-    draft_detail_type: { label: string; value: number }[];
-    draft_main_type: { label: string; value: number }[];
+    draft_type: { label: string; value: number }[];
     warrant_type: { label: string; value: number }[];
   }>('/dicts/warrant-types');
 }
