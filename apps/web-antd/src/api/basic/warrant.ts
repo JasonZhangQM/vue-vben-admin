@@ -84,6 +84,10 @@ export interface DraftExtendItem {
   core_name: string;
   draft_amount: number;
   draft_num: string;
+  draft_type: number;
+  draft_type_display: string;
+  draft_state: number;
+  draft_state_display: string;
   due_date: string;
   id: number;
   issue_date: string;
@@ -266,11 +270,16 @@ export function addDraftExtend(
     core_id: number;
     draft_amount: number;
     draft_num: string;
+    draft_type: number;
     due_date: string;
     issue_date: string;
   },
 ) {
   return requestClient.post(`/warrants/${id}/draft-extends`, data);
+}
+
+export function deleteDraftExtend(id: number, extendId: number) {
+  return requestClient.delete(`/warrants/${id}/draft-extends/${extendId}`);
 }
 
 // ===== 批量操作 =====

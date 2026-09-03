@@ -36,6 +36,7 @@ import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
 
 import {
+  addDraftExtend,
   addEvaluate,
   addStorage,
   addWarrantConstruction,
@@ -43,6 +44,7 @@ import {
   addWarrantHouse,
   addWarrantOwner,
   addWarrantReceiveExtend,
+  deleteDraftExtend,
   deleteWarrant,
   deleteWarrantConstruction,
   deleteWarrantGround,
@@ -220,22 +222,27 @@ async function submitEvaluate() {
 }
 
 // ===== 客户远程搜索（detail-drawer 和 create-drawer 两处复用）=====
-const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
-async function onSearchCustomer(keyword: string) {
-  if (!keyword?.trim()) {
-    remoteCustomerOptions.value = [];
-    return;
+/** 工厂：每个 SearchSelect 实例独立 options（所有权人/承兑人/核心企业复用） */
+function createCustomerSearch() {
+  const options = ref<{ label: string; value: number }[]>([]);
+  async function onSearch(keyword: string) {
+    if (!keyword?.trim()) {
+      options.value = [];
+      return;
+    }
+    try {
+      const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 20 });
+      options.value = items.map((c: any) => ({
+        label: c.name,
+        value: c.id,
+      }));
+    } catch {
+      options.value = [];
+    }
   }
-  try {
-    const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 20 });
-    remoteCustomerOptions.value = items.map((c: any) => ({
-      label: c.name,
-      value: c.id,
-    }));
-  } catch {
-    remoteCustomerOptions.value = [];
-  }
+  return { options, onSearch };
 }
+const ownerCustomerSearch = createCustomerSearch();
 
 /** 房产用途选项(树形字典拍平) */
 const houseAppOptions = ref<{ label: string; value: number }[]>([]);
@@ -268,7 +275,7 @@ async function submitAddOwner() {
     share_ratio: addOwnerForm.share_ratio,
   });
   Object.assign(addOwnerForm, { owner_id: undefined, ownership_num: '', share_ratio: undefined });
-  remoteCustomerOptions.value = [];
+  ownerCustomerSearch.options.value = [];
   message.success('所有权人已添加');
   await refresh();
 }
@@ -333,6 +340,55 @@ async function onDeleteReceiveUnit(record: any) {
   if (!detail.value) return;
   await deleteWarrantReceiveExtend(detail.value.id, record.id);
   message.success('应收单位已删除');
+  await refresh();
+}
+
+// ===== 票据明细(参照应收/土地：内联添加 + 表格删除) =====
+const acceptorCustomerSearch = createCustomerSearch();
+const coreCustomerSearch = createCustomerSearch();
+const addDraftForm = reactive({
+  draft_type: 10,
+  draft_num: '',
+  acceptor_id: undefined as number | undefined,
+  core_id: undefined as number | undefined,
+  draft_amount: undefined as number | undefined,
+  issue_date: '',
+  due_date: '',
+});
+async function submitAddDraft() {
+  if (!detail.value) return;
+  const { draft_num, acceptor_id, core_id, draft_amount, issue_date, due_date } = addDraftForm;
+  // 手动校验必填项
+  if (!draft_num.trim() || !acceptor_id || !core_id || !draft_amount || !issue_date || !due_date) {
+    message.warning('票据号/承兑人/核心企业/金额/出票日/到期日均为必填');
+    return;
+  }
+  if (due_date < issue_date) {
+    message.warning('到期日不能早于出票日');
+    return;
+  }
+  await addDraftExtend(detail.value.id, {
+    draft_type: addDraftForm.draft_type,
+    draft_num: draft_num.trim(),
+    acceptor_id,
+    core_id,
+    draft_amount,
+    issue_date,
+    due_date,
+  });
+  Object.assign(addDraftForm, {
+    draft_type: 10, draft_num: '', acceptor_id: undefined, core_id: undefined,
+    draft_amount: undefined, issue_date: '', due_date: '',
+  });
+  acceptorCustomerSearch.options.value = [];
+  coreCustomerSearch.options.value = [];
+  message.success('票据明细已添加');
+  await refresh();
+}
+async function onDeleteDraft(record: any) {
+  if (!detail.value) return;
+  await deleteDraftExtend(detail.value.id, record.id);
+  message.success('票据明细已删除');
   await refresh();
 }
 
@@ -451,11 +507,11 @@ async function onDeleteConstruction(record: any) {
             <SearchSelect
               v-model:value="addOwnerForm.owner_id"
               remote
-              :options="remoteCustomerOptions"
+              :options="ownerCustomerSearch.options.value"
               placeholder="搜索客户 *"
               allow-clear
               style="width: 280px"
-              @search="onSearchCustomer"
+              @search="ownerCustomerSearch.onSearch"
             />
             <Input v-model:value="addOwnerForm.ownership_num" placeholder="产权证编号 *" style="width: 220px" />
             <InputNumber
@@ -676,12 +732,57 @@ async function onDeleteConstruction(record: any) {
           </Table>
         </TabPane>
 
-        <!-- 票据明细(type=31 的子表) -->
-        <TabPane
-          v-if="detail.draft_extends && detail.draft_extends.length"
-          :key="`draft-extends-${detail.id}`"
-          :tab="`票据明细(${detail.draft_extends.length})`"
-        >
+        <!-- 票据明细(type=31，参照应收 tab：内联添加 + 表格删除) -->
+        <TabPane v-if="detail.warrant_type === 31" key="draft-extends" :tab="`票据明细(${detail.draft_extends?.length ?? 0})`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <Select
+              v-model:value="addDraftForm.draft_type"
+              :options="dictStore.get('warrant.draft_type')"
+              placeholder="票据类型"
+              style="width: 120px"
+            />
+            <Input v-model:value="addDraftForm.draft_num" placeholder="票据号 *" style="width: 200px" @pressEnter="submitAddDraft" />
+            <SearchSelect
+              v-model:value="addDraftForm.acceptor_id"
+              remote
+              :options="acceptorCustomerSearch.options.value"
+              placeholder="输入客户名搜索承兑人 *"
+              allow-clear
+              style="width: 220px"
+              @search="acceptorCustomerSearch.onSearch"
+            />
+            <SearchSelect
+              v-model:value="addDraftForm.core_id"
+              remote
+              :options="coreCustomerSearch.options.value"
+              placeholder="输入客户名搜索核心企业 *"
+              allow-clear
+              style="width: 220px"
+              @search="coreCustomerSearch.onSearch"
+            />
+            <InputNumber
+              v-model:value="addDraftForm.draft_amount"
+              :min="0.01"
+              :precision="2"
+              placeholder="金额 *"
+              style="width: 160px"
+            />
+            <DatePicker
+              v-model:value="addDraftForm.issue_date"
+              placeholder="出票日 *"
+              style="width: 150px"
+              value-format="YYYY-MM-DD"
+            />
+            <DatePicker
+              v-model:value="addDraftForm.due_date"
+              placeholder="到期日 *"
+              style="width: 150px"
+              value-format="YYYY-MM-DD"
+            />
+            <AccessControl :codes="['warrant:update']" type="code">
+              <Button size="small" type="primary" @click="submitAddDraft">添加</Button>
+            </AccessControl>
+          </div>
           <Table
             :columns="[
               { title: '票据号', dataIndex: 'draft_num', ellipsis: true },
@@ -692,8 +793,9 @@ async function onDeleteConstruction(record: any) {
               { title: '出票日', dataIndex: 'issue_date' },
               { title: '到期日', dataIndex: 'due_date' },
               { title: '状态', dataIndex: 'draft_state' },
+              { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
-            :data-source="detail.draft_extends"
+            :data-source="detail.draft_extends ?? []"
             :pagination="false"
             row-key="id"
             size="small"
@@ -702,8 +804,21 @@ async function onDeleteConstruction(record: any) {
               <template v-if="column.dataIndex === 'draft_amount'">
                 {{ record.draft_amount?.toLocaleString() ?? '—' }}
               </template>
+              <template v-else-if="column.dataIndex === 'draft_type'">
+                {{ dash(record.draft_type_display) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'draft_state'">
+                {{ dash(record.draft_state_display) }}
+              </template>
               <template v-else-if="column.dataIndex === 'acceptor_name' || column.dataIndex === 'core_name'">
                 {{ dash(record[column.dataIndex]) }}
+              </template>
+              <template v-else-if="column.key === 'op'">
+                <AccessControl :codes="['warrant:update']" type="code">
+                  <Popconfirm @confirm="() => onDeleteDraft(record)">
+                    <Button danger size="small" type="link">删除</Button>
+                  </Popconfirm>
+                </AccessControl>
               </template>
             </template>
           </Table>
