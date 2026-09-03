@@ -229,7 +229,7 @@ async function onSearchCustomer(keyword: string) {
   try {
     const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 20 });
     remoteCustomerOptions.value = items.map((c: any) => ({
-      label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
+      label: c.name,
       value: c.id,
     }));
   } catch {

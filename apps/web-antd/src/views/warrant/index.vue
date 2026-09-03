@@ -30,7 +30,7 @@ import { dash } from '#/utils/format';
 import { warrantStateColor } from './constants';
 
 import { getUserList } from '#/api/system/user';
-import { getCustomerList } from '#/api/basic/customer';
+import { getCustomerDict } from '#/api/basic/dict';
 import {
   batchCancel,
   batchStorage,
@@ -98,9 +98,9 @@ async function onSearchOwner(keyword: string) {
   }
   ownerLoading.value = true;
   try {
-    const data = await getCustomerList({ page: 1, page_size: 30, q: keyword });
-    ownerOptions.value = data.items.map((c) => ({
-      label: `${c.name}(${c.genre === 1 ? '企业' : '个人'})`,
+    const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 30 });
+    ownerOptions.value = items.map((c) => ({
+      label: c.name,
       value: c.id,
     }));
   } finally {
@@ -254,7 +254,7 @@ onMounted(() => {
           v-model:value="query.q"
           allow-clear
           placeholder="权证号"
-          style="width: 200px"
+          style="min-width: 200px; width: fit-content"
           @press-enter="() => { query.page = 1; loadList(); }"
         />
         <SearchSelect
@@ -278,7 +278,7 @@ onMounted(() => {
           allow-clear
           placeholder="所有权人"
           remote
-          style="width: 180px"
+          style="min-width: 240px; width: fit-content"
           @search="onSearchOwner"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
