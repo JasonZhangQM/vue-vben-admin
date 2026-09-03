@@ -497,18 +497,6 @@ async function onDeleteConstruction(record: any) {
       </Card>
 
       <Tabs>
-        <!-- 股权(type=21)：放在所有权人前面 -->
-        <TabPane v-if="detail.stock" key="stock" tab="股权信息">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="标的公司">{{ dash(detail.stock.target) }}</DescriptionsItem>
-            <DescriptionsItem label="股权类型">{{ dash(detail.stock.stock_type_display) }}</DescriptionsItem>
-            <DescriptionsItem label="持股(%)">{{ detail.stock.ratio ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="注册资本(万元)">{{ detail.stock.registered_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="实缴资本(万元)">{{ detail.stock.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="备注">{{ dash(detail.stock.remark) }}</DescriptionsItem>
-          </Descriptions>
-        </TabPane>
-
         <!-- 所有权人：内联添加表单 + 表格(首列链接打开编辑 Modal + 删除) -->
         <TabPane key="owners" :tab="`所有权人(${detail.owners?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
@@ -562,6 +550,18 @@ async function onDeleteConstruction(record: any) {
               </template>
             </template>
           </Table>
+        </TabPane>
+
+        <!-- 股权(type=21) -->
+        <TabPane v-if="detail.stock" key="stock" tab="股权信息">
+          <Descriptions :column="2" size="small" bordered>
+            <DescriptionsItem label="标的公司">{{ dash(detail.stock.target) }}</DescriptionsItem>
+            <DescriptionsItem label="股权类型">{{ dash(detail.stock.stock_type_display) }}</DescriptionsItem>
+            <DescriptionsItem label="持股(%)">{{ detail.stock.ratio ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="注册资本(万元)">{{ detail.stock.registered_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="实缴资本(万元)">{{ detail.stock.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+            <DescriptionsItem label="备注">{{ dash(detail.stock.remark) }}</DescriptionsItem>
+          </Descriptions>
         </TabPane>
 
         <!-- 房产包(可独立添加/删除) -->
