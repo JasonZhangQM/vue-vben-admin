@@ -155,7 +155,7 @@ onMounted(async () => {
           v-model:value="query.region_id"
           allow-clear
           placeholder="行政区域"
-          style="width: 160px"
+          style="width: 200px"
         />
         <SearchSelect
           v-model:value="query.managementor_id"
