@@ -54,6 +54,7 @@ import {
   getWarrantDetail,
   updateWarrant,
   updateWarrantOwner,
+  updateWarrantTypeDetail,
 } from '#/api/basic/warrant';
 
 import { warrantStateColor } from './constants';
@@ -170,6 +171,98 @@ async function submitOwnerEdit() {
     await refresh();
   } finally {
     ownerEditLoading.value = false;
+  }
+}
+
+// ===== 股权编辑(整体替换) =====
+const stockEditVisible = ref(false);
+const stockEditLoading = ref(false);
+const stockEditForm = reactive({
+  stock_type: 10 as number,
+  target: '',
+  ratio: undefined as number | undefined,
+  registered_capital: 0,
+  paid_capital: 0,
+  remark: '',
+});
+
+function openStockEdit() {
+  if (!detail.value?.stock) return;
+  const s = detail.value.stock;
+  stockEditForm.stock_type = s.stock_type;
+  stockEditForm.target = s.target;
+  stockEditForm.ratio = s.ratio;
+  stockEditForm.registered_capital = s.registered_capital;
+  stockEditForm.paid_capital = s.paid_capital;
+  stockEditForm.remark = s.remark ?? '';
+  stockEditVisible.value = true;
+}
+
+async function submitStockEdit() {
+  if (!detail.value) return;
+  if (!stockEditForm.target.trim()) {
+    message.warning('请填写标的公司');
+    return;
+  }
+  if (stockEditForm.ratio == null || stockEditForm.ratio < 0 || stockEditForm.ratio > 100) {
+    message.warning('请填写持股比例(0-100)');
+    return;
+  }
+  stockEditLoading.value = true;
+  try {
+    await updateWarrantTypeDetail(detail.value.id, {
+      stock: {
+        stock_type: stockEditForm.stock_type,
+        target: stockEditForm.target.trim(),
+        ratio: stockEditForm.ratio,
+        registered_capital: stockEditForm.registered_capital ?? 0,
+        paid_capital: stockEditForm.paid_capital ?? 0,
+        remark: opt(stockEditForm.remark),
+      },
+    });
+    message.success('股权信息已更新');
+    stockEditVisible.value = false;
+    await refresh();
+  } finally {
+    stockEditLoading.value = false;
+  }
+}
+
+// ===== 动产编辑(整体替换) =====
+const chattelEditVisible = ref(false);
+const chattelEditLoading = ref(false);
+const chattelEditForm = reactive({
+  chattel_type: 10 as number,
+  chattel_detail: '',
+});
+
+function openChattelEdit() {
+  if (!detail.value?.chattel) return;
+  const c = detail.value.chattel;
+  chattelEditForm.chattel_type = c.chattel_type;
+  chattelEditForm.chattel_detail = c.chattel_detail ?? '';
+  chattelEditVisible.value = true;
+}
+
+async function submitChattelEdit() {
+  if (!detail.value) return;
+  if (!chattelEditForm.chattel_detail.trim()) {
+    message.warning('请填写动产说明');
+    return;
+  }
+  chattelEditLoading.value = true;
+  try {
+    await updateWarrantTypeDetail(detail.value.id, {
+      chattel: {
+        chattel_type: chattelEditForm.chattel_type,
+        chattel_detail: chattelEditForm.chattel_detail.trim(),
+      },
+    });
+    message.success('动产信息已更新');
+    chattelEditVisible.value = false;
+    await refresh();
+  } finally {
+    chattelEditLoading.value = false;
   }
 }
 
@@ -554,14 +647,21 @@ async function onDeleteConstruction(record: any) {
 
         <!-- 股权(type=21) -->
         <TabPane v-if="detail.stock" key="stock" tab="股权信息">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="标的公司">{{ dash(detail.stock.target) }}</DescriptionsItem>
-            <DescriptionsItem label="股权类型">{{ dash(detail.stock.stock_type_display) }}</DescriptionsItem>
-            <DescriptionsItem label="持股(%)">{{ detail.stock.ratio ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="注册资本(万元)">{{ detail.stock.registered_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="实缴资本(万元)">{{ detail.stock.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="备注">{{ dash(detail.stock.remark) }}</DescriptionsItem>
-          </Descriptions>
+          <Card size="small" title="股权信息">
+            <template #extra>
+              <AccessControl :codes="['warrant:update']" type="code">
+                <Button size="small" type="primary" @click="openStockEdit">修改</Button>
+              </AccessControl>
+            </template>
+            <Descriptions :column="4" size="small">
+              <DescriptionsItem label="标的公司">{{ dash(detail.stock.target) }}</DescriptionsItem>
+              <DescriptionsItem label="股权类型">{{ dash(detail.stock.stock_type_display) }}</DescriptionsItem>
+              <DescriptionsItem label="持股(%)">{{ detail.stock.ratio ?? '—' }}</DescriptionsItem>
+              <DescriptionsItem label="注册资本(万元)">{{ detail.stock.registered_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+              <DescriptionsItem label="实缴资本(万元)">{{ detail.stock.paid_capital?.toLocaleString() ?? '—' }}</DescriptionsItem>
+              <DescriptionsItem label="备注" :span="2">{{ dash(detail.stock.remark) }}</DescriptionsItem>
+            </Descriptions>
+          </Card>
         </TabPane>
 
         <!-- 房产包(可独立添加/删除) -->
@@ -842,10 +942,17 @@ async function onDeleteConstruction(record: any) {
 
         <!-- 动产(type=51) -->
         <TabPane v-if="detail.chattel" key="chattel" tab="动产信息">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="动产类型">{{ dash(detail.chattel.chattel_type_display) }}</DescriptionsItem>
-            <DescriptionsItem label="说明" :span="2">{{ dash(detail.chattel.chattel_detail) }}</DescriptionsItem>
-          </Descriptions>
+          <Card size="small" title="动产信息">
+            <template #extra>
+              <AccessControl :codes="['warrant:update']" type="code">
+                <Button size="small" type="primary" @click="openChattelEdit">修改</Button>
+              </AccessControl>
+            </template>
+            <Descriptions :column="4" size="small">
+              <DescriptionsItem label="动产类型">{{ dash(detail.chattel.chattel_type_display) }}</DescriptionsItem>
+              <DescriptionsItem label="说明" :span="3">{{ dash(detail.chattel.chattel_detail) }}</DescriptionsItem>
+            </Descriptions>
+          </Card>
         </TabPane>
 
         <!-- 其他(type=55) -->
@@ -986,6 +1093,54 @@ async function onDeleteConstruction(record: any) {
             class="w-full"
             placeholder="留空表示共有"
           />
+        </FormItem>
+      </Form>
+    </Modal>
+    <!-- 股权编辑 Modal -->
+    <Modal
+      v-model:open="stockEditVisible"
+      :confirm-loading="stockEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="编辑股权信息"
+      @ok="submitStockEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="股权类型">
+          <Select v-model:value="stockEditForm.stock_type" :disabled="!canUpdate" :options="dictStore.get('warrant.stock_type')" />
+        </FormItem>
+        <FormItem label="标的公司" required>
+          <Input v-model:value="stockEditForm.target" :disabled="!canUpdate" :maxlength="128" />
+        </FormItem>
+        <FormItem label="持股(%)" required>
+          <InputNumber v-model:value="stockEditForm.ratio" :disabled="!canUpdate" :max="100" :min="0" :precision="2" class="w-full" />
+        </FormItem>
+        <FormItem label="注册资本(万元)">
+          <InputNumber v-model:value="stockEditForm.registered_capital" :disabled="!canUpdate" :min="0" class="w-full" />
+        </FormItem>
+        <FormItem label="实缴资本(万元)">
+          <InputNumber v-model:value="stockEditForm.paid_capital" :disabled="!canUpdate" :min="0" class="w-full" />
+        </FormItem>
+        <FormItem label="备注">
+          <Input v-model:value="stockEditForm.remark" :disabled="!canUpdate" :maxlength="255" />
+        </FormItem>
+      </Form>
+    </Modal>
+    <!-- 动产编辑 Modal -->
+    <Modal
+      v-model:open="chattelEditVisible"
+      :confirm-loading="chattelEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="编辑动产信息"
+      @ok="submitChattelEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="动产类型">
+          <Select v-model:value="chattelEditForm.chattel_type" :disabled="!canUpdate" :options="dictStore.get('warrant.chattel_type')" />
+        </FormItem>
+        <FormItem label="说明" required>
+          <Input v-model:value="chattelEditForm.chattel_detail" :disabled="!canUpdate" :maxlength="255" />
         </FormItem>
       </Form>
     </Modal>
