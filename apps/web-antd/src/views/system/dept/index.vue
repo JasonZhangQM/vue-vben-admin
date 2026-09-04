@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 部门管理：树形表格，部门名称列为详情入口；编辑/启停/删除/加子部门收纳在详情抽屉。 */
 
 import type { DeptNode } from '#/api/system/org';
@@ -246,7 +246,7 @@ onMounted(loadTree);
             <Space :size="8">
               <!-- 编辑按钮：必备，置于首位 -->
               <AccessControl :codes="['dept:update']" type="code">
-                <Button size="small" type="primary" @click="openEdit">编辑</Button>
+                <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
               <AccessControl :codes="['dept:create']" type="code">
                 <Button size="small" @click="openCreate(detailNode)">加子部门</Button>
@@ -285,7 +285,7 @@ onMounted(loadTree);
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
-      :title="editMode === 'create' ? '新增部门' : '编辑部门'"
+      :title="editMode === 'create' ? '新增部门' : '修改部门'"
       width="440px"
       @ok="submitEdit"
     >

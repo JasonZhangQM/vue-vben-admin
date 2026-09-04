@@ -341,7 +341,7 @@ onMounted(loadList);
           <template #extra>
             <Space size="small">
               <AccessControl :codes="['customer:tags_list']" type="code">
-                <Button type="primary" @click="openEdit">编辑</Button>
+                <Button type="primary" @click="openEdit">修改</Button>
               </AccessControl>
               <AccessControl :codes="['customer:tags_list']" type="code">
                 <Popconfirm
@@ -434,7 +434,7 @@ onMounted(loadList);
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
-      title="编辑标签"
+      title="修改标签"
       @ok="submitEdit"
     >
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">

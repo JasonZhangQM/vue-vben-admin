@@ -558,7 +558,7 @@ async function onDeleteConstruction(record: any) {
           <div class="flex gap-2">
             <!-- 编辑按钮：必备，置于首位 -->
             <AccessControl :codes="['warrant:update']" type="code">
-              <Button size="small" type="primary" @click="openEdit">编辑</Button>
+              <Button size="small" type="primary" @click="openEdit">修改</Button>
             </AccessControl>
             <AccessControl :codes="['warrant:delete']" type="code">
               <Popconfirm title="确认删除该权证？(已入库/已流转权证将被拦截)" @confirm="onDelete">
@@ -1057,7 +1057,7 @@ async function onDeleteConstruction(record: any) {
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑备注"
+      title="修改备注"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -1073,7 +1073,7 @@ async function onDeleteConstruction(record: any) {
       v-model:open="ownerEditVisible"
       :confirm-loading="ownerEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑产权人"
+      title="修改产权人"
       @ok="submitOwnerEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -1101,7 +1101,7 @@ async function onDeleteConstruction(record: any) {
       v-model:open="stockEditVisible"
       :confirm-loading="stockEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑股权信息"
+      title="修改股权信息"
       @ok="submitStockEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -1131,7 +1131,7 @@ async function onDeleteConstruction(record: any) {
       v-model:open="chattelEditVisible"
       :confirm-loading="chattelEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑动产信息"
+      title="修改动产信息"
       @ok="submitChattelEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />

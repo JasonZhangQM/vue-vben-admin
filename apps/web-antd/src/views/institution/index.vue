@@ -602,7 +602,7 @@ onMounted(loadList);
             <Space :size="4">
               <!-- 编辑按钮：必备，置于首位 -->
               <AccessControl :codes="['institution:update']" type="code">
-                <Button size="small" type="primary" @click="openEdit">编辑</Button>
+                <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
               <AccessControl :codes="['institution:update']" type="code">
                 <Button size="small" @click="onToggleStatus">
@@ -776,7 +776,7 @@ onMounted(loadList);
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑机构"
+      title="修改机构"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -830,7 +830,7 @@ onMounted(loadList);
       v-model:open="contactEditVisible"
       :confirm-loading="contactEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑联系人"
+      title="修改联系人"
       @ok="submitContactEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -861,7 +861,7 @@ onMounted(loadList);
       v-model:open="branchEditVisible"
       :confirm-loading="branchEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑分支机构"
+      title="修改分支机构"
       @ok="submitBranchEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -886,7 +886,7 @@ onMounted(loadList);
       v-model:open="agreementEditVisible"
       :confirm-loading="agreementEditLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="编辑授信协议"
+      title="修改授信协议"
       @ok="submitAgreementEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />

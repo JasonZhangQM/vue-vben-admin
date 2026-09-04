@@ -338,7 +338,7 @@ onMounted(async () => {
             <Space :size="8">
               <!-- 编辑按钮：必备，置于首位 -->
               <AccessControl :codes="['role:update']" type="code">
-                <Button size="small" type="primary" @click="openEdit">编辑</Button>
+                <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
               <AccessControl :codes="['role:delete']" type="code">
                 <Popconfirm
@@ -466,7 +466,7 @@ onMounted(async () => {
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
-      title="编辑角色"
+      title="修改角色"
       width="480px"
       @ok="submitEdit"
     >

@@ -1,4 +1,4 @@
-/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
+﻿/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
 
 import { requestClient } from '#/api/request';
 
@@ -157,10 +157,46 @@ export interface EmployeeDictItem {
 }
 
 export function getEmployeeDict(params?: {
+  /** 关键字搜索（姓名） */
+  q?: string;
   dept_id?: number;
   position?: string;
   /** 角色 code(如 pm/controler) */
   role?: string;
 }) {
   return requestClient.get<EmployeeDictItem[]>('/dicts/users', { params });
+}
+
+// ============ M3a 项目 / 评审 字典 ============
+
+export function getArticleDict() {
+  return requestClient.get<{
+    article_state: { label: string; value: number }[];
+    article_product: { label: string; value: number }[];
+    repay_method: { label: string; value: number }[];
+    propose: { label: string; value: number }[];
+    credit_model: { label: string; value: number }[];
+    sure_type: { label: string; value: number }[];
+    change_view: { label: string; value: number }[];
+  }>('/dicts/article');
+}
+
+export function getArticleProductsDict() {
+  return requestClient.get<
+    { id: number; name: string; difficulty_score: number; sort: number }[]
+  >('/dicts/article-products');
+}
+
+export function getAppraisalDict() {
+  return requestClient.get<{
+    meeting_state: { label: string; value: number }[];
+    review_model: { label: string; value: number }[];
+    comment_type: { label: string; value: number }[];
+    supply_state: { label: string; value: number }[];
+    expert_title: { label: string; value: number }[];
+  }>('/dicts/appraisal');
+}
+
+export function getExpertCategoriesDict() {
+  return requestClient.get<{ id: number; name: string }[]>('/dicts/expert-categories');
 }

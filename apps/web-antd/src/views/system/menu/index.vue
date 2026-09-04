@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 菜单管理：树形表格，标题列为详情入口；编辑/删除/加子级收纳在详情抽屉。 */
 
 import type { MenuNode } from '#/api/system/org';
@@ -276,7 +276,7 @@ onMounted(loadTree);
             <Space :size="8">
               <!-- 编辑按钮：必备，置于首位 -->
               <AccessControl :codes="['menu:update']" type="code">
-                <Button size="small" type="primary" @click="openEdit">编辑</Button>
+                <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
               <AccessControl :codes="['menu:create']" type="code">
                 <Button size="small" @click="openCreate(detailNode)">加子级</Button>
@@ -314,7 +314,7 @@ onMounted(loadTree);
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
-      :title="editMode === 'create' ? '新增菜单' : '编辑菜单'"
+      :title="editMode === 'create' ? '新增菜单' : '修改菜单'"
       width="520px"
       @ok="submitEdit"
     >

@@ -526,7 +526,7 @@ async function saveTags() {
           <div class="flex gap-2">
             <!-- 编辑按钮：必备，置于首位 -->
             <AccessControl :codes="['customer:update']" type="code">
-              <Button size="small" type="primary" @click="openEdit">编辑</Button>
+              <Button size="small" type="primary" @click="openEdit">修改</Button>
             </AccessControl>
           </div>
         </template>
@@ -595,7 +595,7 @@ async function saveTags() {
           <Card size="small">
             <template #extra>
               <AccessControl :codes="['customer:update']" type="code">
-                <Button size="small" type="primary" @click="openEditPersonal">编辑</Button>
+                <Button size="small" type="primary" @click="openEditPersonal">修改</Button>
               </AccessControl>
             </template>
             <Descriptions :column="detailColumns" size="small">
@@ -909,7 +909,7 @@ async function saveTags() {
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
       destroy-on-close
-      title="编辑客户"
+      title="修改客户"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
@@ -985,7 +985,7 @@ async function saveTags() {
     <Modal
       v-model:open="editContactVisible"
       :confirm-loading="editContactLoading"
-      title="编辑联系人"
+      title="修改联系人"
       @ok="submitContactEdit"
     >
       <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
@@ -1013,7 +1013,7 @@ async function saveTags() {
     <!-- 编辑个人信息 Modal -->
     <Modal
       v-model:open="editPersonalVisible"
-      title="编辑个人信息"
+      title="修改个人信息"
       :confirm-loading="editPersonalLoading"
       ok-text="保存"
       cancel-text="取消"

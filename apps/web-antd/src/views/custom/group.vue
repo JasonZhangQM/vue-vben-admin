@@ -501,7 +501,7 @@ onMounted(() => {
             <Space :size="4">
               <!-- 编辑按钮：必备，置于首位 -->
               <AccessControl :codes="['customer:group_list']" type="code">
-                <Button size="small" type="primary" @click="openEdit">编辑</Button>
+                <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
               <AccessControl :codes="['customer:group_list']" type="code">
                 <Popconfirm title="确认删除该集团？" @confirm="onDelete">
@@ -642,7 +642,7 @@ onMounted(() => {
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
-      title="编辑集团"
+      title="修改集团"
       @ok="submitEdit"
     >
       <Form :label-col="{ span: 5 }" :model="editForm" :wrapper-col="{ span: 17 }">

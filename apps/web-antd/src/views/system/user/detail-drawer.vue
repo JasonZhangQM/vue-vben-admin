@@ -186,7 +186,7 @@ async function onDelete() {
           <Space :size="8">
             <!-- 编辑按钮：必备，置于首位 -->
             <AccessControl :codes="['user:update']" type="code">
-              <Button size="small" type="primary" @click="openEdit">编辑</Button>
+              <Button size="small" type="primary" @click="openEdit">修改</Button>
             </AccessControl>
             <AccessControl :codes="['user:update']" type="code">
               <Switch
@@ -245,7 +245,7 @@ async function onDelete() {
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
-      title="编辑用户"
+      title="修改用户"
       width="560px"
       @ok="submitEdit"
     >
