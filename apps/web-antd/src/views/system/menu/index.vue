@@ -217,7 +217,7 @@ onMounted(loadTree);
     <Card class="mb-3" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1" />
-        <AccessControl :codes="['menu:create']" type="code">
+        <AccessControl :codes="['user:menu_create']" type="code">
           <Button type="primary" @click="openCreate()">新增顶级目录</Button>
         </AccessControl>
       </div>
@@ -275,13 +275,13 @@ onMounted(loadTree);
           <template #extra>
             <Space :size="8">
               <!-- 编辑按钮：必备，置于首位 -->
-              <AccessControl :codes="['menu:update']" type="code">
+              <AccessControl :codes="['user:menu_update']" type="code">
                 <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
-              <AccessControl :codes="['menu:create']" type="code">
+              <AccessControl :codes="['user:menu_create']" type="code">
                 <Button size="small" @click="openCreate(detailNode)">加子级</Button>
               </AccessControl>
-              <AccessControl :codes="['menu:delete']" type="code">
+              <AccessControl :codes="['user:menu_delete']" type="code">
                 <Popconfirm title="确认删除？(子级将联动删除)" @confirm="onDelete">
                   <Button danger size="small">删除</Button>
                 </Popconfirm>

@@ -197,7 +197,7 @@ onMounted(loadTree);
     <Card class="mb-3" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1" />
-        <AccessControl :codes="['dept:create']" type="code">
+        <AccessControl :codes="['user:dept_create']" type="code">
           <Button type="primary" @click="openCreate()">新增一级部门</Button>
         </AccessControl>
       </div>
@@ -245,13 +245,13 @@ onMounted(loadTree);
           <template #extra>
             <Space :size="8">
               <!-- 编辑按钮：必备，置于首位 -->
-              <AccessControl :codes="['dept:update']" type="code">
+              <AccessControl :codes="['user:dept_update']" type="code">
                 <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
-              <AccessControl :codes="['dept:create']" type="code">
+              <AccessControl :codes="['user:dept_create']" type="code">
                 <Button size="small" @click="openCreate(detailNode)">加子部门</Button>
               </AccessControl>
-              <AccessControl :codes="['dept:update']" type="code">
+              <AccessControl :codes="['user:dept_update']" type="code">
                 <Switch
                   :checked="detailNode.status === 10"
                   checked-children="启用"
@@ -259,7 +259,7 @@ onMounted(loadTree);
                   @change="(checked: any) => onToggleStatus(!!checked)"
                 />
               </AccessControl>
-              <AccessControl :codes="['dept:delete']" type="code">
+              <AccessControl :codes="['user:dept_delete']" type="code">
                 <Popconfirm title="确认删除该部门？" @confirm="onDelete">
                   <Button danger size="small">删除</Button>
                 </Popconfirm>

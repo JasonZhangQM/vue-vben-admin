@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 角色管理：角色名称列为详情入口；编辑/删除/权限配置收纳在详情抽屉。 */
 
 import type { PermissionItem, RoleDetail, RoleListItem } from '#/api/system/role';
@@ -285,7 +285,7 @@ onMounted(async () => {
     <Card class="mb-3" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1" />
-        <AccessControl :codes="['role:create']" type="code">
+        <AccessControl :codes="['user:role_create']" type="code">
           <Button type="primary" @click="openCreate">新增角色</Button>
         </AccessControl>
       </div>
@@ -337,10 +337,10 @@ onMounted(async () => {
           <template #extra>
             <Space :size="8">
               <!-- 编辑按钮：必备，置于首位 -->
-              <AccessControl :codes="['role:update']" type="code">
+              <AccessControl :codes="['user:role_update']" type="code">
                 <Button size="small" type="primary" @click="openEdit">修改</Button>
               </AccessControl>
-              <AccessControl :codes="['role:delete']" type="code">
+              <AccessControl :codes="['user:role_delete']" type="code">
                 <Popconfirm
                   :disabled="detail.is_builtin"
                   title="确认删除该角色？(需先解除用户绑定)"
@@ -391,7 +391,7 @@ onMounted(async () => {
           <!-- 权限配置 -->
           <TabPane key="perms" :tab="`权限配置(${detail.permission_codes.length})`">
             <div class="mb-2 flex justify-end">
-              <AccessControl :codes="['role:assign']" type="code">
+              <AccessControl :codes="['user:role_assign']" type="code">
                 <Button :loading="permSaving" size="small" type="primary" @click="savePerms">
                   保存权限
                 </Button>
