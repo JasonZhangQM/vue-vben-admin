@@ -177,12 +177,13 @@ export function getArticleDict() {
     credit_model: { label: string; value: number }[];
     sure_type: { label: string; value: number }[];
     change_view: { label: string; value: number }[];
+    product_category: { label: string; value: number }[];
   }>('/dicts/article');
 }
 
 export function getArticleProductsDict() {
   return requestClient.get<
-    { id: number; name: string; difficulty_score: number; sort: number }[]
+    { id: number; name: string; category: number; category_display: string; sort: number }[]
   >('/dicts/article-products');
 }
 
