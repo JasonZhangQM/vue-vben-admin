@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { ArticleListItem } from '#/api/basic/article';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -236,61 +236,47 @@ onMounted(loadList);
 <template>
   <Page>
     <!-- === 筛选卡 === -->
-    <Card size="small" class="mb-3">
-      <Form layout="inline" :model="query" class="flex-wrap gap-y-2">
-        <FormItem label="项目编号">
-          <Input
-            v-model:value="query.keyword"
-            placeholder="输入项目编号搜索"
-            allow-clear
-            style="width: 200px"
-            @pressEnter="onQuery"
-          />
-        </FormItem>
-        <FormItem label="状态">
-          <SearchSelect
-            v-model:value="query.article_state"
-            :options="articleStateOpts"
-            placeholder="全部"
-            style="width: 160px"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="产品">
-          <SearchSelect
-            v-model:value="query.product_id"
-            :options="productOpts"
-            placeholder="全部"
-            style="width: 160px"
-            allow-clear
-          />
-        </FormItem>
-        <FormItem label="项目经理">
-          <SearchSelect
-            v-model:value="query.director_id"
-            placeholder="输入名字搜索"
-            style="width: 200px"
-            allow-clear
-            :options="pmOptions"
-          />
-        </FormItem>
-        <FormItem>
-          <Space>
-            <Button type="primary" @click="onQuery">查询</Button>
-            <Button @click="onReset">重置</Button>
-          </Space>
-        </FormItem>
-      </Form>
+    <Card class="mb-3" size="small">
+      <div class="flex flex-wrap items-center gap-3">
+        <Input
+          v-model:value="query.keyword"
+          allow-clear
+          placeholder="项目编号"
+          style="min-width: 200px; width: fit-content"
+          @press-enter="onQuery"
+        />
+        <SearchSelect
+          v-model:value="query.article_state"
+          :options="articleStateOpts"
+          allow-clear
+          placeholder="状态"
+          style="width: 120px"
+        />
+        <SearchSelect
+          v-model:value="query.product_id"
+          :options="productOpts"
+          allow-clear
+          placeholder="产品"
+          style="width: 120px"
+        />
+        <SearchSelect
+          v-model:value="query.director_id"
+          :options="pmOptions"
+          allow-clear
+          placeholder="项目经理"
+          style="min-width: 160px; width: fit-content"
+        />
+        <Button type="primary" @click="onQuery">查询</Button>
+        <Button @click="onReset">重置</Button>
+        <div class="flex-1" />
+        <AccessControl :codes="['article:create']" type="code">
+          <Button type="primary" @click="openCreate">新建项目</Button>
+        </AccessControl>
+      </div>
     </Card>
 
     <!-- === 表格 === -->
     <Card size="small">
-      <template #extra>
-        <AccessControl :codes="['article:create']" type="code">
-          <Button type="primary" @click="openCreate">新建项目</Button>
-        </AccessControl>
-      </template>
-
       <Table
         size="small"
         row-key="id"

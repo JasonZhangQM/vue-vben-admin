@@ -1,4 +1,4 @@
-﻿/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
+/** 基础数据：字典 API(区域 / 行业 / 标签 / 客户下拉 / 评估公司)。 */
 
 import { requestClient } from '#/api/request';
 
@@ -172,7 +172,6 @@ export function getEmployeeDict(params?: {
 export function getArticleDict() {
   return requestClient.get<{
     article_state: { label: string; value: number }[];
-    article_product: { label: string; value: number }[];
     repay_method: { label: string; value: number }[];
     propose: { label: string; value: number }[];
     credit_model: { label: string; value: number }[];
