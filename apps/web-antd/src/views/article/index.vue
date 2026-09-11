@@ -45,7 +45,7 @@ const userStore = useUserStore();
 const currentUserId = computed(() => Number(userStore.userInfo?.userId));
 
 const articleStateOpts = ref<{ label: string; value: number }[]>([]);
-const repayMethodOpts = ref<{ label: string; value: number }[]>([]);
+const creditTermUnitOpts = ref<{ label: string; value: number }[]>([]);
 const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
@@ -59,7 +59,7 @@ onMounted(async () => {
     getArticleProductsDict(),
   ]);
   articleStateOpts.value = dict.article_state;
-  repayMethodOpts.value = dict.repay_method;
+  creditTermUnitOpts.value = dict.credit_term_unit;
   productOpts.value = products.map((p) => ({ label: p.name, value: p.id }));
   const [pms, controllers, emps] = await Promise.all([
     getEmployeeDict({ role: 'pm' }),
@@ -168,13 +168,13 @@ const form = reactive({
   article_state: 10,
   customer_id: undefined as number | undefined,
   product_id: undefined as number | undefined,
-  renewal: undefined as number | undefined,
-  augment: undefined as number | undefined,
-  credit_term: undefined as number | undefined,
+  renewal: 0 as number,
+  augment: 0 as number,
+  credit_term: 1 as number,
+  credit_term_unit: 10 as number,
   director_id: undefined as number | undefined,
   assistant_id: undefined as number | undefined,
   control_id: undefined as number | undefined,
-  repay_method: undefined as number | undefined,
 });
 
 async function openCreate() {
@@ -184,9 +184,9 @@ async function openCreate() {
   const defaultDirector = pmOptions.value.some((o) => o.value === uid) ? uid : undefined;
   Object.assign(form, {
     article_state: 10, customer_id: undefined, product_id: undefined,
-    renewal: undefined, augment: undefined, credit_term: undefined,
+    renewal: 0, augment: 0, credit_term: 1, credit_term_unit: 10,
     director_id: defaultDirector, assistant_id: undefined,
-    control_id: undefined, repay_method: undefined,
+    control_id: undefined,
   });
   createOpen.value = true;
 }
@@ -392,17 +392,15 @@ onMounted(loadList);
         <FormItem label="新增额(元)">
           <InputNumber v-model:value="form.augment" :min="0" :precision="2" style="width: 100%" />
         </FormItem>
-        <FormItem label="期限(月)">
-          <InputNumber v-model:value="form.credit_term" :min="1" style="width: 100%" />
-        </FormItem>
-        <FormItem label="还款方式">
-          <SearchSelect
-            v-model:value="form.repay_method"
-            :options="repayMethodOpts"
-            placeholder="选择"
-            style="width: 100%"
-            allow-clear
-          />
+        <FormItem label="期限">
+          <div class="flex gap-2 w-full">
+            <InputNumber v-model:value="form.credit_term" :min="1" class="flex-1" style="flex:1" />
+            <SearchSelect
+              v-model:value="form.credit_term_unit"
+              :options="creditTermUnitOpts"
+              style="width: 100px"
+            />
+          </div>
         </FormItem>
         <FormItem label="项目经理">
           <SearchSelect

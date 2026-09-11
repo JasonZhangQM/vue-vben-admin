@@ -14,6 +14,7 @@ import { AccessControl } from '@vben/access';
 import { useUserStore } from '@vben/stores';
 import {
   Button,
+  Card,
   Descriptions,
   DescriptionsItem,
   Drawer,
@@ -34,6 +35,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash } from '#/utils/format';
 
 import {
@@ -68,8 +70,11 @@ const detail = ref<null | ArticleDetail>(null);
 const loading = ref(false);
 const activeTab = ref('info');
 
-// ========== 编辑模式 ==========
-const editing = ref(false);
+// 详情基本信息响应式列数(视口越宽列越多)
+const { columns: detailColumns } = useDetailColumns();
+
+// ========== 编辑 Modal ==========
+const editVisible = ref(false);
 const editLoading = ref(false);
 
 const editForm = reactive({
@@ -78,18 +83,18 @@ const editForm = reactive({
   product_id: undefined as number | undefined,
   renewal: undefined as number | undefined,
   augment: undefined as number | undefined,
-  credit_term: undefined as number | undefined,
+  credit_term: 1 as number,
+  credit_term_unit: 10 as number,
   director_id: undefined as number | undefined,
   assistant_id: undefined as number | undefined,
   control_id: undefined as number | undefined,
-  repay_method: undefined as number | undefined,
 });
 
 // ========== 字典 ==========
 const userStore = useUserStore();
 const currentUserId = computed(() => Number(userStore.userInfo?.userId));
 
-const repayMethodOpts = ref<{ label: string; value: number }[]>([]);
+const creditTermUnitOpts = ref<{ label: string; value: number }[]>([]);
 const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
@@ -109,7 +114,7 @@ async function loadDicts() {
     getEmployeeDict({ role: 'controler' }),
     getEmployeeDict(),
   ]);
-  repayMethodOpts.value = dict.repay_method;
+  creditTermUnitOpts.value = dict.credit_term_unit;
   productOpts.value = products.map((p) => ({ label: p.name, value: p.id }));
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
@@ -165,7 +170,7 @@ watch(
   (val) => {
     if (val) {
       activeTab.value = 'info';
-      editing.value = false;
+      editVisible.value = false;
       loadDetail();
       loadTabs();
       loadDicts();
@@ -174,12 +179,12 @@ watch(
       comments.value = [];
       supplies.value = [];
       approvals.value = [];
-      editing.value = false;
+      editVisible.value = false;
     }
   },
 );
 
-// ========== 编辑动作 ==========
+// ========== 编辑动作（Modal，与客户详情一致） ==========
 function startEdit() {
   if (!detail.value) return;
   // 拷贝可编辑字段到表单
@@ -190,16 +195,12 @@ function startEdit() {
     renewal: detail.value.renewal,
     augment: detail.value.augment,
     credit_term: detail.value.credit_term,
+    credit_term_unit: detail.value.credit_term_unit,
     director_id: detail.value.director_id,
     assistant_id: detail.value.assistant_id,
     control_id: detail.value.control_id,
-    repay_method: detail.value.repay_method,
   });
-  editing.value = true;
-}
-
-function cancelEdit() {
-  editing.value = false;
+  editVisible.value = true;
 }
 
 async function saveEdit() {
@@ -208,7 +209,7 @@ async function saveEdit() {
   try {
     await updateArticle(props.articleId, editForm);
     message.success('保存成功');
-    editing.value = false;
+    editVisible.value = false;
     await loadDetail();
     emit('saved', props.articleId);
   } catch {
@@ -392,186 +393,122 @@ const supplyColumns = [
 <template>
   <Drawer
     v-model:open="open"
-    :title="detail ? `项目 ${detail.article_num}${editing ? '（编辑中）' : ''}` : '项目详情'"
+    :title="detail ? `项目 ${detail.article_num}` : '项目详情'"
     width="66%"
     :destroyOnClose="true"
   >
-    <!-- Drawer 标题栏右侧操作区 -->
-    <template #extra>
-      <Space v-if="detail">
-        <template v-if="!editing">
-          <!-- 发起签批：仅已上会/待变更 且无进行中审批 可操作 -->
-          <AccessControl :codes="['article:sign']" type="code">
-            <Button
-              type="primary"
-              ghost
-              :disabled="!canSubmitSign"
-              :title="
-                !SIGN_ELIGIBLE_STATES.has(detail.article_state)
-                  ? '仅『已上会 / 待变更』状态可发起签批'
-                  : approvals.some((a) => a.status === 10)
-                    ? '已有进行中的审批，请先处理'
-                    : ''
-              "
-              @click="openSignModal"
-            >
-              发起签批
-            </Button>
-          </AccessControl>
-          <!-- 发起变更申请：仅已签批/放款中/待变更 且无进行中审批 可操作 -->
-          <AccessControl :codes="['article:change']" type="code">
-            <Button
-              type="primary"
-              danger
-              ghost
-              :disabled="!canSubmitChange"
-              :title="
-                !CHANGE_ELIGIBLE_STATES.has(detail.article_state)
-                  ? '仅『已签批 / 放款中 / 待变更』状态可发起变更'
-                  : approvals.some((a) => a.status === 10)
-                    ? '已有进行中的审批，请先处理'
-                    : ''
-              "
-              @click="openChangeModal"
-            >
-              发起变更
-            </Button>
-          </AccessControl>
-          <AccessControl :codes="['article:update']" type="code">
-            <Button type="primary" @click="startEdit">编辑</Button>
-          </AccessControl>
-          <AccessControl :codes="['article:delete']" type="code">
-            <Button danger @click="deleteItem">删除</Button>
-          </AccessControl>
-        </template>
-        <template v-else>
-          <Button @click="cancelEdit">取消</Button>
-          <Button type="primary" :loading="editLoading" @click="saveEdit">保存</Button>
-        </template>
-      </Space>
-    </template>
-
     <Spin :spinning="loading">
       <template v-if="detail">
-        <!-- ===== 编辑模式：Form ===== -->
-        <Form
-          v-if="editing"
-          :label-col="{ span: 8 }"
-          :wrapper-col="{ span: 16 }"
-          :model="editForm"
-          class="grid grid-cols-2 gap-x-6"
-        >
-          <FormItem label="客户">
-            <SearchSelect
-              v-model:value="editForm.customer_id"
-              :options="customerOptions"
-              placeholder="选择客户"
-              style="width: 100%"
-            />
-          </FormItem>
-          <FormItem label="产品" required>
-            <SearchSelect
-              v-model:value="editForm.product_id"
-              :options="productOpts"
-              placeholder="选择产品"
-              style="width: 100%"
-            />
-          </FormItem>
-          <FormItem label="续贷额(元)" required>
-            <InputNumber v-model:value="editForm.renewal" :min="0" :precision="2" style="width: 100%" />
-          </FormItem>
-          <FormItem label="新增额(元)">
-            <InputNumber v-model:value="editForm.augment" :min="0" :precision="2" style="width: 100%" />
-          </FormItem>
-          <FormItem label="期限(月)">
-            <InputNumber v-model:value="editForm.credit_term" :min="1" style="width: 100%" />
-          </FormItem>
-          <FormItem label="还款方式">
-            <SearchSelect
-              v-model:value="editForm.repay_method"
-              :options="repayMethodOpts"
-              placeholder="选择"
-              style="width: 100%"
-              allow-clear
-            />
-          </FormItem>
-          <FormItem label="项目经理">
-            <SearchSelect
-              v-model:value="editForm.director_id"
-              placeholder="输入名字搜索"
-              style="width: 100%"
-              allow-clear
-              :options="pmOptions"
-            />
-          </FormItem>
-          <FormItem label="项目助理">
-            <SearchSelect
-              v-model:value="editForm.assistant_id"
-              placeholder="输入名字搜索"
-              style="width: 100%"
-              allow-clear
-              :options="pmOptions"
-            />
-          </FormItem>
-        </Form>
+        <div class="space-y-4">
+          <!-- ===== 基本信息 Card ===== -->
+          <Card size="small" title="基本信息">
+            <template #extra>
+              <div class="flex gap-2">
+                <!-- 发起签批：仅已上会/待变更 且无进行中审批 可操作 -->
+                <AccessControl :codes="['article:sign']" type="code">
+                  <Button
+                    size="small"
+                    type="primary"
+                    ghost
+                    :disabled="!canSubmitSign"
+                    :title="
+                      !SIGN_ELIGIBLE_STATES.has(detail.article_state)
+                        ? '仅『已上会 / 待变更』状态可发起签批'
+                        : approvals.some((a) => a.status === 10)
+                          ? '已有进行中的审批，请先处理'
+                          : ''
+                    "
+                    @click="openSignModal"
+                  >
+                    发起签批
+                  </Button>
+                </AccessControl>
+                <!-- 发起变更：仅已签批/放款中/待变更 且无进行中审批 可操作 -->
+                <AccessControl :codes="['article:change']" type="code">
+                  <Button
+                    size="small"
+                    type="primary"
+                    danger
+                    ghost
+                    :disabled="!canSubmitChange"
+                    :title="
+                      !CHANGE_ELIGIBLE_STATES.has(detail.article_state)
+                        ? '仅『已签批 / 放款中 / 待变更』状态可发起变更'
+                        : approvals.some((a) => a.status === 10)
+                          ? '已有进行中的审批，请先处理'
+                          : ''
+                    "
+                    @click="openChangeModal"
+                  >
+                    发起变更
+                  </Button>
+                </AccessControl>
+                <AccessControl :codes="['article:update']" type="code">
+                  <Button size="small" type="primary" @click="startEdit">修改</Button>
+                </AccessControl>
+                <AccessControl :codes="['article:delete']" type="code">
+                  <Button size="small" danger @click="deleteItem">删除</Button>
+                </AccessControl>
+              </div>
+            </template>
 
-        <!-- ===== 查看模式：Descriptions + Tabs ===== -->
-        <template v-else>
-          <Descriptions :column="4" size="small" bordered>
-            <DescriptionsItem label="项目编号">{{ dash(detail.article_num) }}</DescriptionsItem>
-            <DescriptionsItem label="项目状态">
-              <Tag :color="getStateTag(detail.article_state).color">
-                {{ getStateTag(detail.article_state).text }}
-              </Tag>
-            </DescriptionsItem>
-            <DescriptionsItem label="客户">
-              {{ dash((detail as any).customer_name) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="产品">
-              {{ dash((detail as any).product_name) }}
-            </DescriptionsItem>
+            <Descriptions :column="detailColumns" size="small">
+              <DescriptionsItem label="项目编号">{{ dash(detail.article_num) }}</DescriptionsItem>
+              <DescriptionsItem label="项目状态">
+                <Tag :color="getStateTag(detail.article_state).color">
+                  {{ getStateTag(detail.article_state).text }}
+                </Tag>
+              </DescriptionsItem>
+              <DescriptionsItem label="客户">
+                {{ dash((detail as any).customer_name) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="产品">
+                {{ dash((detail as any).product_name) }}
+              </DescriptionsItem>
 
-            <DescriptionsItem label="授信金额(元)">
-              {{ detail.balance?.toLocaleString() ?? '—' }}
-            </DescriptionsItem>
-            <DescriptionsItem label="期限(月)">{{ detail.credit_term ?? '—' }}</DescriptionsItem>
-            <DescriptionsItem label="担保方式">{{ dash(detail.repay_method_display) }}</DescriptionsItem>
-            <DescriptionsItem label="评审日期">{{ dash(detail.review_date) }}</DescriptionsItem>
+              <DescriptionsItem label="授信金额(元)">
+                {{ detail.balance?.toLocaleString() ?? '—' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="期限">
+                {{ detail.credit_term ?? '—' }} {{ dash(detail.credit_term_unit_display) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="评审日期">{{ dash(detail.review_date) }}</DescriptionsItem>
 
-            <DescriptionsItem label="项目经理">
-              {{ dash((detail as any).director_name) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="项目经理助理">
-              {{ dash((detail as any).assistant_name) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="风控经理">
-              {{ dash((detail as any).control_name) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="签批类型">{{ dash(detail.sign_type) }}</DescriptionsItem>
+              <DescriptionsItem label="项目经理">
+                {{ dash((detail as any).director_name) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="项目助理">
+                {{ dash((detail as any).assistant_name) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="风控经理">
+                {{ dash((detail as any).control_name) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="签批类型">{{ dash(detail.sign_type) }}</DescriptionsItem>
 
-            <DescriptionsItem label="调查报告编号">{{ dash(detail.summary_num) }}</DescriptionsItem>
-            <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
-            <DescriptionsItem label="登记时间" :span="2">{{ dash(detail.created_at) }}</DescriptionsItem>
+              <DescriptionsItem label="调查报告编号">{{ dash(detail.summary_num) }}</DescriptionsItem>
+              <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
+              <DescriptionsItem label="登记时间" :span="2">{{ dash(detail.created_at) }}</DescriptionsItem>
 
-            <DescriptionsItem label="调查报告" :span="4">
-              {{ dash(detail.summary) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="评审意见" :span="4">
-              {{ dash(detail.opinion) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="风控意见" :span="4">
-              {{ dash(detail.rcd_opinion) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="召集人意见" :span="4">
-              {{ dash(detail.convenor_opinion) }}
-            </DescriptionsItem>
-            <DescriptionsItem label="签批详情" :span="4">
-              {{ dash(detail.sign_detail) }}
-            </DescriptionsItem>
-          </Descriptions>
+              <DescriptionsItem label="调查报告" :span="detailColumns">
+                {{ dash(detail.summary) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="评审意见" :span="detailColumns">
+                {{ dash(detail.opinion) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="风控意见" :span="detailColumns">
+                {{ dash(detail.rcd_opinion) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="召集人意见" :span="detailColumns">
+                {{ dash(detail.convenor_opinion) }}
+              </DescriptionsItem>
+              <DescriptionsItem label="签批详情" :span="detailColumns">
+                {{ dash(detail.sign_detail) }}
+              </DescriptionsItem>
+            </Descriptions>
+          </Card>
 
           <!-- ===== Tabs ===== -->
-          <Tabs v-model:activeKey="activeTab" class="mt-4">
+          <Tabs v-model:activeKey="activeTab">
             <!-- 评审意见 + 补调记录 合并一个 Tab -->
             <TabPane key="reviews" :tab="`评审记录(${comments.length + supplies.length})`">
               <Spin :spinning="tabLoading">
@@ -677,10 +614,73 @@ const supplyColumns = [
               </Spin>
             </TabPane>
           </Tabs>
-        </template>
+        </div>
       </template>
     </Spin>
   </Drawer>
+
+  <!-- ===== 修改项目 Modal（与客户详情"修改客户"风格一致） ===== -->
+  <Modal
+    v-model:open="editVisible"
+    :confirm-loading="editLoading"
+    destroy-on-close
+    title="修改项目"
+    @ok="saveEdit"
+  >
+    <Form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+      <FormItem label="客户" required>
+        <SearchSelect
+          v-model:value="editForm.customer_id"
+          :options="customerOptions"
+          placeholder="选择客户"
+          style="width: 100%"
+          disabled
+        />
+      </FormItem>
+      <FormItem label="产品" required>
+        <SearchSelect
+          v-model:value="editForm.product_id"
+          :options="productOpts"
+          placeholder="选择产品"
+          style="width: 100%"
+        />
+      </FormItem>
+      <FormItem label="续贷额(元)" required>
+        <InputNumber v-model:value="editForm.renewal" :min="0" :precision="2" style="width: 100%" />
+      </FormItem>
+      <FormItem label="新增额(元)">
+        <InputNumber v-model:value="editForm.augment" :min="0" :precision="2" style="width: 100%" />
+      </FormItem>
+      <FormItem label="授信期限">
+        <div class="flex gap-2 w-full">
+          <InputNumber v-model:value="editForm.credit_term" :min="1" style="flex:1" />
+          <SearchSelect
+            v-model:value="editForm.credit_term_unit"
+            :options="creditTermUnitOpts"
+            style="width: 100px"
+          />
+        </div>
+      </FormItem>
+      <FormItem label="项目经理">
+        <SearchSelect
+          v-model:value="editForm.director_id"
+          placeholder="输入名字搜索"
+          style="width: 100%"
+          allow-clear
+          :options="pmOptions"
+        />
+      </FormItem>
+      <FormItem label="项目助理">
+        <SearchSelect
+          v-model:value="editForm.assistant_id"
+          placeholder="输入名字搜索"
+          style="width: 100%"
+          allow-clear
+          :options="pmOptions"
+        />
+      </FormItem>
+    </Form>
+  </Modal>
 
   <!-- ===== 发起签批 Modal ===== -->
   <Modal

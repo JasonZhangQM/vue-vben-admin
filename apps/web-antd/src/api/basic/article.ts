@@ -1,4 +1,4 @@
-﻿/** 项目管理 API：主表 / 子资源 / 审批对接。 */
+/** 项目管理 API：主表 / 子资源 / 审批对接。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -16,8 +16,8 @@ export interface ArticleListItem {
   renewal: number;
   augment: number;
   credit_term?: number;
-  repay_method?: number;
-  repay_method_display?: string;
+  credit_term_unit?: number;
+  credit_term_unit_display?: string;
   director_id?: number;
   director_name?: string;
   assistant_id?: number;
