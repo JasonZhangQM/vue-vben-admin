@@ -94,13 +94,14 @@ const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
 const employeeOptions = ref<{ label: string; value: number }[]>([]);
-/** 远程客户搜索选项（按当前用户 managementor_id 过滤） */
-const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
+/** 当前用户管护的客户列表（一次性加载，本地搜索） */
+const customerOptions = ref<{ label: string; value: number }[]>([]);
 
 let dictLoaded = false;
 
 async function loadDicts() {
   if (dictLoaded) return;
+  const userId = currentUserId.value;
   const [dict, products, pms, controllers, emps] = await Promise.all([
     getArticleDict(),
     getArticleProductsDict(),
@@ -113,27 +114,16 @@ async function loadDicts() {
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
   employeeOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
-  dictLoaded = true;
-}
-
-/** 远程客户搜索：按当前用户 managementor_id 过滤 + 关键字搜索 */
-async function onSearchCustomer(keyword: string) {
-  const userId = currentUserId.value;
-  if (!userId) return;
-  try {
-    const { items } = await getCustomerDict({
-      managementor_id: userId,
-      q: keyword?.trim() || undefined,
-      page: 1,
-      page_size: 20,
-    });
-    remoteCustomerOptions.value = items.map((c) => ({
-      label: c.name,
-      value: c.id,
-    }));
-  } catch {
-    remoteCustomerOptions.value = [];
+  // 一次性加载当前用户管护的所有客户
+  if (userId) {
+    try {
+      const { items } = await getCustomerDict({ managementor_id: userId, page: 1, page_size: 500 });
+      customerOptions.value = items.map((c) => ({ label: c.name, value: c.id }));
+    } catch {
+      customerOptions.value = [];
+    }
   }
+  dictLoaded = true;
 }
 
 // ========== Tab 数据 ==========
@@ -474,11 +464,9 @@ const supplyColumns = [
           <FormItem label="客户">
             <SearchSelect
               v-model:value="editForm.customer_id"
-              remote
-              :options="remoteCustomerOptions"
-              placeholder="输入客户名搜索"
+              :options="customerOptions"
+              placeholder="选择客户"
               style="width: 100%"
-              @search="onSearchCustomer"
             />
           </FormItem>
           <FormItem label="产品" required>
@@ -489,10 +477,10 @@ const supplyColumns = [
               style="width: 100%"
             />
           </FormItem>
-          <FormItem label="授信额(万)" required>
+          <FormItem label="续贷额(元)" required>
             <InputNumber v-model:value="editForm.renewal" :min="0" :precision="2" style="width: 100%" />
           </FormItem>
-          <FormItem label="追加额(万)">
+          <FormItem label="新增额(元)">
             <InputNumber v-model:value="editForm.augment" :min="0" :precision="2" style="width: 100%" />
           </FormItem>
           <FormItem label="期限(月)">
@@ -516,22 +504,13 @@ const supplyColumns = [
               :options="pmOptions"
             />
           </FormItem>
-          <FormItem label="风控经理">
-            <SearchSelect
-              v-model:value="editForm.control_id"
-              placeholder="输入名字搜索"
-              style="width: 100%"
-              allow-clear
-              :options="controlOptions"
-            />
-          </FormItem>
-          <FormItem label="助理">
+          <FormItem label="项目助理">
             <SearchSelect
               v-model:value="editForm.assistant_id"
               placeholder="输入名字搜索"
               style="width: 100%"
               allow-clear
-              :options="employeeOptions"
+              :options="pmOptions"
             />
           </FormItem>
         </Form>
@@ -552,7 +531,7 @@ const supplyColumns = [
               {{ dash((detail as any).product_name) }}
             </DescriptionsItem>
 
-            <DescriptionsItem label="授信金额(万)">
+            <DescriptionsItem label="授信金额(元)">
               {{ detail.balance?.toLocaleString() ?? '—' }}
             </DescriptionsItem>
             <DescriptionsItem label="期限(月)">{{ detail.credit_term ?? '—' }}</DescriptionsItem>
@@ -721,14 +700,14 @@ const supplyColumns = [
           style="width: 100%"
         />
       </FormItem>
-      <FormItem label="授信额(万)" required>
+      <FormItem label="续贷额(元)" required>
         <InputNumber v-model:value="signForm.renewal" :min="0" :precision="2" style="width: 100%" />
       </FormItem>
-      <FormItem label="追加额(万)">
+      <FormItem label="新增额(元)">
         <InputNumber v-model:value="signForm.augment" :min="0" :precision="2" style="width: 100%" />
       </FormItem>
-      <FormItem label="签批总额">
-        <Tag color="blue">{{ signForm.renewal + signForm.augment }} 万（= 授信 + 追加）</Tag>
+      <FormItem label="合计">
+        <Tag color="blue">{{ signForm.renewal + signForm.augment }} 元（= 续贷 + 新增）</Tag>
         <div class="text-gray-400 text-xs mt-1">
           后端会校验：Σ额度 = Σ放款次序 = 签批总额（允许 ±0.01 误差）
         </div>

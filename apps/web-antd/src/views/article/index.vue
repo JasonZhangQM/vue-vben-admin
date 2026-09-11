@@ -50,8 +50,8 @@ const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
 const employeeOptions = ref<{ label: string; value: number }[]>([]);
-/** 远程客户搜索选项（按当前用户 managementor_id 过滤） */
-const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
+/** 当前用户管护的客户列表（一次性加载，本地搜索） */
+const customerOptions = ref<{ label: string; value: number }[]>([]);
 
 onMounted(async () => {
   const [dict, products] = await Promise.all([
@@ -69,27 +69,17 @@ onMounted(async () => {
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
   employeeOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
-});
-
-/** 远程客户搜索：按当前用户 managementor_id 过滤 + 关键字搜索 */
-async function onSearchCustomer(keyword: string) {
-  const userId = currentUserId.value;
-  if (!userId) return;
-  try {
-    const { items } = await getCustomerDict({
-      managementor_id: userId,
-      q: keyword?.trim() || undefined,
-      page: 1,
-      page_size: 20,
-    });
-    remoteCustomerOptions.value = items.map((c) => ({
-      label: c.name,
-      value: c.id,
-    }));
-  } catch {
-    remoteCustomerOptions.value = [];
+  // 一次性加载当前用户管护的所有客户
+  const uid = currentUserId.value;
+  if (uid) {
+    try {
+      const { items } = await getCustomerDict({ managementor_id: uid, page: 1, page_size: 500 });
+      customerOptions.value = items.map((c) => ({ label: c.name, value: c.id }));
+    } catch {
+      customerOptions.value = [];
+    }
   }
-}
+});
 
 // ============ 列表 ============
 const { highlight, clearHighlight, rowClassName, customRow } = useRowHighlight();
@@ -138,7 +128,7 @@ const columns = computed<TableColumnType[]>(() => [
   { title: '状态', dataIndex: 'article_state', width: 100 },
   { title: '客户名称', dataIndex: 'customer_name' },
   { title: '产品', dataIndex: 'product_name', width: 120 },
-  { title: '授信额(万)', dataIndex: 'renewal', width: 110, align: 'right' },
+  { title: '续贷额(元)', dataIndex: 'renewal', width: 110, align: 'right' },
   { title: '项目经理', dataIndex: 'director_name', width: 110 },
   { title: '风控经理', dataIndex: 'control_name', width: 110 },
   { title: '余额', dataIndex: 'balance', width: 100, align: 'right' },
@@ -189,11 +179,14 @@ const form = reactive({
 
 async function openCreate() {
   editingId.value = null;
+  const uid = currentUserId.value;
+  // 仅当当前用户在项目经理列表中时才设为默认，否则留空避免 Select 显示裸 ID
+  const defaultDirector = pmOptions.value.some((o) => o.value === uid) ? uid : undefined;
   Object.assign(form, {
     article_state: 10, customer_id: undefined, product_id: undefined,
     renewal: undefined, augment: undefined, credit_term: undefined,
-    director_id: undefined, assistant_id: undefined, control_id: undefined,
-    repay_method: undefined,
+    director_id: defaultDirector, assistant_id: undefined,
+    control_id: undefined, repay_method: undefined,
   });
   createOpen.value = true;
 }
@@ -380,11 +373,9 @@ onMounted(loadList);
         <FormItem label="客户" required>
           <SearchSelect
             v-model:value="form.customer_id"
-            remote
-            :options="remoteCustomerOptions"
-            placeholder="输入客户名搜索"
+            :options="customerOptions"
+            placeholder="选择客户"
             style="width: 100%"
-            @search="onSearchCustomer"
           />
         </FormItem>
         <FormItem label="产品" required>
@@ -395,10 +386,10 @@ onMounted(loadList);
             style="width: 100%"
           />
         </FormItem>
-        <FormItem label="授信额(万)" required>
+        <FormItem label="续贷额(元)" required>
           <InputNumber v-model:value="form.renewal" :min="0" :precision="2" style="width: 100%" />
         </FormItem>
-        <FormItem label="追加额(万)">
+        <FormItem label="新增额(元)">
           <InputNumber v-model:value="form.augment" :min="0" :precision="2" style="width: 100%" />
         </FormItem>
         <FormItem label="期限(月)">
@@ -422,22 +413,13 @@ onMounted(loadList);
             :options="pmOptions"
           />
         </FormItem>
-        <FormItem label="风控经理">
-          <SearchSelect
-            v-model:value="form.control_id"
-            placeholder="输入名字搜索"
-            style="width: 100%"
-            allow-clear
-            :options="controlOptions"
-          />
-        </FormItem>
-        <FormItem label="助理">
+        <FormItem label="项目助理">
           <SearchSelect
             v-model:value="form.assistant_id"
             placeholder="输入名字搜索"
             style="width: 100%"
             allow-clear
-            :options="employeeOptions"
+            :options="pmOptions"
           />
         </FormItem>
       </Form>
