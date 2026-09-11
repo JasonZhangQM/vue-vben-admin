@@ -24,7 +24,6 @@ import {
   InputNumber,
   message,
   Modal,
-  Space,
   Spin,
   Table,
   TabPane,
@@ -45,6 +44,7 @@ import {
   getArticleDetail,
   getArticleSupplies,
   submitChangeRequest,
+  submitFeedback,
   submitSignRequest,
   updateArticle,
 } from '#/api/basic/article';
@@ -99,6 +99,7 @@ const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
 const employeeOptions = ref<{ label: string; value: number }[]>([]);
+const proposeOpts = ref<{ label: string; value: number }[]>([]);
 /** 当前用户管护的客户列表（一次性加载，本地搜索） */
 const customerOptions = ref<{ label: string; value: number }[]>([]);
 
@@ -119,6 +120,7 @@ async function loadDicts() {
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
   employeeOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
+  proposeOpts.value = dict.propose ?? [];
   // 一次性加载当前用户管护的所有客户
   if (userId) {
     try {
@@ -351,6 +353,61 @@ async function submitChange() {
   }
 }
 
+// ========== 提交风控反馈 ==========
+// 状态门禁：10 待反馈 或 20 已反馈 可以提交（upsert 语义，允许修改）
+const FEEDBACK_ELIGIBLE_STATES = new Set([10, 20]);
+
+const canSubmitFeedback = computed(() => {
+  if (!detail.value) return false;
+  return FEEDBACK_ELIGIBLE_STATES.has(detail.value.article_state);
+});
+
+/** 是否已有反馈（决定按钮文案："提交反馈" vs "修改反馈"） */
+const hasFeedback = computed(() => {
+  if (!detail.value) return false;
+  return detail.value.feedback_propose != null
+    || !!detail.value.feedback_analysis
+    || !!detail.value.feedback_suggestion;
+});
+
+const feedbackModalOpen = ref(false);
+const feedbackLoading = ref(false);
+
+const feedbackForm = reactive({
+  propose: undefined as number | undefined,
+  analysis: '' as string,
+  suggestion: '' as string,
+});
+
+function openFeedbackModal() {
+  if (!detail.value) return;
+  // 预填已有值（upsert 语义）
+  feedbackForm.propose = detail.value.feedback_propose ?? undefined;
+  feedbackForm.analysis = detail.value.feedback_analysis ?? '';
+  feedbackForm.suggestion = detail.value.feedback_suggestion ?? '';
+  feedbackModalOpen.value = true;
+}
+
+async function doSubmitFeedback() {
+  if (!props.articleId || !detail.value) return;
+  feedbackLoading.value = true;
+  try {
+    await submitFeedback(props.articleId, {
+      propose: feedbackForm.propose ?? null,
+      analysis: feedbackForm.analysis.trim() || null,
+      suggestion: feedbackForm.suggestion.trim() || null,
+    });
+    message.success(hasFeedback.value ? '风控反馈已更新' : '风控反馈已提交');
+    feedbackModalOpen.value = false;
+    await loadDetail(); // 刷新详情（状态变 20、feedback 字段回填）
+    emit('saved', props.articleId);
+  } catch {
+    // requestClient 已 toast
+  } finally {
+    feedbackLoading.value = false;
+  }
+}
+
 // ========== 状态颜色 ==========
 const stateColor: Record<number, string> = {
   10: 'default',
@@ -404,6 +461,18 @@ const supplyColumns = [
           <Card size="small" title="基本信息">
             <template #extra>
               <div class="flex gap-2">
+                <!-- 提交风控反馈：仅状态 10 待反馈 / 20 已反馈 可操作；已有反馈则按钮文案为"修改反馈" -->
+                <AccessControl :codes="['article:feedback']" type="code">
+                  <Button
+                    size="small"
+                    type="primary"
+                    :disabled="!canSubmitFeedback"
+                    :title="!canSubmitFeedback ? '仅『待反馈 / 已反馈』状态可提交风控反馈' : ''"
+                    @click="openFeedbackModal"
+                  >
+                    {{ hasFeedback ? '修改反馈' : '提交反馈' }}
+                  </Button>
+                </AccessControl>
                 <!-- 发起签批：仅已上会/待变更 且无进行中审批 可操作 -->
                 <AccessControl :codes="['article:sign']" type="code">
                   <Button
@@ -557,6 +626,52 @@ const supplyColumns = [
                   <Empty v-if="!tabLoading && supplies.length === 0" description="暂无补调记录" />
                 </div>
               </Spin>
+            </TabPane>
+
+            <!-- 风控反馈 Tab（数据来自 detail 聚合字段，无额外 API）-->
+            <TabPane key="feedback" :tab="hasFeedback ? '风控反馈 ✅' : '风控反馈（未提交）'">
+              <template v-if="hasFeedback">
+                <Descriptions :column="detailColumns" size="small">
+                  <DescriptionsItem label="上会建议">
+                    <Tag
+                      :color="
+                        detail!.feedback_propose === 10
+                          ? 'green'
+                          : detail!.feedback_propose === 20
+                            ? 'orange'
+                            : 'red'
+                      "
+                    >
+                      {{
+                        proposeOpts.find((o) => o.value === detail!.feedback_propose)?.label
+                        ?? `#${detail!.feedback_propose}`
+                      }}
+                    </Tag>
+                  </DescriptionsItem>
+                  <DescriptionsItem label="反馈人" :span="2">
+                    {{ dash(detail!.feedback_created_by_name) }}
+                    <span v-if="detail!.feedback_created_at" class="text-gray-400 ml-2">
+                      {{ detail!.feedback_created_at }}
+                    </span>
+                  </DescriptionsItem>
+                  <DescriptionsItem label="风险分析" :span="detailColumns">
+                    {{ dash(detail!.feedback_analysis) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="风控意见" :span="detailColumns">
+                    {{ dash(detail!.feedback_suggestion) }}
+                  </DescriptionsItem>
+                </Descriptions>
+                <div class="mt-4 text-gray-400 text-xs">
+                  风控反馈为前置关卡，提交后项目进入『已反馈』状态。如需修改，请点上方「修改反馈」按钮。
+                </div>
+              </template>
+              <template v-else>
+                <Empty description="尚未提交风控反馈">
+                  <div class="text-gray-400 text-xs mt-2">
+                    点击上方「提交反馈」按钮填写风控意见，提交后项目状态将变为『已反馈』。
+                  </div>
+                </Empty>
+              </template>
             </TabPane>
 
             <!-- 审批流 Timeline -->
@@ -755,6 +870,45 @@ const supplyColumns = [
       </FormItem>
       <div class="text-gray-400 text-xs">
         流程：风控审批 → 总经理审批（2 步）；通过后项目进入『待变更』状态
+      </div>
+    </Form>
+  </Modal>
+
+  <!-- ===== 提交风控反馈 Modal ===== -->
+  <Modal
+    v-model:open="feedbackModalOpen"
+    :title="hasFeedback ? '修改风控反馈' : '提交风控反馈'"
+    :confirm-loading="feedbackLoading"
+    @ok="doSubmitFeedback"
+  >
+    <Form :model="feedbackForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 18 }" size="small">
+      <FormItem label="上会建议" required>
+        <SearchSelect
+          v-model:value="feedbackForm.propose"
+          :options="proposeOpts"
+          placeholder="请选择上会建议"
+          style="width: 100%"
+          allow-clear
+        />
+      </FormItem>
+      <FormItem label="风险分析">
+        <textarea
+          v-model="feedbackForm.analysis"
+          rows="4"
+          class="w-full border border-gray-300 rounded px-2 py-1"
+          placeholder="可选：填写对客户/项目的风险分析"
+        />
+      </FormItem>
+      <FormItem label="风控意见">
+        <textarea
+          v-model="feedbackForm.suggestion"
+          rows="4"
+          class="w-full border border-gray-300 rounded px-2 py-1"
+          placeholder="可选：具体风控建议（如授信额度建议、担保措施要求等）"
+        />
+      </FormItem>
+      <div class="text-gray-400 text-xs">
+        提交后项目状态将变为『已反馈』；已反馈状态下可再次修改（upsert）。
       </div>
     </Form>
   </Modal>

@@ -42,6 +42,12 @@ export interface ArticleDetail extends ArticleListItem {
   sign_detail?: string | null;
   sign_type?: number | null;
   review_date?: string | null;
+  // 风控反馈聚合字段（后端 get_article LEFT JOIN 返回）
+  feedback_propose?: number | null;
+  feedback_analysis?: string | null;
+  feedback_suggestion?: string | null;
+  feedback_created_by_name?: string | null;
+  feedback_created_at?: string | null;
 }
 
 // ============ 主管理 ============

@@ -172,6 +172,7 @@ export function getEmployeeDict(params?: {
 export function getArticleDict() {
   return requestClient.get<{
     article_state: { label: string; value: number }[];
+    credit_term_unit: { label: string; value: number }[];
     repay_method: { label: string; value: number }[];
     propose: { label: string; value: number }[];
     credit_model: { label: string; value: number }[];
