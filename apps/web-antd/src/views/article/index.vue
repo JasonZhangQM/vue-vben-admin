@@ -6,6 +6,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 
 import { AccessControl } from '@vben/access';
 import { Page } from '@vben/common-ui';
+import { useUserStore } from '@vben/stores';
 
 import {
   Button,
@@ -35,16 +36,22 @@ import {
 import {
   getArticleDict,
   getArticleProductsDict,
+  getCustomerDict,
   getEmployeeDict,
 } from '#/api/basic/dict';
 
 // ============ 字典 ============
+const userStore = useUserStore();
+const currentUserId = computed(() => Number(userStore.userInfo?.userId));
+
 const articleStateOpts = ref<{ label: string; value: number }[]>([]);
 const repayMethodOpts = ref<{ label: string; value: number }[]>([]);
 const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
 const employeeOptions = ref<{ label: string; value: number }[]>([]);
+/** 远程客户搜索选项（按当前用户 managementor_id 过滤） */
+const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
 
 onMounted(async () => {
   const [dict, products] = await Promise.all([
@@ -63,6 +70,26 @@ onMounted(async () => {
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
   employeeOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
 });
+
+/** 远程客户搜索：按当前用户 managementor_id 过滤 + 关键字搜索 */
+async function onSearchCustomer(keyword: string) {
+  const userId = currentUserId.value;
+  if (!userId) return;
+  try {
+    const { items } = await getCustomerDict({
+      managementor_id: userId,
+      q: keyword?.trim() || undefined,
+      page: 1,
+      page_size: 20,
+    });
+    remoteCustomerOptions.value = items.map((c) => ({
+      label: c.name,
+      value: c.id,
+    }));
+  } catch {
+    remoteCustomerOptions.value = [];
+  }
+}
 
 // ============ 列表 ============
 const { highlight, clearHighlight, rowClassName, customRow } = useRowHighlight();
@@ -353,9 +380,11 @@ onMounted(loadList);
         <FormItem label="客户" required>
           <SearchSelect
             v-model:value="form.customer_id"
+            remote
+            :options="remoteCustomerOptions"
             placeholder="输入客户名搜索"
             style="width: 100%"
-            :options="employeeOptions"
+            @search="onSearchCustomer"
           />
         </FormItem>
         <FormItem label="产品" required>

@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 项目详情抽屉：查看 + 内嵌编辑 + 评审记录 Tab + 审批流 Tab。 */
 import type {
   ApprovalInstanceItem,
@@ -11,6 +11,7 @@ import { reactive, ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AccessControl } from '@vben/access';
+import { useUserStore } from '@vben/stores';
 import {
   Button,
   Descriptions,
@@ -48,6 +49,7 @@ import {
 import {
   getArticleDict,
   getArticleProductsDict,
+  getCustomerDict,
   getEmployeeDict,
 } from '#/api/basic/dict';
 
@@ -84,11 +86,16 @@ const editForm = reactive({
 });
 
 // ========== 字典 ==========
+const userStore = useUserStore();
+const currentUserId = computed(() => Number(userStore.userInfo?.userId));
+
 const repayMethodOpts = ref<{ label: string; value: number }[]>([]);
 const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
 const employeeOptions = ref<{ label: string; value: number }[]>([]);
+/** 远程客户搜索选项（按当前用户 managementor_id 过滤） */
+const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
 
 let dictLoaded = false;
 
@@ -107,6 +114,26 @@ async function loadDicts() {
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
   employeeOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
   dictLoaded = true;
+}
+
+/** 远程客户搜索：按当前用户 managementor_id 过滤 + 关键字搜索 */
+async function onSearchCustomer(keyword: string) {
+  const userId = currentUserId.value;
+  if (!userId) return;
+  try {
+    const { items } = await getCustomerDict({
+      managementor_id: userId,
+      q: keyword?.trim() || undefined,
+      page: 1,
+      page_size: 20,
+    });
+    remoteCustomerOptions.value = items.map((c) => ({
+      label: c.name,
+      value: c.id,
+    }));
+  } catch {
+    remoteCustomerOptions.value = [];
+  }
 }
 
 // ========== Tab 数据 ==========
@@ -447,9 +474,11 @@ const supplyColumns = [
           <FormItem label="客户">
             <SearchSelect
               v-model:value="editForm.customer_id"
+              remote
+              :options="remoteCustomerOptions"
               placeholder="输入客户名搜索"
               style="width: 100%"
-              :options="employeeOptions"
+              @search="onSearchCustomer"
             />
           </FormItem>
           <FormItem label="产品" required>
