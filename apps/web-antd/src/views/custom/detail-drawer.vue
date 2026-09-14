@@ -50,6 +50,7 @@ import {
   listDirectors,
   listExtends,
   listShareholders,
+  updateCompanyProfile,
   updateCustomer,
   updateCustomerContact,
   updateCustomerTags,
@@ -93,6 +94,40 @@ const classificationColor = (c: number) =>
 async function refresh() {
   await load();
   emit('updated');
+}
+
+// ===== 企业信息编辑 =====
+const editCompanyVisible = ref(false);
+const editCompanyLoading = ref(false);
+const editCompanyForm = reactive({
+  representative: '' as string,
+  capital: undefined as number | undefined,
+  paid_capital: undefined as number | undefined,
+});
+
+function openEditCompany() {
+  if (!detail.value?.company) return;
+  editCompanyForm.representative = detail.value.company.representative ?? '';
+  editCompanyForm.capital = detail.value.company.capital;
+  editCompanyForm.paid_capital = detail.value.company.paid_capital;
+  editCompanyVisible.value = true;
+}
+
+async function submitEditCompany() {
+  if (!props.customerId) return;
+  editCompanyLoading.value = true;
+  try {
+    await updateCompanyProfile(props.customerId, {
+      representative: editCompanyForm.representative.trim() || null,
+      capital: editCompanyForm.capital ?? null,
+      paid_capital: editCompanyForm.paid_capital ?? null,
+    });
+    message.success('企业信息已更新');
+    editCompanyVisible.value = false;
+    await refresh();
+  } finally {
+    editCompanyLoading.value = false;
+  }
 }
 
 // ===== 个人信息编辑 =====
@@ -581,13 +616,24 @@ async function saveTags() {
       </Card>
 
       <Tabs>
-        <!-- 企业扩展 -->
+        <!-- 企业扩展（一对一关联：顶端编辑按钮 + 只读 Descriptions） -->
         <TabPane v-if="detail.company" key="company" tab="企业信息">
-          <Descriptions :column="detailColumns" size="small">
-            <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
-            <DescriptionsItem label="注册资本">{{ detail.company.capital != null ? detail.company.capital.toLocaleString() : '—' }}</DescriptionsItem>
-            <DescriptionsItem label="实收资本">{{ detail.company.paid_capital != null ? detail.company.paid_capital.toLocaleString() : '—' }}</DescriptionsItem>
-          </Descriptions>
+          <Card size="small">
+            <template #extra>
+              <AccessControl :codes="['customer:update']" type="code">
+                <Button size="small" type="primary" @click="openEditCompany">修改</Button>
+              </AccessControl>
+            </template>
+            <Descriptions :column="detailColumns" size="small">
+              <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
+              <DescriptionsItem label="注册资本">
+                {{ detail.company.capital != null ? detail.company.capital.toLocaleString() : '—' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="实收资本" :span="2">
+                {{ detail.company.paid_capital != null ? detail.company.paid_capital.toLocaleString() : '—' }}
+              </DescriptionsItem>
+            </Descriptions>
+          </Card>
         </TabPane>
 
         <!-- 个人扩展 -->
@@ -1006,6 +1052,37 @@ async function saveTags() {
         </FormItem>
         <FormItem label="备注">
           <Input v-model:value="editContactForm.remark" placeholder="可空" />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- 编辑企业信息 Modal -->
+    <Modal
+      v-model:open="editCompanyVisible"
+      :confirm-loading="editCompanyLoading"
+      destroy-on-close
+      title="修改企业信息"
+      @ok="submitEditCompany"
+    >
+      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <FormItem label="法定代表人">
+          <Input v-model:value="editCompanyForm.representative" placeholder="可空" />
+        </FormItem>
+        <FormItem label="注册资本(元)">
+          <InputNumber
+            v-model:value="editCompanyForm.capital"
+            :min="0"
+            :precision="2"
+            style="width: 100%"
+          />
+        </FormItem>
+        <FormItem label="实收资本(元)">
+          <InputNumber
+            v-model:value="editCompanyForm.paid_capital"
+            :min="0"
+            :precision="2"
+            style="width: 100%"
+          />
         </FormItem>
       </Form>
     </Modal>

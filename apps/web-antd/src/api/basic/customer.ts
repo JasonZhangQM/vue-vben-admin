@@ -406,6 +406,23 @@ export function removeGroupMember(id: number, customerId: number) {
   return requestClient.delete(`/customer-groups/${id}/members/${customerId}`);
 }
 
+// ===== 企业扩展 =====
+
+/** 更新企业扩展信息（法定代表人/注册资本/实收资本） */
+export function updateCompanyProfile(
+  customerId: number,
+  data: {
+    capital?: number | null;
+    paid_capital?: number | null;
+    representative?: string | null;
+  },
+) {
+  return requestClient.request(`/customers/${customerId}/company`, {
+    data,
+    method: 'PATCH',
+  });
+}
+
 // ===== 个人扩展 =====
 
 /** 更新个人扩展信息（婚姻状态/户籍性质/配偶，三个字段一起编辑） */

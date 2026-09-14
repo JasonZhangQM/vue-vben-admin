@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 项目详情抽屉：查看 + 内嵌编辑 + 评审记录 Tab + 审批流 Tab。 */
 import type {
   ApprovalInstanceItem,
@@ -362,7 +362,7 @@ const canSubmitFeedback = computed(() => {
   return FEEDBACK_ELIGIBLE_STATES.has(detail.value.article_state);
 });
 
-/** 是否已有反馈（决定按钮文案："提交反馈" vs "修改反馈"） */
+/** 是否已有反馈（决定按钮是否显示反馈人/反馈时间） */
 const hasFeedback = computed(() => {
   if (!detail.value) return false;
   return detail.value.feedback_propose != null
@@ -461,18 +461,6 @@ const supplyColumns = [
           <Card size="small" title="基本信息">
             <template #extra>
               <div class="flex gap-2">
-                <!-- 提交风控反馈：仅状态 10 待反馈 / 20 已反馈 可操作；已有反馈则按钮文案为"修改反馈" -->
-                <AccessControl :codes="['article:feedback']" type="code">
-                  <Button
-                    size="small"
-                    type="primary"
-                    :disabled="!canSubmitFeedback"
-                    :title="!canSubmitFeedback ? '仅『待反馈 / 已反馈』状态可提交风控反馈' : ''"
-                    @click="openFeedbackModal"
-                  >
-                    {{ hasFeedback ? '修改反馈' : '提交反馈' }}
-                  </Button>
-                </AccessControl>
                 <!-- 发起签批：仅已上会/待变更 且无进行中审批 可操作 -->
                 <AccessControl :codes="['article:sign']" type="code">
                   <Button
@@ -628,8 +616,25 @@ const supplyColumns = [
               </Spin>
             </TabPane>
 
-            <!-- 风控反馈 Tab（数据来自 detail 聚合字段，无额外 API）-->
+            <!-- 风控反馈 Tab：一对一关联（ArticleFeedback 每项目一份），顶端编辑按钮 + 只读 Descriptions -->
             <TabPane key="feedback" :tab="hasFeedback ? '风控反馈 ✅' : '风控反馈（未提交）'">
+              <div class="flex justify-end mb-3">
+                <AccessControl :codes="['article:feedback']" type="code">
+                  <Button
+                    size="small"
+                    :type="hasFeedback ? 'default' : 'primary'"
+                    :disabled="!canSubmitFeedback"
+                    :title="
+                      !canSubmitFeedback
+                        ? '仅『待反馈 / 已反馈』状态可提交风控反馈'
+                        : ''
+                    "
+                    @click="openFeedbackModal"
+                  >
+                    反馈
+                  </Button>
+                </AccessControl>
+              </div>
               <template v-if="hasFeedback">
                 <Descriptions :column="detailColumns" size="small">
                   <DescriptionsItem label="上会建议">
@@ -648,27 +653,29 @@ const supplyColumns = [
                       }}
                     </Tag>
                   </DescriptionsItem>
-                  <DescriptionsItem label="反馈人" :span="2">
+                  <DescriptionsItem label="反馈人">
                     {{ dash(detail!.feedback_created_by_name) }}
-                    <span v-if="detail!.feedback_created_at" class="text-gray-400 ml-2">
-                      {{ detail!.feedback_created_at }}
-                    </span>
                   </DescriptionsItem>
-                  <DescriptionsItem label="风险分析" :span="detailColumns">
+                  <DescriptionsItem label="反馈时间">
+                    {{ dash(detail!.feedback_created_at) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="可修改">
+                    <Tag :color="canSubmitFeedback ? 'blue' : 'default'">
+                      {{ canSubmitFeedback ? '是（状态待反馈/已反馈）' : '否（已过前置关卡）' }}
+                    </Tag>
+                  </DescriptionsItem>
+                  <DescriptionsItem label="风险分析" :span="4">
                     {{ dash(detail!.feedback_analysis) }}
                   </DescriptionsItem>
-                  <DescriptionsItem label="风控意见" :span="detailColumns">
+                  <DescriptionsItem label="风控意见" :span="4">
                     {{ dash(detail!.feedback_suggestion) }}
                   </DescriptionsItem>
                 </Descriptions>
-                <div class="mt-4 text-gray-400 text-xs">
-                  风控反馈为前置关卡，提交后项目进入『已反馈』状态。如需修改，请点上方「修改反馈」按钮。
-                </div>
               </template>
               <template v-else>
                 <Empty description="尚未提交风控反馈">
                   <div class="text-gray-400 text-xs mt-2">
-                    点击上方「提交反馈」按钮填写风控意见，提交后项目状态将变为『已反馈』。
+                    点击上方「反馈」按钮填写风控意见，提交后项目状态将变为『已反馈』。
                   </div>
                 </Empty>
               </template>
@@ -877,7 +884,7 @@ const supplyColumns = [
   <!-- ===== 提交风控反馈 Modal ===== -->
   <Modal
     v-model:open="feedbackModalOpen"
-    :title="hasFeedback ? '修改风控反馈' : '提交风控反馈'"
+    title="风控反馈"
     :confirm-loading="feedbackLoading"
     @ok="doSubmitFeedback"
   >
