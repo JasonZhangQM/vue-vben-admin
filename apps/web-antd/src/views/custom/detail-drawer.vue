@@ -58,7 +58,13 @@ import {
 } from '#/api/basic/customer';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import SearchSelect from '#/components/SearchSelect/index.vue';
-import { getCreditRegionTree, getCustomerDict, getIndustryTree } from '#/api/basic/dict';
+import {
+  getCreditRegionTree,
+  getCustomNatureDict,
+  getCustomerDict,
+  getDecisionorDict,
+  getIndustryTree,
+} from '#/api/basic/dict';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useDictStore } from '#/store';
 import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
@@ -99,17 +105,37 @@ async function refresh() {
 // ===== 企业信息编辑 =====
 const editCompanyVisible = ref(false);
 const editCompanyLoading = ref(false);
+const decisionorOptions = ref<{ value: number; label: string }[]>([]);
+const customNatureOptions = ref<{ value: number; label: string }[]>([]);
 const editCompanyForm = reactive({
+  decisionor: undefined as number | undefined,
+  custom_nature: undefined as number | undefined,
+  industry_c: undefined as number | undefined,
   representative: '' as string,
   capital: undefined as number | undefined,
   paid_capital: undefined as number | undefined,
 });
 
-function openEditCompany() {
+async function openEditCompany() {
   if (!detail.value?.company) return;
+  // 懒加载枚举字典（仅首次）
+  if (!decisionorOptions.value.length) {
+    decisionorOptions.value = await getDecisionorDict();
+  }
+  if (!customNatureOptions.value.length) {
+    customNatureOptions.value = await getCustomNatureDict();
+  }
+  editCompanyForm.decisionor = detail.value.company.decisionor ?? undefined;
+  editCompanyForm.custom_nature = detail.value.company.custom_nature ?? undefined;
+  editCompanyForm.industry_c = detail.value.company.industry_c ?? undefined;
   editCompanyForm.representative = detail.value.company.representative ?? '';
-  editCompanyForm.capital = detail.value.company.capital;
-  editCompanyForm.paid_capital = detail.value.company.paid_capital;
+  // 数据库存元，表单按"万元"单位编辑
+  editCompanyForm.capital =
+    detail.value.company.capital != null ? detail.value.company.capital / 10000 : undefined;
+  editCompanyForm.paid_capital =
+    detail.value.company.paid_capital != null
+      ? detail.value.company.paid_capital / 10000
+      : undefined;
   editCompanyVisible.value = true;
 }
 
@@ -117,10 +143,14 @@ async function submitEditCompany() {
   if (!props.customerId) return;
   editCompanyLoading.value = true;
   try {
+    // 表单"万元" × 10000 转"元"提交数据库
     await updateCompanyProfile(props.customerId, {
+      decisionor: editCompanyForm.decisionor ?? null,
+      custom_nature: editCompanyForm.custom_nature ?? null,
+      industry_c: editCompanyForm.industry_c ?? null,
       representative: editCompanyForm.representative.trim() || null,
-      capital: editCompanyForm.capital ?? null,
-      paid_capital: editCompanyForm.paid_capital ?? null,
+      capital: editCompanyForm.capital != null ? editCompanyForm.capital * 10000 : null,
+      paid_capital: editCompanyForm.paid_capital != null ? editCompanyForm.paid_capital * 10000 : null,
     });
     message.success('企业信息已更新');
     editCompanyVisible.value = false;
@@ -626,11 +656,17 @@ async function saveTags() {
             </template>
             <Descriptions :column="detailColumns" size="small">
               <DescriptionsItem label="法定代表人">{{ dash(detail.company.representative) }}</DescriptionsItem>
-              <DescriptionsItem label="注册资本">
-                {{ detail.company.capital != null ? detail.company.capital.toLocaleString() : '—' }}
+              <DescriptionsItem label="决策机构">{{ dash(detail.company.decisionor_display) }}</DescriptionsItem>
+              <DescriptionsItem label="企业性质">{{ dash(detail.company.custom_nature_display) }}</DescriptionsItem>
+              <DescriptionsItem label="工信部行业">
+                {{ detail.company.industry_c != null ? detail.company.industry_c : '—' }}
               </DescriptionsItem>
-              <DescriptionsItem label="实收资本" :span="2">
-                {{ detail.company.paid_capital != null ? detail.company.paid_capital.toLocaleString() : '—' }}
+              <DescriptionsItem label="企业划型">{{ dash(detail.company.typing_display) }}</DescriptionsItem>
+              <DescriptionsItem label="注册资本(万)">
+                {{ detail.company.capital != null ? (detail.company.capital / 10000).toLocaleString() : '—' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="实收资本(万)" :span="2">
+                {{ detail.company.paid_capital != null ? (detail.company.paid_capital / 10000).toLocaleString() : '—' }}
               </DescriptionsItem>
             </Descriptions>
           </Card>
@@ -1065,25 +1101,54 @@ async function saveTags() {
       @ok="submitEditCompany"
     >
       <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <FormItem label="法定代表人">
-          <Input v-model:value="editCompanyForm.representative" placeholder="可空" />
-        </FormItem>
-        <FormItem label="注册资本(元)">
-          <InputNumber
-            v-model:value="editCompanyForm.capital"
-            :min="0"
-            :precision="2"
-            style="width: 100%"
-          />
-        </FormItem>
-        <FormItem label="实收资本(元)">
-          <InputNumber
-            v-model:value="editCompanyForm.paid_capital"
-            :min="0"
-            :precision="2"
-            style="width: 100%"
-          />
-        </FormItem>
+        <div class="grid grid-cols-2 gap-x-6">
+          <FormItem label="法定代表人">
+            <Input v-model:value="editCompanyForm.representative" placeholder="可空" />
+          </FormItem>
+          <FormItem label="决策机构">
+            <Select
+              v-model:value="editCompanyForm.decisionor"
+              :options="decisionorOptions"
+              allow-clear
+              placeholder="可空"
+            />
+          </FormItem>
+          <FormItem label="企业性质">
+            <Select
+              v-model:value="editCompanyForm.custom_nature"
+              :options="customNatureOptions"
+              allow-clear
+              placeholder="可空"
+            />
+          </FormItem>
+          <FormItem label="工信部行业">
+            <InputNumber
+              v-model:value="editCompanyForm.industry_c"
+              :min="0"
+              :precision="0"
+              style="width: 100%"
+              placeholder="可空"
+            />
+          </FormItem>
+          <FormItem label="注册资本(万)">
+            <InputNumber
+              v-model:value="editCompanyForm.capital"
+              :min="0"
+              :precision="4"
+              style="width: 100%"
+              placeholder="可空"
+            />
+          </FormItem>
+          <FormItem label="实收资本(万)">
+            <InputNumber
+              v-model:value="editCompanyForm.paid_capital"
+              :min="0"
+              :precision="4"
+              style="width: 100%"
+              placeholder="可空"
+            />
+          </FormItem>
+        </div>
       </Form>
     </Modal>
 

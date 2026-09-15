@@ -1,10 +1,11 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 项目详情抽屉：查看 + 内嵌编辑 + 评审记录 Tab + 审批流 Tab。 */
 import type {
   ApprovalInstanceItem,
   ArticleCommentItem,
   ArticleDetail,
   ArticleSupplyItem,
+  LendingOrderItem,
 } from '#/api/basic/article';
 
 import { reactive, ref, watch, computed } from 'vue';
@@ -38,15 +39,20 @@ import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash } from '#/utils/format';
 
 import {
+  addLendingOrder,
   deleteArticle,
+  deleteLendingOrder,
   getArticleApprovalInstances,
   getArticleComments,
   getArticleDetail,
   getArticleSupplies,
+  listLendingOrders,
   submitChangeRequest,
   submitFeedback,
   submitSignRequest,
   updateArticle,
+  updateLendingOrder,
+  upsertSure,
 } from '#/api/basic/article';
 import {
   getArticleDict,
@@ -54,6 +60,7 @@ import {
   getCustomerDict,
   getEmployeeDict,
 } from '#/api/basic/dict';
+import { getWarrantList } from '#/api/basic/warrant';
 
 const props = defineProps<{ articleId: null | number }>();
 
@@ -102,6 +109,8 @@ const employeeOptions = ref<{ label: string; value: number }[]>([]);
 const proposeOpts = ref<{ label: string; value: number }[]>([]);
 /** 当前用户管护的客户列表（一次性加载，本地搜索） */
 const customerOptions = ref<{ label: string; value: number }[]>([]);
+/** 全部权证列表（担保措施弹窗下拉） */
+const warrantOptions = ref<{ label: string; value: number }[]>([]);
 
 let dictLoaded = false;
 
@@ -130,6 +139,16 @@ async function loadDicts() {
       customerOptions.value = [];
     }
   }
+  // 一次性加载全部权证（担保措施弹窗下拉）
+  try {
+    const { items } = await getWarrantList({ page: 1, page_size: 500 });
+    warrantOptions.value = items.map((w) => ({
+      label: w.warrant_num || `权证#${w.id}`,
+      value: w.id,
+    }));
+  } catch {
+    warrantOptions.value = [];
+  }
   dictLoaded = true;
 }
 
@@ -137,6 +156,7 @@ async function loadDicts() {
 const comments = ref<ArticleCommentItem[]>([]);
 const supplies = ref<ArticleSupplyItem[]>([]);
 const approvals = ref<ApprovalInstanceItem[]>([]);
+const lendingOrders = ref<LendingOrderItem[]>([]);
 const tabLoading = ref(false);
 
 async function loadDetail() {
@@ -149,20 +169,204 @@ async function loadDetail() {
   }
 }
 
+// 反担保类型字典（前端弹窗下拉 + 表格渲染，与后端 SURE_TYPE_MAP 对齐）
+const SURE_TYPE_MAP: Record<number, string> = {
+  1: '保证-法定代表人',
+  2: '保证-实际控制人',
+  11: '抵押-房产',
+  12: '抵押-土地',
+  13: '抵押-机器设备',
+  14: '抵押-车辆',
+  21: '质押-股权',
+  22: '质押-应收账款',
+  23: '质押-存货',
+  31: '留置',
+  41: '定金',
+  51: '保理',
+  52: '信用证',
+  53: '保函',
+  54: '保险',
+  55: '仓储监管',
+  56: '资产证券化',
+  57: '融资租赁',
+  58: '合作担保机构',
+  59: '其他担保',
+};
+/** 保证类（选客户） */
+const SURE_TYPE_GUARANTEE = [1, 2];
+/** 抵质押类（选权证） */
+const SURE_TYPE_PLEDGE = [11, 12, 13, 14, 21, 22, 23, 31, 41, 51, 52, 53, 54, 55, 56, 57, 58, 59];
+
 async function loadTabs() {
   if (!props.articleId) return;
   tabLoading.value = true;
   try {
-    const [c, s, a] = await Promise.all([
+    const [c, s, a, lo] = await Promise.all([
       getArticleComments(props.articleId),
       getArticleSupplies(props.articleId),
       getArticleApprovalInstances(props.articleId),
+      listLendingOrders(props.articleId),
     ]);
     comments.value = c;
     supplies.value = s;
     approvals.value = a;
+    lendingOrders.value = lo;
   } finally {
     tabLoading.value = false;
+  }
+}
+
+// ========== 放款次序 Modal ==========
+
+const lendingOrderModalOpen = ref(false);
+const lendingOrderLoading = ref(false);
+const editingOrderId = ref<number | null>(null);
+
+const lendingOrderForm = reactive({
+  seq: 1 as number,
+  order_amount: 0 as number,
+  remark: '' as string | null,
+});
+
+function openAddLendingOrder() {
+  // 自动算下一个 seq
+  const nextSeq = Math.max(0, ...lendingOrders.value.map((o) => o.seq)) + 1;
+  Object.assign(lendingOrderForm, {
+    seq: Math.min(nextSeq, 5),
+    order_amount: 0,
+    remark: null,
+  });
+  editingOrderId.value = null;
+  lendingOrderModalOpen.value = true;
+}
+
+function openEditLendingOrder(order: LendingOrderItem) {
+  Object.assign(lendingOrderForm, {
+    seq: order.seq,
+    order_amount: Number(order.order_amount),
+    remark: order.remark ?? null,
+  });
+  editingOrderId.value = order.id;
+  lendingOrderModalOpen.value = true;
+}
+
+async function saveLendingOrder() {
+  if (!props.articleId) return;
+  if (lendingOrderForm.order_amount <= 0) {
+    message.warning('放款金额必须大于 0');
+    return;
+  }
+  if (lendingOrderForm.seq < 1 || lendingOrderForm.seq > 5) {
+    message.warning('次序序号必须在 1-5 之间');
+    return;
+  }
+  lendingOrderLoading.value = true;
+  try {
+    if (editingOrderId.value) {
+      await updateLendingOrder(props.articleId, editingOrderId.value, {
+        order_amount: lendingOrderForm.order_amount,
+        remark: lendingOrderForm.remark || null,
+      });
+      message.success('放款次序已更新');
+    } else {
+      await addLendingOrder(props.articleId, {
+        seq: lendingOrderForm.seq,
+        order_amount: lendingOrderForm.order_amount,
+        remark: lendingOrderForm.remark || null,
+      });
+      message.success('放款次序已添加');
+    }
+    lendingOrderModalOpen.value = false;
+    await loadTabs();
+  } catch {
+    // requestClient 已 toast（如"次序已存在"）
+  } finally {
+    lendingOrderLoading.value = false;
+  }
+}
+
+function removeLendingOrder(order: LendingOrderItem) {
+  if (!props.articleId) return;
+  Modal.confirm({
+    title: `删除放款次序 #${order.seq}？`,
+    content: `金额 ${Number(order.order_amount).toFixed(2)} 元 · 该次序下的 ${order.sures.length} 条担保措施也会一并删除`,
+    async onOk() {
+      try {
+        await deleteLendingOrder(props.articleId!, order.id);
+        message.success('已删除');
+        await loadTabs();
+      } catch {
+        // requestClient 已 toast
+      }
+    },
+  });
+}
+
+// ========== 担保措施 Modal（嵌套在放款次序下，按 sure_type upsert）============
+
+const sureModalOpen = ref(false);
+const sureModalLoading = ref(false);
+/** 正在编辑哪个放款次序的担保措施 */
+const sureTargetOrderId = ref<number | null>(null);
+const sureTargetOrderSeq = ref<number>(1);
+
+const sureForm = reactive({
+  sure_type: undefined as number | undefined,
+  remark: '' as string | null,
+  customer_ids: [] as number[],
+  warrant_ids: [] as number[],
+});
+
+/** 当前 sure_type 是保证类（选客户）还是抵质押类（选权证） */
+const isSureGuarantee = computed(() =>
+  sureForm.sure_type ? SURE_TYPE_GUARANTEE.includes(sureForm.sure_type) : false,
+);
+const isSurePledge = computed(() =>
+  sureForm.sure_type ? SURE_TYPE_PLEDGE.includes(sureForm.sure_type) : false,
+);
+
+function openSureModal(order: LendingOrderItem) {
+  sureTargetOrderId.value = order.id;
+  sureTargetOrderSeq.value = order.seq;
+  Object.assign(sureForm, {
+    sure_type: undefined,
+    remark: null,
+    customer_ids: [],
+    warrant_ids: [],
+  });
+  sureModalOpen.value = true;
+}
+
+async function saveSure() {
+  if (!props.articleId || !sureTargetOrderId.value) return;
+  if (!sureForm.sure_type) {
+    message.warning('请选择反担保类型');
+    return;
+  }
+  if (isSureGuarantee.value && sureForm.customer_ids.length === 0) {
+    message.warning('保证类担保需选择至少 1 个客户');
+    return;
+  }
+  if (isSurePledge.value && sureForm.warrant_ids.length === 0) {
+    message.warning('抵质押类担保需选择至少 1 个权证');
+    return;
+  }
+  sureModalLoading.value = true;
+  try {
+    await upsertSure(props.articleId, {
+      lending_order_id: sureTargetOrderId.value,
+      sure_type: sureForm.sure_type,
+      remark: sureForm.remark || null,
+      customer_ids: sureForm.customer_ids,
+      warrant_ids: sureForm.warrant_ids,
+    });
+    message.success('反担保措施已保存');
+    sureModalOpen.value = false;
+    await loadTabs();
+  } catch {
+    // requestClient 已 toast
+  } finally {
+    sureModalLoading.value = false;
   }
 }
 
@@ -735,6 +939,113 @@ const supplyColumns = [
                 <Empty v-else description="暂无审批记录" />
               </Spin>
             </TabPane>
+
+            <!-- 放款次序 + 嵌套反担保措施 -->
+            <TabPane key="lending-orders" :tab="`放款次序(${lendingOrders.length})`">
+              <Spin :spinning="tabLoading">
+                <div class="flex justify-end mb-3 gap-2">
+                  <AccessControl :codes="['article:lending']" type="code">
+                    <Button
+                      type="primary"
+                      size="small"
+                      :disabled="!detail || ![40, 61].includes(detail.article_state)"
+                      :title="
+                        detail && ![40, 61].includes(detail.article_state)
+                          ? '仅『已上会 / 待变更』状态可管理放款次序'
+                          : ''
+                      "
+                      @click="openAddLendingOrder"
+                    >
+                      + 添加放款次序
+                    </Button>
+                  </AccessControl>
+                </div>
+
+                <!-- 无数据提示 -->
+                <Empty
+                  v-if="!tabLoading && lendingOrders.length === 0"
+                  description="暂无放款次序，点击右上角按钮添加"
+                  class="py-6"
+                />
+
+                <!-- 每条放款次序 = 一个 Collapse Panel，内含次序信息 + 担保措施 -->
+                <template v-else>
+                  <div class="space-y-3">
+                    <div
+                      v-for="order in lendingOrders"
+                      :key="order.id"
+                      class="border rounded"
+                    >
+                      <!-- 次序头：序号 + 金额 + 操作按钮 -->
+                      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-t">
+                        <span class="font-semibold text-blue-600">放款次序 #{{ order.seq }}</span>
+                        <span class="text-sm text-gray-600">
+                          金额
+                          <span class="font-mono text-blue-700">
+                            {{ Number(order.order_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
+                          </span>
+                          元
+                        </span>
+                        <Tag v-if="order.state" :color="order.state === 50 ? 'green' : order.state === 51 ? 'cyan' : 'default'" class="ml-2">
+                          状态 {{ order.state }}
+                        </Tag>
+                        <span v-if="order.remark" class="text-xs text-gray-400 ml-2 truncate max-w-xs">
+                          备注：{{ order.remark }}
+                        </span>
+                        <div class="flex-1" />
+                        <AccessControl :codes="['article:lending']" type="code">
+                          <Button
+                            size="small"
+                            type="link"
+                            @click="openSureModal(order)"
+                          >
+                            担保措施({{ order.sures.length }})
+                          </Button>
+                          <Button
+                            size="small"
+                            type="link"
+                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
+                            @click="openEditLendingOrder(order)"
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            size="small"
+                            type="link"
+                            danger
+                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
+                            @click="removeLendingOrder(order)"
+                          >
+                            删除
+                          </Button>
+                        </AccessControl>
+                      </div>
+
+                      <!-- 担保措施 Tag 列表（内嵌展示） -->
+                      <div v-if="order.sures.length > 0" class="px-3 py-2 border-t border-gray-100">
+                        <div class="text-xs text-gray-400 mb-1">反担保措施</div>
+                        <div class="flex flex-wrap gap-2">
+                          <template v-for="(sure, idx) in order.sures" :key="idx">
+                            <div class="border border-blue-200 rounded px-2 py-1 bg-blue-50 text-xs">
+                              <span class="font-medium text-blue-700">{{ sure.sure_type_display }}</span>
+                              <span v-if="sure.customer_names.length" class="ml-1 text-gray-600">
+                                · {{ sure.customer_names.join(', ') }}
+                              </span>
+                              <span v-if="sure.warrant_names.length" class="ml-1 text-gray-600">
+                                · {{ sure.warrant_names.join(', ') }}
+                              </span>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                      <div v-else class="px-3 py-2 border-t border-gray-100 text-xs text-gray-400 italic">
+                        暂无担保措施 · 点击右上角「担保措施」按钮添加
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </Spin>
+            </TabPane>
           </Tabs>
         </div>
       </template>
@@ -916,6 +1227,119 @@ const supplyColumns = [
       </FormItem>
       <div class="text-gray-400 text-xs">
         提交后项目状态将变为『已反馈』；已反馈状态下可再次修改（upsert）。
+      </div>
+    </Form>
+  </Modal>
+
+  <!-- ===== 放款次序 Modal ===== -->
+  <Modal
+    v-model:open="lendingOrderModalOpen"
+    :confirm-loading="lendingOrderLoading"
+    :title="editingOrderId ? '修改放款次序' : '添加放款次序'"
+    :width="480"
+    @ok="saveLendingOrder"
+  >
+    <Form :model="lendingOrderForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+      <FormItem label="次序序号" required>
+        <InputNumber
+          v-model:value="lendingOrderForm.seq"
+          :min="1"
+          :max="5"
+          :disabled="editingOrderId !== null"
+          class="!w-full"
+        />
+        <div v-if="editingOrderId" class="text-gray-400 text-xs">
+          序号不允许修改（需先删除再重建）
+        </div>
+      </FormItem>
+      <FormItem label="放款金额(元)" required>
+        <InputNumber
+          v-model:value="lendingOrderForm.order_amount"
+          :min="0"
+          :precision="2"
+          class="!w-full"
+        />
+      </FormItem>
+      <FormItem label="备注">
+        <Input
+          v-model:value="lendingOrderForm.remark"
+          type="textarea"
+          :rows="3"
+          placeholder="可选：放款条件说明 / 特殊约定"
+        />
+      </FormItem>
+    </Form>
+  </Modal>
+
+  <!-- ===== 担保措施 Modal ===== -->
+  <Modal
+    v-model:open="sureModalOpen"
+    :confirm-loading="sureModalLoading"
+    :title="`放款次序 #${sureTargetOrderSeq} 的反担保措施`"
+    :width="520"
+    @ok="saveSure"
+  >
+    <Form :model="sureForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+      <FormItem label="担保类型" required>
+        <Select
+          v-model:value="sureForm.sure_type"
+          :options="Object.entries(SURE_TYPE_MAP).map(([v, l]) => ({
+            value: Number(v),
+            label: l,
+          }))"
+          :placeholder="sureForm.sure_type ? SURE_TYPE_MAP[sureForm.sure_type] : '请选择'"
+          class="!w-full"
+          show-search
+          option-filter-prop="label"
+        />
+      </FormItem>
+
+      <!-- 保证类：选客户 -->
+      <FormItem
+        v-if="isSureGuarantee"
+        label="保证人"
+        required
+      >
+        <Select
+          v-model:value="sureForm.customer_ids"
+          mode="multiple"
+          :options="customerOptions"
+          :placeholder="customerOptions.length ? '选择保证客户' : '无客户可选（请先在客户列表添加）'"
+          class="!w-full"
+          show-search
+          option-filter-prop="label"
+          :disabled="customerOptions.length === 0"
+        />
+      </FormItem>
+
+      <!-- 抵质押类：选权证 -->
+      <FormItem
+        v-if="isSurePledge"
+        label="抵质押物"
+        required
+      >
+        <Select
+          v-model:value="sureForm.warrant_ids"
+          mode="multiple"
+          :options="warrantOptions"
+          :placeholder="warrantOptions.length ? '选择抵质押权证' : '无权证可选（请先在权证列表添加）'"
+          class="!w-full"
+          show-search
+          option-filter-prop="label"
+          :disabled="warrantOptions.length === 0"
+        />
+      </FormItem>
+
+      <FormItem label="备注">
+        <Input
+          v-model:value="sureForm.remark"
+          type="textarea"
+          :rows="2"
+          placeholder="可选：补充说明"
+        />
+      </FormItem>
+      <div class="text-gray-400 text-xs">
+        同一放款次序 + 同一担保类型 = 一条 upsert 记录，保存时会替换旧数据。
       </div>
     </Form>
   </Modal>

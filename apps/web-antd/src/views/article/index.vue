@@ -23,6 +23,7 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useFormColumns } from '#/composables/useFormColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash } from '#/utils/format';
 
@@ -160,6 +161,7 @@ function openDetail(row: ArticleListItem) {
 }
 
 // ============ 创建 / 编辑 ============
+const { gridColsClass } = useFormColumns(3);
 const createOpen = ref(false);
 const createLoading = ref(false);
 const editingId = ref<number | null>(null);
@@ -368,7 +370,8 @@ onMounted(loadList);
         :label-col="{ span: 8 }"
         :wrapper-col="{ span: 16 }"
         :model="form"
-        class="grid grid-cols-2 gap-x-6"
+        class="grid gap-x-6 gap-y-2"
+        :class="gridColsClass"
       >
         <FormItem label="客户" required>
           <SearchSelect

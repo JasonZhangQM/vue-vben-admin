@@ -408,10 +408,13 @@ export function removeGroupMember(id: number, customerId: number) {
 
 // ===== 企业扩展 =====
 
-/** 更新企业扩展信息（法定代表人/注册资本/实收资本） */
+/** 更新企业扩展信息（决策机构/企业性质/工信部行业/资本/法人；typing 由经营快照自动计算） */
 export function updateCompanyProfile(
   customerId: number,
   data: {
+    decisionor?: number | null;
+    custom_nature?: number | null;
+    industry_c?: number | null;
     capital?: number | null;
     paid_capital?: number | null;
     representative?: string | null;

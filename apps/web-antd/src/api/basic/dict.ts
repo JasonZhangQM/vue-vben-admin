@@ -201,3 +201,17 @@ export function getAppraisalDict() {
 export function getExpertCategoriesDict() {
   return requestClient.get<{ id: number; name: string }[]>('/dicts/expert-categories');
 }
+
+// ===== 客户模块业务枚举字典 =====
+
+export function getDecisionorDict() {
+  return requestClient.get<{ value: number; label: string }[]>('/dicts/decisionors');
+}
+
+export function getCustomNatureDict() {
+  return requestClient.get<{ value: number; label: string }[]>('/dicts/custom-natures');
+}
+
+export function getTypingDict() {
+  return requestClient.get<{ value: number; label: string }[]>('/dicts/typings');
+}

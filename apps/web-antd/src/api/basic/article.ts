@@ -97,6 +97,47 @@ export function addLendingOrder(id: number, data: Record<string, unknown>) {
   return requestClient.post<void>(`/articles/${id}/lending-orders`, data);
 }
 
+/** 放款次序 + 嵌套反担保措施（详情 Tab 用） */
+export interface SureItem {
+  sure_type: number;
+  sure_type_display: string;
+  remark: string | null;
+  customer_ids: number[];
+  customer_names: string[];
+  warrant_ids: number[];
+  warrant_names: string[];
+}
+
+export interface LendingOrderItem {
+  id: number;
+  seq: number;
+  order_amount: number;
+  state: number;
+  remark: string | null;
+  sures: SureItem[];
+}
+
+export function listLendingOrders(id: number) {
+  return requestClient.get<LendingOrderItem[]>(`/articles/${id}/lending-orders`);
+}
+
+export function updateLendingOrder(
+  articleId: number,
+  orderId: number,
+  data: Record<string, unknown>,
+) {
+  return requestClient.put<void>(
+    `/articles/${articleId}/lending-orders/${orderId}`,
+    data,
+  );
+}
+
+export function deleteLendingOrder(articleId: number, orderId: number) {
+  return requestClient.delete<void>(
+    `/articles/${articleId}/lending-orders/${orderId}`,
+  );
+}
+
 /** 反担保措施 upsert */
 export function upsertSure(id: number, data: Record<string, unknown>) {
   return requestClient.post<void>(`/articles/${id}/sures`, data);
