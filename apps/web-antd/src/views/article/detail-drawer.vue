@@ -727,13 +727,18 @@ const supplyColumns = [
                 {{ dash((detail as any).product_name) }}
               </DescriptionsItem>
 
-              <DescriptionsItem label="授信金额(元)">
+              <DescriptionsItem label="续贷额(元)">
+                {{ detail.renewal?.toLocaleString() ?? '—' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="新增额(元)">
+                {{ detail.augment?.toLocaleString() ?? '—' }}
+              </DescriptionsItem>
+              <DescriptionsItem label="在保余额(元)">
                 {{ detail.balance?.toLocaleString() ?? '—' }}
               </DescriptionsItem>
               <DescriptionsItem label="期限">
                 {{ detail.credit_term ?? '—' }} {{ dash(detail.credit_term_unit_display) }}
               </DescriptionsItem>
-              <DescriptionsItem label="评审日期">{{ dash(detail.review_date) }}</DescriptionsItem>
 
               <DescriptionsItem label="项目经理">
                 {{ dash((detail as any).director_name) }}
@@ -744,32 +749,49 @@ const supplyColumns = [
               <DescriptionsItem label="风控经理">
                 {{ dash((detail as any).control_name) }}
               </DescriptionsItem>
-              <DescriptionsItem label="签批类型">{{ dash(detail.sign_type) }}</DescriptionsItem>
 
-              <DescriptionsItem label="调查报告编号">{{ dash(detail.summary_num) }}</DescriptionsItem>
               <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
-              <DescriptionsItem label="登记时间" :span="2">{{ dash(detail.created_at) }}</DescriptionsItem>
-
-              <DescriptionsItem label="调查报告" :span="detailColumns">
-                {{ dash(detail.summary) }}
-              </DescriptionsItem>
-              <DescriptionsItem label="评审意见" :span="detailColumns">
-                {{ dash(detail.opinion) }}
-              </DescriptionsItem>
-              <DescriptionsItem label="风控意见" :span="detailColumns">
-                {{ dash(detail.rcd_opinion) }}
-              </DescriptionsItem>
-              <DescriptionsItem label="召集人意见" :span="detailColumns">
-                {{ dash(detail.convenor_opinion) }}
-              </DescriptionsItem>
-              <DescriptionsItem label="签批详情" :span="detailColumns">
-                {{ dash(detail.sign_detail) }}
-              </DescriptionsItem>
+              <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
+              <DescriptionsItem label="更新时间">{{ dash(detail.updated_at) }}</DescriptionsItem>
             </Descriptions>
           </Card>
 
           <!-- ===== Tabs ===== -->
           <Tabs v-model:activeKey="activeTab">
+            <!-- 签批（ArticleApproval 一对一）：Card 包裹 + 非 bordered Descriptions -->
+            <TabPane
+              v-if="detail && (detail.review_date || detail.sign_type || detail.summary_num)"
+              key="approval"
+              tab="签批"
+            >
+              <Card size="small">
+                <Descriptions :column="detailColumns" size="small">
+                  <DescriptionsItem label="评审日期">{{ dash(detail.review_date) }}</DescriptionsItem>
+                  <DescriptionsItem label="签批类型">
+                    {{ detail.sign_type === 1 ? '同意' : detail.sign_type === 2 ? '不同意' : dash(detail.sign_type) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="调查报告编号" :span="detailColumns">
+                    {{ dash(detail.summary_num) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="调查报告" :span="detailColumns">
+                    {{ dash(detail.summary) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="评审意见" :span="detailColumns">
+                    {{ dash(detail.opinion) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="风控意见" :span="detailColumns">
+                    {{ dash(detail.rcd_opinion) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="召集人意见" :span="detailColumns">
+                    {{ dash(detail.convenor_opinion) }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="签批详情" :span="detailColumns">
+                    {{ dash(detail.sign_detail) }}
+                  </DescriptionsItem>
+                </Descriptions>
+              </Card>
+            </TabPane>
+
             <!-- 评审意见 + 补调记录 合并一个 Tab -->
             <TabPane key="reviews" :tab="`评审记录(${comments.length + supplies.length})`">
               <Spin :spinning="tabLoading">

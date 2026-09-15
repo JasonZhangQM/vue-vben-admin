@@ -47,6 +47,7 @@ const currentUserId = computed(() => Number(userStore.userInfo?.userId));
 
 const articleStateOpts = ref<{ label: string; value: number }[]>([]);
 const creditTermUnitOpts = ref<{ label: string; value: number }[]>([]);
+const creditModelOpts = ref<{ label: string; value: number }[]>([]);
 const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
@@ -61,6 +62,7 @@ onMounted(async () => {
   ]);
   articleStateOpts.value = dict.article_state;
   creditTermUnitOpts.value = dict.credit_term_unit;
+  creditModelOpts.value = dict.credit_model;
   productOpts.value = products.map((p) => ({ label: p.name, value: p.id }));
   const [pms, controllers, emps] = await Promise.all([
     getEmployeeDict({ role: 'pm' }),
@@ -178,6 +180,7 @@ const form = reactive({
   assistant_id: undefined as number | undefined,
   control_id: undefined as number | undefined,
   orders: [] as { seq: number; order_amount: number; remark?: string }[],
+  single_quotas: [] as { credit_model: number; credit_amount: number; flow_rate?: string; remark?: string }[],
 });
 
 // ============ 放款次序（可编辑表格） ============
@@ -200,8 +203,30 @@ function addOrderRow() {
 }
 function removeOrderRow(idx: number) {
   form.orders.splice(idx, 1);
-  // 重新编排 seq
   form.orders.forEach((o, i) => { o.seq = i + 1; });
+}
+
+// ============ 单项额度（可编辑表格） ============
+const quotaColumns: TableColumnType[] = [
+  { title: '授信类型', dataIndex: 'credit_model', width: 160 },
+  { title: '额度(元)', dataIndex: 'credit_amount', width: 180, align: 'right' },
+  { title: '费率', dataIndex: 'flow_rate', width: 160 },
+  { title: '备注', dataIndex: 'remark' },
+  { title: '操作', width: 60, align: 'center', dataIndex: '_action' },
+];
+let quotaRowKeySeq = 0;
+
+function addQuotaRow() {
+  form.single_quotas.push({
+    _key: ++quotaRowKeySeq,
+    credit_model: 0,
+    credit_amount: 0,
+    flow_rate: '',
+    remark: '',
+  } as typeof form.single_quotas[number] & { _key: number });
+}
+function removeQuotaRow(idx: number) {
+  form.single_quotas.splice(idx, 1);
 }
 
 async function openCreate() {
@@ -213,7 +238,7 @@ async function openCreate() {
     article_state: 10, customer_id: undefined, product_id: undefined,
     renewal: 0, augment: 0, credit_term: 1, credit_term_unit: 10,
     director_id: defaultDirector, assistant_id: undefined,
-    control_id: undefined, orders: [],
+    control_id: undefined, orders: [], single_quotas: [],
   });
   createOpen.value = true;
 }
@@ -453,8 +478,8 @@ onMounted(loadList);
         </Form>
       </Card>
 
-      <!-- Card 2 放款次序与额度分配（仅新建时显示） -->
-      <Card v-if="!editingId" size="small" title="放款次序与额度分配">
+      <!-- Card 2 放款次序（仅新建时显示） -->
+      <Card v-if="!editingId" size="small" title="放款次序">
         <template #extra>
           <Button size="small" type="link" @click="addOrderRow">+ 增加次序</Button>
         </template>
@@ -488,6 +513,58 @@ onMounted(loadList);
             </template>
             <template v-else-if="column.dataIndex === '_action'">
               <Button type="link" danger size="small" @click="removeOrderRow(index as number)">删除</Button>
+            </template>
+          </template>
+        </Table>
+      </Card>
+
+      <!-- Card 3 单项额度（仅新建时显示） -->
+      <Card v-if="!editingId" size="small" title="单项额度">
+        <template #extra>
+          <Button size="small" type="link" @click="addQuotaRow">+ 增加额度项</Button>
+        </template>
+        <Table
+          :columns="quotaColumns"
+          :data-source="form.single_quotas"
+          :pagination="false"
+          :row-key="(r: Record<string, unknown>) => r._key as string | number"
+          size="small"
+        >
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.dataIndex === 'credit_model'">
+              <Select
+                v-model:value="record.credit_model"
+                :options="creditModelOpts"
+                style="width: 100%"
+                placeholder="选择授信类型"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === 'credit_amount'">
+              <InputNumber
+                v-model:value="record.credit_amount"
+                :min="0"
+                :precision="2"
+                :controls="false"
+                style="width: 100%"
+                placeholder="请输入额度"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === 'flow_rate'">
+              <Input
+                v-model:value="record.flow_rate"
+                placeholder="费率（如 4.35%）"
+                style="width: 100%"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === 'remark'">
+              <Input
+                v-model:value="record.remark"
+                placeholder="备注（可空）"
+                style="width: 100%"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === '_action'">
+              <Button type="link" danger size="small" @click="removeQuotaRow(index as number)">删除</Button>
             </template>
           </template>
         </Table>
