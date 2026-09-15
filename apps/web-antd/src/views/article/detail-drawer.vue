@@ -22,6 +22,7 @@ import {
   Empty,
   Form,
   FormItem,
+  Input,
   InputNumber,
   message,
   Modal,
@@ -102,6 +103,8 @@ const userStore = useUserStore();
 const currentUserId = computed(() => Number(userStore.userInfo?.userId));
 
 const creditTermUnitOpts = ref<{ label: string; value: number }[]>([]);
+/** 项目状态字典（放款次序状态列显示中文标签用） */
+const articleStateOpts = ref<{ label: string; value: number }[]>([]);
 const productOpts = ref<{ label: string; value: number }[]>([]);
 const pmOptions = ref<{ label: string; value: number }[]>([]);
 const controlOptions = ref<{ label: string; value: number }[]>([]);
@@ -125,6 +128,7 @@ async function loadDicts() {
     getEmployeeDict(),
   ]);
   creditTermUnitOpts.value = dict.credit_term_unit;
+  articleStateOpts.value = dict.article_state;
   productOpts.value = products.map((p) => ({ label: p.name, value: p.id }));
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
@@ -235,6 +239,11 @@ function resetLendingOrderForm() {
     order_amount: 0,
     remark: null,
   });
+}
+
+/** 放款次序状态 → 中文标签（次序状态跟随项目状态机，复用 article_state 字典） */
+function orderStateLabel(state: number) {
+  return articleStateOpts.value.find((o) => o.value === state)?.label ?? String(state);
 }
 
 /** 内联表单提交：新增放款次序 */
@@ -796,9 +805,9 @@ const supplyColumns = [
                     />
                     <Input
                       v-model:value="lendingOrderForm.remark"
-                      placeholder="备注(可选)"
+                      placeholder="备注"
                       style="width: 200px"
-                      allow-clear
+                      :maxlength="256"
                     />
                   <AccessControl :codes="['article:order']" type="code">
                     <Button
@@ -824,8 +833,7 @@ const supplyColumns = [
                     { title: '序号', dataIndex: 'seq', width: 110 },
                     { title: '放款金额(元)', dataIndex: 'order_amount', width: 150, align: 'right' },
                     { title: '状态', dataIndex: 'state', width: 90, align: 'center' },
-                    { title: '反担保措施', key: 'sures_display' },
-                    { title: '备注', dataIndex: 'remark', width: 200, ellipsis: true },
+                    { title: '备注', dataIndex: 'remark', ellipsis: true },
                     { title: '操作', key: 'op', width: 200, align: 'center' },
                   ]"
                   :data-source="lendingOrders"
@@ -848,26 +856,8 @@ const supplyColumns = [
                         :color="record.state === 51 ? 'cyan' : record.state === 55 ? 'green' : 'default'"
                         size="small"
                       >
-                        {{ record.state }}
+                        {{ orderStateLabel(record.state) }}
                       </Tag>
-                    </template>
-                    <template v-else-if="column.key === 'sures_display'">
-                      <template v-if="record.sures && record.sures.length > 0">
-                        <div class="flex flex-wrap gap-1">
-                          <Tag
-                            v-for="(sure, idx) in record.sures"
-                            :key="idx"
-                            color="blue"
-                            size="small"
-                          >
-                            {{ sure.sure_type_display }}
-                            <span v-if="sure.customer_names.length || sure.warrant_names.length" class="ml-1 opacity-70">
-                              · {{ [...sure.customer_names, ...sure.warrant_names].join(', ') }}
-                            </span>
-                          </Tag>
-                        </div>
-                      </template>
-                      <span v-else class="text-gray-400 text-xs">未设置</span>
                     </template>
                     <template v-else-if="column.dataIndex === 'remark'">
                       {{ record.remark || '-' }}
@@ -878,13 +868,13 @@ const supplyColumns = [
                           担保措施
                         </Button>
                         <Button
-                          type="link"
-                          size="small"
-                          :disabled="![10, 20, 30, 40, 61].includes(record.state)"
-                          @click="openEditLendingOrder(record as ArticleOrderItem)"
-                        >
-                          编辑
-                        </Button>
+                            type="link"
+                            size="small"
+                            :disabled="![10, 20, 30, 40, 61].includes(record.state)"
+                            @click="openEditLendingOrder(record as ArticleOrderItem)"
+                          >
+                            修改
+                          </Button>
                         <Button
                           type="link"
                           size="small"
@@ -1321,9 +1311,8 @@ const supplyColumns = [
       <FormItem label="备注">
         <Input
           v-model:value="lendingOrderForm.remark"
-          type="textarea"
-          :rows="3"
-          placeholder="可选：放款条件说明 / 特殊约定"
+          placeholder="可空"
+          :maxlength="256"
         />
       </FormItem>
     </Form>
