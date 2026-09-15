@@ -129,6 +129,8 @@ async function loadDicts() {
   ]);
   creditTermUnitOpts.value = dict.credit_term_unit;
   articleStateOpts.value = dict.article_state;
+  // 兜底 ?? []：接口异常/字段缺失时下拉显示为空而不是 undefined
+  sureTypeOpts.value = dict.sure_type ?? [];
   productOpts.value = products.map((p) => ({ label: p.name, value: p.id }));
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
@@ -173,33 +175,15 @@ async function loadDetail() {
   }
 }
 
-// 反担保类型字典（前端弹窗下拉 + 表格渲染，与后端 SURE_TYPE_MAP 对齐）
-const SURE_TYPE_MAP: Record<number, string> = {
-  1: '保证-法定代表人',
-  2: '保证-实际控制人',
-  11: '抵押-房产',
-  12: '抵押-土地',
-  13: '抵押-机器设备',
-  14: '抵押-车辆',
-  21: '质押-股权',
-  22: '质押-应收账款',
-  23: '质押-存货',
-  31: '留置',
-  41: '定金',
-  51: '保理',
-  52: '信用证',
-  53: '保函',
-  54: '保险',
-  55: '仓储监管',
-  56: '资产证券化',
-  57: '融资租赁',
-  58: '合作担保机构',
-  59: '其他担保',
-};
+// 反担保类型字典：从 /dicts/article 加载（与后端 SureType 枚举同源，禁止前端硬编码）
+const sureTypeOpts = ref<{ label: string; value: number }[]>([]);
 /** 保证类（选客户） */
 const SURE_TYPE_GUARANTEE = [1, 2];
-/** 抵质押类（选权证） */
-const SURE_TYPE_PLEDGE = [11, 12, 13, 14, 21, 22, 23, 31, 41, 51, 52, 53, 54, 55, 56, 57, 58, 59];
+/** 抵质押类（选权证）：除保证类外的全部类型 */
+const SURE_TYPE_PLEDGE = [
+  11, 12, 13, 14, 15, 21, 22, 23, 24, 31, 32, 33, 34, 39,
+  42, 43, 44, 47, 49, 51, 52, 53, 59, 61,
+];
 
 async function loadTabs() {
   if (!props.articleId) return;
@@ -330,6 +314,9 @@ function removeLendingOrder(order: ArticleOrderItem) {
 
 // ========== 担保措施 Modal（嵌套在放款次序下，按 sure_type upsert）============
 
+/** 可设置反担保措施的项目状态（待反馈/待变更，与放款次序添加门槛一致） */
+const SURE_ELIGIBLE_STATES = new Set([10, 61]);
+
 const sureModalOpen = ref(false);
 const sureModalLoading = ref(false);
 /** 正在编辑哪个放款次序的担保措施 */
@@ -352,6 +339,16 @@ const isSurePledge = computed(() =>
 );
 
 function openSureModal(order: ArticleOrderItem) {
+  // 状态门槛：与后端 upsert_sure 校验保持一致，不满足时直接拦截
+  if (!detail.value || !SURE_ELIGIBLE_STATES.has(detail.value.article_state)) {
+    message.warning('仅『待反馈 / 待变更』状态可设置反担保措施');
+    return;
+  }
+  // 自愈：字典为空（首次加载失败/时序问题）时重置标志重新拉取
+  if (!sureTypeOpts.value.length) {
+    dictLoaded = false;
+    loadDicts();
+  }
   sureTargetOrderId.value = order.id;
   sureTargetOrderSeq.value = order.seq;
   Object.assign(sureForm, {
@@ -864,7 +861,17 @@ const supplyColumns = [
                     </template>
                     <template v-else-if="column.key === 'op'">
                       <AccessControl :codes="['article:order']" type="code">
-                        <Button type="link" size="small" @click="openSureModal(record as ArticleOrderItem)">
+                        <Button
+                          type="link"
+                          size="small"
+                          :disabled="!detail || !SURE_ELIGIBLE_STATES.has(detail.article_state)"
+                          :title="
+                            detail && !SURE_ELIGIBLE_STATES.has(detail.article_state)
+                              ? '仅『待反馈 / 待变更』状态可设置'
+                              : ''
+                          "
+                          @click="openSureModal(record as ArticleOrderItem)"
+                        >
                           担保措施
                         </Button>
                         <Button
@@ -1330,11 +1337,8 @@ const supplyColumns = [
       <FormItem label="担保类型" required>
         <Select
           v-model:value="sureForm.sure_type"
-          :options="Object.entries(SURE_TYPE_MAP).map(([v, l]) => ({
-            value: Number(v),
-            label: l,
-          }))"
-          :placeholder="sureForm.sure_type ? SURE_TYPE_MAP[sureForm.sure_type] : '请选择'"
+          :options="sureTypeOpts"
+          placeholder="请选择"
           class="!w-full"
           show-search
           option-filter-prop="label"
@@ -1382,6 +1386,7 @@ const supplyColumns = [
           v-model:value="sureForm.remark"
           type="textarea"
           :rows="2"
+          :maxlength="256"
           placeholder="可选：补充说明"
         />
       </FormItem>
