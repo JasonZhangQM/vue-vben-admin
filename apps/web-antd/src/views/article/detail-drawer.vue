@@ -354,7 +354,7 @@ async function saveSure() {
   sureModalLoading.value = true;
   try {
     await upsertSure(props.articleId, {
-      lending_order_id: sureTargetOrderId.value,
+      order_id: sureTargetOrderId.value,
       sure_type: sureForm.sure_type,
       remark: sureForm.remark || null,
       customer_ids: sureForm.customer_ids,
