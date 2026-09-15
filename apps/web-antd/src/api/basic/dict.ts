@@ -173,9 +173,7 @@ export function getArticleDict() {
   return requestClient.get<{
     article_state: { label: string; value: number }[];
     credit_term_unit: { label: string; value: number }[];
-    repay_method: { label: string; value: number }[];
     propose: { label: string; value: number }[];
-    credit_model: { label: string; value: number }[];
     sure_type: { label: string; value: number }[];
     change_view: { label: string; value: number }[];
     product_category: { label: string; value: number }[];

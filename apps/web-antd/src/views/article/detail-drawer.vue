@@ -75,7 +75,7 @@ const emit = defineEmits<{
 // ========== 主数据 ==========
 const detail = ref<null | ArticleDetail>(null);
 const loading = ref(false);
-const activeTab = ref('info');
+const activeTab = ref('lending-orders');
 
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
@@ -375,7 +375,7 @@ watch(
   () => open.value,
   (val) => {
     if (val) {
-      activeTab.value = 'info';
+      activeTab.value = 'lending-orders';
       editVisible.value = false;
       loadDetail();
       loadTabs();
@@ -758,6 +758,112 @@ const supplyColumns = [
 
           <!-- ===== Tabs ===== -->
           <Tabs v-model:activeKey="activeTab">
+            <!-- 放款次序 + 嵌套反担保措施 -->
+            <TabPane key="lending-orders" :tab="`放款次序(${lendingOrders.length})`">
+              <Spin :spinning="tabLoading">
+                <div class="flex justify-end mb-3 gap-2">
+                  <AccessControl :codes="['article:order']" type="code">
+                    <Button
+                      type="primary"
+                      size="small"
+                      :disabled="!detail || ![40, 61].includes(detail.article_state)"
+                      :title="
+                        detail && ![40, 61].includes(detail.article_state)
+                          ? '仅『已上会 / 待变更』状态可管理放款次序'
+                          : ''
+                      "
+                      @click="openaddOrder"
+                    >
+                      + 添加放款次序
+                    </Button>
+                  </AccessControl>
+                </div>
+
+                <!-- 无数据提示 -->
+                <Empty
+                  v-if="!tabLoading && lendingOrders.length === 0"
+                  description="暂无放款次序，点击右上角按钮添加"
+                  class="py-6"
+                />
+
+                <!-- 每条放款次序 = 一个 Collapse Panel，内含次序信息 + 担保措施 -->
+                <template v-else>
+                  <div class="space-y-3">
+                    <div
+                      v-for="order in lendingOrders"
+                      :key="order.id"
+                      class="border rounded"
+                    >
+                      <!-- 次序头：序号 + 金额 + 操作按钮 -->
+                      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-t">
+                        <span class="font-semibold text-blue-600">放款次序 #{{ order.seq }}</span>
+                        <span class="text-sm text-gray-600">
+                          金额
+                          <span class="font-mono text-blue-700">
+                            {{ Number(order.order_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
+                          </span>
+                          元
+                        </span>
+                        <Tag v-if="order.state" :color="order.state === 50 ? 'green' : order.state === 51 ? 'cyan' : 'default'" class="ml-2">
+                          状态 {{ order.state }}
+                        </Tag>
+                        <span v-if="order.remark" class="text-xs text-gray-400 ml-2 truncate max-w-xs">
+                          备注：{{ order.remark }}
+                        </span>
+                        <div class="flex-1" />
+                        <AccessControl :codes="['article:order']" type="code">
+                          <Button
+                            size="small"
+                            type="link"
+                            @click="openSureModal(order)"
+                          >
+                            担保措施({{ order.sures.length }})
+                          </Button>
+                          <Button
+                            size="small"
+                            type="link"
+                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
+                            @click="openEditLendingOrder(order)"
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            size="small"
+                            type="link"
+                            danger
+                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
+                            @click="removeLendingOrder(order)"
+                          >
+                            删除
+                          </Button>
+                        </AccessControl>
+                      </div>
+
+                      <!-- 担保措施 Tag 列表（内嵌展示） -->
+                      <div v-if="order.sures.length > 0" class="px-3 py-2 border-t border-gray-100">
+                        <div class="text-xs text-gray-400 mb-1">反担保措施</div>
+                        <div class="flex flex-wrap gap-2">
+                          <template v-for="(sure, idx) in order.sures" :key="idx">
+                            <div class="border border-blue-200 rounded px-2 py-1 bg-blue-50 text-xs">
+                              <span class="font-medium text-blue-700">{{ sure.sure_type_display }}</span>
+                              <span v-if="sure.customer_names.length" class="ml-1 text-gray-600">
+                                · {{ sure.customer_names.join(', ') }}
+                              </span>
+                              <span v-if="sure.warrant_names.length" class="ml-1 text-gray-600">
+                                · {{ sure.warrant_names.join(', ') }}
+                              </span>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                      <div v-else class="px-3 py-2 border-t border-gray-100 text-xs text-gray-400 italic">
+                        暂无担保措施 · 点击右上角「担保措施」按钮添加
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </Spin>
+            </TabPane>
             <!-- 签批（ArticleApproval 一对一）：Card 包裹 + 非 bordered Descriptions -->
             <TabPane
               v-if="detail && (detail.review_date || detail.sign_type || detail.summary_num)"
@@ -962,112 +1068,6 @@ const supplyColumns = [
               </Spin>
             </TabPane>
 
-            <!-- 放款次序 + 嵌套反担保措施 -->
-            <TabPane key="lending-orders" :tab="`放款次序(${lendingOrders.length})`">
-              <Spin :spinning="tabLoading">
-                <div class="flex justify-end mb-3 gap-2">
-                  <AccessControl :codes="['article:lending']" type="code">
-                    <Button
-                      type="primary"
-                      size="small"
-                      :disabled="!detail || ![40, 61].includes(detail.article_state)"
-                      :title="
-                        detail && ![40, 61].includes(detail.article_state)
-                          ? '仅『已上会 / 待变更』状态可管理放款次序'
-                          : ''
-                      "
-                      @click="openaddOrder"
-                    >
-                      + 添加放款次序
-                    </Button>
-                  </AccessControl>
-                </div>
-
-                <!-- 无数据提示 -->
-                <Empty
-                  v-if="!tabLoading && lendingOrders.length === 0"
-                  description="暂无放款次序，点击右上角按钮添加"
-                  class="py-6"
-                />
-
-                <!-- 每条放款次序 = 一个 Collapse Panel，内含次序信息 + 担保措施 -->
-                <template v-else>
-                  <div class="space-y-3">
-                    <div
-                      v-for="order in lendingOrders"
-                      :key="order.id"
-                      class="border rounded"
-                    >
-                      <!-- 次序头：序号 + 金额 + 操作按钮 -->
-                      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-t">
-                        <span class="font-semibold text-blue-600">放款次序 #{{ order.seq }}</span>
-                        <span class="text-sm text-gray-600">
-                          金额
-                          <span class="font-mono text-blue-700">
-                            {{ Number(order.order_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
-                          </span>
-                          元
-                        </span>
-                        <Tag v-if="order.state" :color="order.state === 50 ? 'green' : order.state === 51 ? 'cyan' : 'default'" class="ml-2">
-                          状态 {{ order.state }}
-                        </Tag>
-                        <span v-if="order.remark" class="text-xs text-gray-400 ml-2 truncate max-w-xs">
-                          备注：{{ order.remark }}
-                        </span>
-                        <div class="flex-1" />
-                        <AccessControl :codes="['article:lending']" type="code">
-                          <Button
-                            size="small"
-                            type="link"
-                            @click="openSureModal(order)"
-                          >
-                            担保措施({{ order.sures.length }})
-                          </Button>
-                          <Button
-                            size="small"
-                            type="link"
-                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
-                            @click="openEditLendingOrder(order)"
-                          >
-                            编辑
-                          </Button>
-                          <Button
-                            size="small"
-                            type="link"
-                            danger
-                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
-                            @click="removeLendingOrder(order)"
-                          >
-                            删除
-                          </Button>
-                        </AccessControl>
-                      </div>
-
-                      <!-- 担保措施 Tag 列表（内嵌展示） -->
-                      <div v-if="order.sures.length > 0" class="px-3 py-2 border-t border-gray-100">
-                        <div class="text-xs text-gray-400 mb-1">反担保措施</div>
-                        <div class="flex flex-wrap gap-2">
-                          <template v-for="(sure, idx) in order.sures" :key="idx">
-                            <div class="border border-blue-200 rounded px-2 py-1 bg-blue-50 text-xs">
-                              <span class="font-medium text-blue-700">{{ sure.sure_type_display }}</span>
-                              <span v-if="sure.customer_names.length" class="ml-1 text-gray-600">
-                                · {{ sure.customer_names.join(', ') }}
-                              </span>
-                              <span v-if="sure.warrant_names.length" class="ml-1 text-gray-600">
-                                · {{ sure.warrant_names.join(', ') }}
-                              </span>
-                            </div>
-                          </template>
-                        </div>
-                      </div>
-                      <div v-else class="px-3 py-2 border-t border-gray-100 text-xs text-gray-400 italic">
-                        暂无担保措施 · 点击右上角「担保措施」按钮添加
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </Spin>
-            </TabPane>
           </Tabs>
         </div>
       </template>

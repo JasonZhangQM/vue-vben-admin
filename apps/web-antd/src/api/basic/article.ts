@@ -88,11 +88,6 @@ export function submitFeedback(id: number, data: Record<string, unknown>) {
   return requestClient.post<void>(`/articles/${id}/feedback`, data);
 }
 
-/** 单项额度 upsert */
-export function addSingleQuota(id: number, data: Record<string, unknown>) {
-  return requestClient.post<void>(`/articles/${id}/single-quotas`, data);
-}
-
 /** 放款次序 */
 export function addOrder(id: number, data: Record<string, unknown>) {
   return requestClient.post<void>(`/articles/${id}/orders`, data);
