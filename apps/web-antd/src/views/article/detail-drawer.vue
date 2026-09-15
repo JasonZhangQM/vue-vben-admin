@@ -60,7 +60,7 @@ import {
   getCustomerDict,
   getEmployeeDict,
 } from '#/api/basic/dict';
-import { getWarrantList } from '#/api/basic/warrant';
+import { getWarrantDict } from '#/api/basic/warrant';
 
 const props = defineProps<{ articleId: null | number }>();
 
@@ -139,9 +139,9 @@ async function loadDicts() {
       customerOptions.value = [];
     }
   }
-  // 一次性加载全部权证（担保措施弹窗下拉）
+  // 一次性加载全部权证（担保措施弹窗下拉，走无 data_scope 的字典接口）
   try {
-    const { items } = await getWarrantList({ page: 1, page_size: 500 });
+    const { items } = await getWarrantDict({ page: 1, page_size: 500 });
     warrantOptions.value = items.map((w) => ({
       label: w.warrant_num || `权证#${w.id}`,
       value: w.id,

@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { AppraisalListItem } from '#/api/basic/appraisal';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -38,7 +38,7 @@ import {
   removeAppraisalArticle,
   type AppraisalArticleItem,
 } from '#/api/basic/appraisal';
-import { getArticleList } from '#/api/basic/article';
+import { getArticleDictList } from '#/api/basic/article';
 import { getAppraisalDict, getEmployeeDict } from '#/api/basic/dict';
 
 // ============ 字典 ============
@@ -53,8 +53,8 @@ onMounted(async () => {
   reviewModelOpts.value = dict.review_model;
   const emps = await getEmployeeDict();
   compereOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
-  // 项目下拉：取全部项目的 id/编号/客户
-  const artsPage = await getArticleList({ page: 1, page_size: 500 });
+  // 项目下拉：走无 data_scope 的字典接口
+  const artsPage = await getArticleDictList({ page: 1, page_size: 500 });
   articleOptions.value = (artsPage.items ?? []).map((a: { id: number; article_num: string; customer_name?: string | null }) => ({
     label: `${a.article_num} | ${a.customer_name || ''}`,
     value: a.id,

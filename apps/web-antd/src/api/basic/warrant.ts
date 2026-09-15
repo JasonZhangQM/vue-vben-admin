@@ -156,6 +156,20 @@ export function getWarrantList(params: WarrantListParams) {
   });
 }
 
+/** 权证下拉字典（无 data_scope，表单选择用） */
+export function getWarrantDict(params: {
+  q?: string;
+  page?: number;
+  page_size?: number;
+}) {
+  return requestClient.get<{
+    items: { id: number; warrant_num: string; warrant_type: number }[];
+    total: number;
+    page: number;
+    page_size: number;
+  }>('/dicts/warrants', { params });
+}
+
 /** 权证详情(聚合扩展 / 产权人 / 出入库 / 评估) */
 export function getWarrantDetail(id: number) {
   return requestClient.get<WarrantDetail>(`/warrants/${id}`);

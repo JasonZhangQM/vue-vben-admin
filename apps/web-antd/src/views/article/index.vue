@@ -250,30 +250,13 @@ function onDetailSaved(_id: number) {
   loadList();
 }
 
-/** 详情抽屉：删除成功，刷新列表后自动打开相邻一条保持浏览连续性 */
+/** 详情抽屉：删除成功，关闭 Drawer + 刷新列表 */
 async function onDetailDeleted(_deletedId: number) {
-  // 记住被删项的原索引；loadList 后该位置就是下一条
-  const fallbackIdx = currentDetailIndex.value;
-  detailOpen.value = false; // 先确保 Drawer 完全关闭（组件 destroyOnClose）
+  detailOpen.value = false;
   detailId.value = null;
   currentDetailIndex.value = -1;
-
+  clearHighlight();
   await loadList();
-
-  if (list.value.length === 0) {
-    // 删空了，停在列表
-    clearHighlight();
-    return;
-  }
-
-  // 优先打开同索引位置（删后自动成为下一条），超出则开最后一条
-  const nextIdx = Math.min(fallbackIdx, list.value.length - 1);
-  const nextRow = list.value[nextIdx];
-  if (!nextRow) return; // 防御：极端情况列表已被清空
-  highlight(nextRow.id);
-  detailId.value = nextRow.id;
-  detailOpen.value = true;
-  currentDetailIndex.value = nextIdx;
 }
 
 onMounted(loadList);

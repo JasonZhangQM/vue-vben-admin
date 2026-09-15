@@ -65,6 +65,24 @@ export function getArticleList(params: {
   return requestClient.get<PageResult<ArticleListItem>>('/articles', { params });
 }
 
+/** 项目下拉字典（无 data_scope，表单选择用） */
+export function getArticleDictList(params: {
+  q?: string;
+  page?: number;
+  page_size?: number;
+}) {
+  return requestClient.get<{
+    items: {
+      id: number;
+      article_num: string;
+      customer_name: null | string;
+    }[];
+    total: number;
+    page: number;
+    page_size: number;
+  }>('/dicts/articles', { params });
+}
+
 export function getArticleDetail(id: number) {
   return requestClient.get<ArticleDetail>(`/articles/${id}`);
 }
