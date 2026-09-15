@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 新增客户抽屉：基本信息 + 关联归属 + 联系人可编辑表格。
  *
  * 布局策略：
@@ -373,8 +373,8 @@ watch(open, (val) => {
 <template>
   <Drawer v-model:open="open" title="新增客户" width="66%">
     <div class="space-y-3">
-      <!-- Card 1 客户基本信息 -->
-      <Card size="small" title="客户基本信息">
+      <!-- Card 1 基本信息 -->
+      <Card size="small" title="基本信息">
         <Form
           ref="formRef"
           :label-col="{ span: 8 }"

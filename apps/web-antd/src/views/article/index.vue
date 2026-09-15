@@ -177,7 +177,32 @@ const form = reactive({
   director_id: undefined as number | undefined,
   assistant_id: undefined as number | undefined,
   control_id: undefined as number | undefined,
+  orders: [] as { seq: number; order_amount: number; remark?: string }[],
 });
+
+// ============ 放款次序（可编辑表格） ============
+const orderColumns: TableColumnType[] = [
+  { title: '序号', dataIndex: 'seq', width: 80, align: 'center' },
+  { title: '放款金额(元)', dataIndex: 'order_amount', width: 180, align: 'right' },
+  { title: '备注', dataIndex: 'remark' },
+  { title: '操作', width: 60, align: 'center', dataIndex: '_action' },
+];
+let orderRowKeySeq = 0;
+
+function addOrderRow() {
+  const maxSeq = form.orders.reduce((m, o) => Math.max(m, o.seq), 0);
+  form.orders.push({
+    _key: ++orderRowKeySeq,
+    seq: maxSeq + 1,
+    order_amount: 0,
+    remark: '',
+  } as typeof form.orders[number] & { _key: number });
+}
+function removeOrderRow(idx: number) {
+  form.orders.splice(idx, 1);
+  // 重新编排 seq
+  form.orders.forEach((o, i) => { o.seq = i + 1; });
+}
 
 async function openCreate() {
   editingId.value = null;
@@ -188,7 +213,7 @@ async function openCreate() {
     article_state: 10, customer_id: undefined, product_id: undefined,
     renewal: 0, augment: 0, credit_term: 1, credit_term_unit: 10,
     director_id: defaultDirector, assistant_id: undefined,
-    control_id: undefined,
+    control_id: undefined, orders: [],
   });
   createOpen.value = true;
 }
@@ -366,64 +391,107 @@ onMounted(loadList);
       width="66%"
       :destroy-on-close="true"
     >
-      <Form
-        :label-col="{ span: 8 }"
-        :wrapper-col="{ span: 16 }"
-        :model="form"
-        class="grid gap-x-6 gap-y-2"
-        :class="gridColsClass"
-      >
-        <FormItem label="客户" required>
-          <SearchSelect
-            v-model:value="form.customer_id"
-            :options="customerOptions"
-            placeholder="选择客户"
-            style="width: 100%"
-          />
-        </FormItem>
-        <FormItem label="产品" required>
-          <SearchSelect
-            v-model:value="form.product_id"
-            :options="productOpts"
-            placeholder="选择产品"
-            style="width: 100%"
-          />
-        </FormItem>
-        <FormItem label="续贷额(元)" required>
-          <InputNumber v-model:value="form.renewal" :min="0" :precision="2" style="width: 100%" />
-        </FormItem>
-        <FormItem label="新增额(元)">
-          <InputNumber v-model:value="form.augment" :min="0" :precision="2" style="width: 100%" />
-        </FormItem>
-        <FormItem label="期限">
-          <div class="flex gap-2 w-full">
-            <InputNumber v-model:value="form.credit_term" :min="1" class="flex-1" style="flex:1" />
+      <!-- Card 1 基本信息 -->
+      <Card size="small" title="基本信息" class="mb-4">
+        <Form
+          :label-col="{ span: 8 }"
+          :wrapper-col="{ span: 16 }"
+          :model="form"
+          class="grid gap-x-6 gap-y-2"
+          :class="gridColsClass"
+        >
+          <FormItem label="客户" required>
             <SearchSelect
-              v-model:value="form.credit_term_unit"
-              :options="creditTermUnitOpts"
-              style="width: 100px"
+              v-model:value="form.customer_id"
+              :options="customerOptions"
+              placeholder="选择客户"
+              style="width: 100%"
             />
-          </div>
-        </FormItem>
-        <FormItem label="项目经理">
-          <SearchSelect
-            v-model:value="form.director_id"
-            placeholder="输入名字搜索"
-            style="width: 100%"
-            allow-clear
-            :options="pmOptions"
-          />
-        </FormItem>
-        <FormItem label="项目助理">
-          <SearchSelect
-            v-model:value="form.assistant_id"
-            placeholder="输入名字搜索"
-            style="width: 100%"
-            allow-clear
-            :options="pmOptions"
-          />
-        </FormItem>
-      </Form>
+          </FormItem>
+          <FormItem label="产品" required>
+            <SearchSelect
+              v-model:value="form.product_id"
+              :options="productOpts"
+              placeholder="选择产品"
+              style="width: 100%"
+            />
+          </FormItem>
+          <FormItem label="续贷额(元)" required>
+            <InputNumber v-model:value="form.renewal" :min="0" :precision="2" style="width: 100%" />
+          </FormItem>
+          <FormItem label="新增额(元)">
+            <InputNumber v-model:value="form.augment" :min="0" :precision="2" style="width: 100%" />
+          </FormItem>
+          <FormItem label="期限">
+            <div class="flex gap-2 w-full">
+              <InputNumber v-model:value="form.credit_term" :min="1" class="flex-1" style="flex:1" />
+              <SearchSelect
+                v-model:value="form.credit_term_unit"
+                :options="creditTermUnitOpts"
+                style="width: 100px"
+              />
+            </div>
+          </FormItem>
+          <FormItem label="项目经理">
+            <SearchSelect
+              v-model:value="form.director_id"
+              placeholder="输入名字搜索"
+              style="width: 100%"
+              allow-clear
+              :options="pmOptions"
+            />
+          </FormItem>
+          <FormItem label="项目助理">
+            <SearchSelect
+              v-model:value="form.assistant_id"
+              placeholder="输入名字搜索"
+              style="width: 100%"
+              allow-clear
+              :options="pmOptions"
+            />
+          </FormItem>
+        </Form>
+      </Card>
+
+      <!-- Card 2 放款次序与额度分配（仅新建时显示） -->
+      <Card v-if="!editingId" size="small" title="放款次序与额度分配">
+        <template #extra>
+          <Button size="small" type="link" @click="addOrderRow">+ 增加次序</Button>
+        </template>
+        <Table
+          :columns="orderColumns"
+          :data-source="form.orders"
+          :pagination="false"
+          :row-key="(r: Record<string, unknown>) => r._key as string | number"
+          size="small"
+        >
+          <template #bodyCell="{ column, record, index }">
+            <template v-if="column.dataIndex === 'seq'">
+              <span>{{ record.seq }}</span>
+            </template>
+            <template v-else-if="column.dataIndex === 'order_amount'">
+              <InputNumber
+                v-model:value="record.order_amount"
+                :min="0"
+                :precision="2"
+                :controls="false"
+                style="width: 100%"
+                placeholder="请输入金额"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === 'remark'">
+              <Input
+                v-model:value="record.remark"
+                placeholder="备注（可空）"
+                style="width: 100%"
+              />
+            </template>
+            <template v-else-if="column.dataIndex === '_action'">
+              <Button type="link" danger size="small" @click="removeOrderRow(index as number)">删除</Button>
+            </template>
+          </template>
+        </Table>
+      </Card>
 
       <template #extra>
         <Space>
