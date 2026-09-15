@@ -93,8 +93,8 @@ export function addSingleQuota(id: number, data: Record<string, unknown>) {
 }
 
 /** 放款次序 */
-export function addLendingOrder(id: number, data: Record<string, unknown>) {
-  return requestClient.post<void>(`/articles/${id}/lending-orders`, data);
+export function addOrder(id: number, data: Record<string, unknown>) {
+  return requestClient.post<void>(`/articles/${id}/orders`, data);
 }
 
 /** 放款次序 + 嵌套反担保措施（详情 Tab 用） */
@@ -108,7 +108,7 @@ export interface SureItem {
   warrant_names: string[];
 }
 
-export interface LendingOrderItem {
+export interface ArticleOrderItem {
   id: number;
   seq: number;
   order_amount: number;
@@ -117,24 +117,24 @@ export interface LendingOrderItem {
   sures: SureItem[];
 }
 
-export function listLendingOrders(id: number) {
-  return requestClient.get<LendingOrderItem[]>(`/articles/${id}/lending-orders`);
+export function listOrders(id: number) {
+  return requestClient.get<ArticleOrderItem[]>(`/articles/${id}/orders`);
 }
 
-export function updateLendingOrder(
+export function updateOrder(
   articleId: number,
   orderId: number,
   data: Record<string, unknown>,
 ) {
   return requestClient.put<void>(
-    `/articles/${articleId}/lending-orders/${orderId}`,
+    `/articles/${articleId}/orders/${orderId}`,
     data,
   );
 }
 
-export function deleteLendingOrder(articleId: number, orderId: number) {
+export function deleteOrder(articleId: number, orderId: number) {
   return requestClient.delete<void>(
-    `/articles/${articleId}/lending-orders/${orderId}`,
+    `/articles/${articleId}/orders/${orderId}`,
   );
 }
 

@@ -1101,54 +1101,52 @@ async function saveTags() {
       @ok="submitEditCompany"
     >
       <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-        <div class="grid grid-cols-2 gap-x-6">
-          <FormItem label="法定代表人">
-            <Input v-model:value="editCompanyForm.representative" placeholder="可空" />
-          </FormItem>
-          <FormItem label="决策机构">
-            <Select
-              v-model:value="editCompanyForm.decisionor"
-              :options="decisionorOptions"
-              allow-clear
-              placeholder="可空"
-            />
-          </FormItem>
-          <FormItem label="企业性质">
-            <Select
-              v-model:value="editCompanyForm.custom_nature"
-              :options="customNatureOptions"
-              allow-clear
-              placeholder="可空"
-            />
-          </FormItem>
-          <FormItem label="工信部行业">
-            <InputNumber
-              v-model:value="editCompanyForm.industry_c"
-              :min="0"
-              :precision="0"
-              style="width: 100%"
-              placeholder="可空"
-            />
-          </FormItem>
-          <FormItem label="注册资本(万)">
-            <InputNumber
-              v-model:value="editCompanyForm.capital"
-              :min="0"
-              :precision="4"
-              style="width: 100%"
-              placeholder="可空"
-            />
-          </FormItem>
-          <FormItem label="实收资本(万)">
-            <InputNumber
-              v-model:value="editCompanyForm.paid_capital"
-              :min="0"
-              :precision="4"
-              style="width: 100%"
-              placeholder="可空"
-            />
-          </FormItem>
-        </div>
+        <FormItem label="法定代表人">
+          <Input v-model:value="editCompanyForm.representative" placeholder="可空" />
+        </FormItem>
+        <FormItem label="决策机构">
+          <Select
+            v-model:value="editCompanyForm.decisionor"
+            :options="decisionorOptions"
+            allow-clear
+            placeholder="可空"
+          />
+        </FormItem>
+        <FormItem label="企业性质">
+          <Select
+            v-model:value="editCompanyForm.custom_nature"
+            :options="customNatureOptions"
+            allow-clear
+            placeholder="可空"
+          />
+        </FormItem>
+        <FormItem label="工信部行业">
+          <InputNumber
+            v-model:value="editCompanyForm.industry_c"
+            :min="0"
+            :precision="0"
+            style="width: 100%"
+            placeholder="可空"
+          />
+        </FormItem>
+        <FormItem label="注册资本(万)">
+          <InputNumber
+            v-model:value="editCompanyForm.capital"
+            :min="0"
+            :precision="4"
+            style="width: 100%"
+            placeholder="可空"
+          />
+        </FormItem>
+        <FormItem label="实收资本(万)">
+          <InputNumber
+            v-model:value="editCompanyForm.paid_capital"
+            :min="0"
+            :precision="4"
+            style="width: 100%"
+            placeholder="可空"
+          />
+        </FormItem>
       </Form>
     </Modal>
 

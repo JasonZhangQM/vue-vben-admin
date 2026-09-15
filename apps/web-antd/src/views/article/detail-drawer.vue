@@ -1,11 +1,11 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 /** 项目详情抽屉：查看 + 内嵌编辑 + 评审记录 Tab + 审批流 Tab。 */
 import type {
   ApprovalInstanceItem,
   ArticleCommentItem,
   ArticleDetail,
   ArticleSupplyItem,
-  LendingOrderItem,
+  ArticleOrderItem,
 } from '#/api/basic/article';
 
 import { reactive, ref, watch, computed } from 'vue';
@@ -39,19 +39,19 @@ import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash } from '#/utils/format';
 
 import {
-  addLendingOrder,
+  addOrder,
   deleteArticle,
-  deleteLendingOrder,
+  deleteOrder,
   getArticleApprovalInstances,
   getArticleComments,
   getArticleDetail,
   getArticleSupplies,
-  listLendingOrders,
+  listOrders,
   submitChangeRequest,
   submitFeedback,
   submitSignRequest,
   updateArticle,
-  updateLendingOrder,
+  updateOrder,
   upsertSure,
 } from '#/api/basic/article';
 import {
@@ -156,7 +156,7 @@ async function loadDicts() {
 const comments = ref<ArticleCommentItem[]>([]);
 const supplies = ref<ArticleSupplyItem[]>([]);
 const approvals = ref<ApprovalInstanceItem[]>([]);
-const lendingOrders = ref<LendingOrderItem[]>([]);
+const lendingOrders = ref<ArticleOrderItem[]>([]);
 const tabLoading = ref(false);
 
 async function loadDetail() {
@@ -205,7 +205,7 @@ async function loadTabs() {
       getArticleComments(props.articleId),
       getArticleSupplies(props.articleId),
       getArticleApprovalInstances(props.articleId),
-      listLendingOrders(props.articleId),
+      listOrders(props.articleId),
     ]);
     comments.value = c;
     supplies.value = s;
@@ -228,7 +228,7 @@ const lendingOrderForm = reactive({
   remark: '' as string | null,
 });
 
-function openAddLendingOrder() {
+function openaddOrder() {
   // 自动算下一个 seq
   const nextSeq = Math.max(0, ...lendingOrders.value.map((o) => o.seq)) + 1;
   Object.assign(lendingOrderForm, {
@@ -240,7 +240,7 @@ function openAddLendingOrder() {
   lendingOrderModalOpen.value = true;
 }
 
-function openEditLendingOrder(order: LendingOrderItem) {
+function openEditLendingOrder(order: ArticleOrderItem) {
   Object.assign(lendingOrderForm, {
     seq: order.seq,
     order_amount: Number(order.order_amount),
@@ -263,13 +263,13 @@ async function saveLendingOrder() {
   lendingOrderLoading.value = true;
   try {
     if (editingOrderId.value) {
-      await updateLendingOrder(props.articleId, editingOrderId.value, {
+      await updateOrder(props.articleId, editingOrderId.value, {
         order_amount: lendingOrderForm.order_amount,
         remark: lendingOrderForm.remark || null,
       });
       message.success('放款次序已更新');
     } else {
-      await addLendingOrder(props.articleId, {
+      await addOrder(props.articleId, {
         seq: lendingOrderForm.seq,
         order_amount: lendingOrderForm.order_amount,
         remark: lendingOrderForm.remark || null,
@@ -285,14 +285,14 @@ async function saveLendingOrder() {
   }
 }
 
-function removeLendingOrder(order: LendingOrderItem) {
+function removeLendingOrder(order: ArticleOrderItem) {
   if (!props.articleId) return;
   Modal.confirm({
     title: `删除放款次序 #${order.seq}？`,
     content: `金额 ${Number(order.order_amount).toFixed(2)} 元 · 该次序下的 ${order.sures.length} 条担保措施也会一并删除`,
     async onOk() {
       try {
-        await deleteLendingOrder(props.articleId!, order.id);
+        await deleteOrder(props.articleId!, order.id);
         message.success('已删除');
         await loadTabs();
       } catch {
@@ -325,7 +325,7 @@ const isSurePledge = computed(() =>
   sureForm.sure_type ? SURE_TYPE_PLEDGE.includes(sureForm.sure_type) : false,
 );
 
-function openSureModal(order: LendingOrderItem) {
+function openSureModal(order: ArticleOrderItem) {
   sureTargetOrderId.value = order.id;
   sureTargetOrderSeq.value = order.seq;
   Object.assign(sureForm, {
@@ -954,7 +954,7 @@ const supplyColumns = [
                           ? '仅『已上会 / 待变更』状态可管理放款次序'
                           : ''
                       "
-                      @click="openAddLendingOrder"
+                      @click="openaddOrder"
                     >
                       + 添加放款次序
                     </Button>
