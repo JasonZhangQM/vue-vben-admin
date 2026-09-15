@@ -758,110 +758,116 @@ const supplyColumns = [
 
           <!-- ===== Tabs ===== -->
           <Tabs v-model:activeKey="activeTab">
-            <!-- 放款次序 + 嵌套反担保措施 -->
+            <!-- 放款次序（按 ArticleOrder 时间顺序） -->
             <TabPane key="lending-orders" :tab="`放款次序(${lendingOrders.length})`">
               <Spin :spinning="tabLoading">
-                <div class="flex justify-end mb-3 gap-2">
-                  <AccessControl :codes="['article:order']" type="code">
-                    <Button
-                      type="primary"
-                      size="small"
-                      :disabled="!detail || ![40, 61].includes(detail.article_state)"
-                      :title="
-                        detail && ![40, 61].includes(detail.article_state)
-                          ? '仅『已上会 / 待变更』状态可管理放款次序'
-                          : ''
-                      "
-                      @click="openaddOrder"
-                    >
-                      + 添加放款次序
-                    </Button>
-                  </AccessControl>
-                </div>
+                <Card size="small">
+                  <template #extra>
+                    <AccessControl :codes="['article:order']" type="code">
+                      <Button
+                        type="primary"
+                        size="small"
+                        :disabled="!detail || ![40, 61].includes(detail.article_state)"
+                        :title="
+                          detail && ![40, 61].includes(detail.article_state)
+                            ? '仅『已上会 / 待变更』状态可管理放款次序'
+                            : ''
+                        "
+                        @click="openaddOrder"
+                      >
+                        + 添加放款次序
+                      </Button>
+                    </AccessControl>
+                  </template>
 
-                <!-- 无数据提示 -->
-                <Empty
-                  v-if="!tabLoading && lendingOrders.length === 0"
-                  description="暂无放款次序，点击右上角按钮添加"
-                  class="py-6"
-                />
+                  <!-- 无数据提示 -->
+                  <Empty
+                    v-if="!tabLoading && lendingOrders.length === 0"
+                    description="暂无放款次序，点击右上角按钮添加"
+                    class="py-6"
+                  />
 
-                <!-- 每条放款次序 = 一个 Collapse Panel，内含次序信息 + 担保措施 -->
-                <template v-else>
-                  <div class="space-y-3">
-                    <div
-                      v-for="order in lendingOrders"
-                      :key="order.id"
-                      class="border rounded"
-                    >
-                      <!-- 次序头：序号 + 金额 + 操作按钮 -->
-                      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-t">
-                        <span class="font-semibold text-blue-600">放款次序 #{{ order.seq }}</span>
-                        <span class="text-sm text-gray-600">
-                          金额
-                          <span class="font-mono text-blue-700">
-                            {{ Number(order.order_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
-                          </span>
-                          元
-                        </span>
-                        <Tag v-if="order.state" :color="order.state === 50 ? 'green' : order.state === 51 ? 'cyan' : 'default'" class="ml-2">
-                          状态 {{ order.state }}
+                  <Table
+                    v-else
+                    :columns="[
+                      { title: '序号', dataIndex: 'seq', width: 80 },
+                      { title: '放款金额(元)', dataIndex: 'order_amount', width: 160, align: 'right' },
+                      { title: '状态', dataIndex: 'state', width: 90, align: 'center' },
+                      { title: '反担保措施', key: 'sures_display' },
+                      { title: '备注', dataIndex: 'remark', ellipsis: true },
+                      { title: '操作', key: 'op', width: 180, align: 'center' },
+                    ]"
+                    :data-source="lendingOrders"
+                    :pagination="false"
+                    row-key="id"
+                    size="small"
+                  >
+                    <template #bodyCell="{ column, record }">
+                      <!-- 序号列：链接 → 担保措施 Modal（始终可见，否则用户找不到入口） -->
+                      <template v-if="column.dataIndex === 'seq'">
+                        <a @click="openSureModal(record as ArticleOrderItem)"
+                          >放款次序 #{{ record.seq }}</a
+                        >
+                      </template>
+                      <template v-else-if="column.dataIndex === 'order_amount'">
+                        {{ Number(record.order_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
+                      </template>
+                      <template v-else-if="column.dataIndex === 'state'">
+                        <Tag
+                          :color="record.state === 51 ? 'cyan' : record.state === 55 ? 'green' : 'default'"
+                          size="small"
+                        >
+                          {{ record.state }}
                         </Tag>
-                        <span v-if="order.remark" class="text-xs text-gray-400 ml-2 truncate max-w-xs">
-                          备注：{{ order.remark }}
-                        </span>
-                        <div class="flex-1" />
+                      </template>
+                      <template v-else-if="column.key === 'sures_display'">
+                        <template v-if="record.sures && record.sures.length > 0">
+                          <div class="flex flex-wrap gap-1">
+                            <Tag
+                              v-for="(sure, idx) in record.sures"
+                              :key="idx"
+                              color="blue"
+                              size="small"
+                            >
+                              {{ sure.sure_type_display }}
+                              <span v-if="sure.customer_names.length || sure.warrant_names.length" class="ml-1 opacity-70">
+                                · {{ [...sure.customer_names, ...sure.warrant_names].join(', ') }}
+                              </span>
+                            </Tag>
+                          </div>
+                        </template>
+                        <span v-else class="text-gray-400 text-xs">未设置</span>
+                      </template>
+                      <template v-else-if="column.dataIndex === 'remark'">
+                        {{ record.remark || '-' }}
+                      </template>
+                      <template v-else-if="column.key === 'op'">
                         <AccessControl :codes="['article:order']" type="code">
-                          <Button
-                            size="small"
-                            type="link"
-                            @click="openSureModal(order)"
-                          >
-                            担保措施({{ order.sures.length }})
+                          <Button type="link" size="small" @click="openSureModal(record as ArticleOrderItem)">
+                            担保措施
                           </Button>
                           <Button
-                            size="small"
                             type="link"
-                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
-                            @click="openEditLendingOrder(order)"
+                            size="small"
+                            :disabled="![10, 20, 30, 40, 61].includes(record.state)"
+                            @click="openEditLendingOrder(record as ArticleOrderItem)"
                           >
                             编辑
                           </Button>
                           <Button
-                            size="small"
                             type="link"
+                            size="small"
                             danger
-                            :disabled="![10, 20, 30, 40, 61].includes(order.state)"
-                            @click="removeLendingOrder(order)"
+                            :disabled="![10, 20, 30, 40, 61].includes(record.state)"
+                            @click="removeLendingOrder(record as ArticleOrderItem)"
                           >
                             删除
                           </Button>
                         </AccessControl>
-                      </div>
-
-                      <!-- 担保措施 Tag 列表（内嵌展示） -->
-                      <div v-if="order.sures.length > 0" class="px-3 py-2 border-t border-gray-100">
-                        <div class="text-xs text-gray-400 mb-1">反担保措施</div>
-                        <div class="flex flex-wrap gap-2">
-                          <template v-for="(sure, idx) in order.sures" :key="idx">
-                            <div class="border border-blue-200 rounded px-2 py-1 bg-blue-50 text-xs">
-                              <span class="font-medium text-blue-700">{{ sure.sure_type_display }}</span>
-                              <span v-if="sure.customer_names.length" class="ml-1 text-gray-600">
-                                · {{ sure.customer_names.join(', ') }}
-                              </span>
-                              <span v-if="sure.warrant_names.length" class="ml-1 text-gray-600">
-                                · {{ sure.warrant_names.join(', ') }}
-                              </span>
-                            </div>
-                          </template>
-                        </div>
-                      </div>
-                      <div v-else class="px-3 py-2 border-t border-gray-100 text-xs text-gray-400 italic">
-                        暂无担保措施 · 点击右上角「担保措施」按钮添加
-                      </div>
-                    </div>
-                  </div>
-                </template>
+                      </template>
+                    </template>
+                  </Table>
+                </Card>
               </Spin>
             </TabPane>
             <!-- 签批（ArticleApproval 一对一）：Card 包裹 + 非 bordered Descriptions -->
