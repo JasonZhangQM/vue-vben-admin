@@ -174,7 +174,8 @@ export function getArticleDict() {
     article_state: { label: string; value: number }[];
     credit_term_unit: { label: string; value: number }[];
     propose: { label: string; value: number }[];
-    sure_type: { label: string; value: number }[];
+    ware_category: { label: string; value: number }[];
+    method_category: { label: string; value: number }[];
     change_view: { label: string; value: number }[];
     product_category: { label: string; value: number }[];
   }>('/dicts/article');

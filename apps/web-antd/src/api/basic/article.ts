@@ -113,8 +113,10 @@ export function addOrder(id: number, data: Record<string, unknown>) {
 
 /** 放款次序 + 嵌套反担保措施（详情 Tab 用） */
 export interface SureItem {
-  sure_type: number;
-  sure_type_display: string;
+  ware_category: number;
+  ware_category_display: string;
+  method_category: number;
+  method_category_display: string;
   remark: string | null;
   customer_ids: number[];
   customer_names: string[];

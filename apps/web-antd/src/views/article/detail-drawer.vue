@@ -130,8 +130,9 @@ async function loadDicts() {
   ]);
   creditTermUnitOpts.value = dict.credit_term_unit;
   articleStateOpts.value = dict.article_state;
-  // 兜底 ?? []：接口异常/字段缺失时下拉显示为空而不是 undefined
-  sureTypeOpts.value = dict.sure_type ?? [];
+  // ware_category / method_category 纯枚举，由 /dicts/article 聚合接口自动返回
+  wareCategoryOpts.value = (dict.ware_category ?? []) as { label: string; value: number }[];
+  methodCategoryOpts.value = (dict.method_category ?? []) as { label: string; value: number }[];
   productOpts.value = products.map((p) => ({ label: p.name, value: p.id }));
   pmOptions.value = pms.map((u) => ({ label: u.name, value: u.id }));
   controlOptions.value = controllers.map((u) => ({ label: u.name, value: u.id }));
@@ -176,15 +177,37 @@ async function loadDetail() {
   }
 }
 
-// 反担保类型字典：从 /dicts/article 加载（与后端 SureType 枚举同源，禁止前端硬编码）
-const sureTypeOpts = ref<{ label: string; value: number }[]>([]);
-/** 保证类（选客户） */
-const SURE_TYPE_GUARANTEE = [1, 2];
-/** 抵质押类（选权证）：除保证类外的全部类型 */
-const SURE_TYPE_PLEDGE = [
-  11, 12, 13, 14, 15, 21, 22, 23, 24, 31, 32, 33, 34, 39,
-  42, 43, 44, 47, 49, 51, 52, 53, 59, 61,
-];
+// 字典选项：ware_category / method_category 从 /dicts/article 聚合接口返回
+const wareCategoryOpts = ref<{ label: string; value: number }[]>([]);
+const methodCategoryOpts = ref<{ label: string; value: number }[]>([]);
+/** 保证类（选客户）判定：ware_category == GUARANTOR(1) */
+const WARE_GUARANTOR = 1;
+
+/** sureForm：ware_category + method_category 两个独立字段，直接提交 */
+const sureForm = reactive({
+  ware_category: undefined as number | undefined,
+  method_category: undefined as number | undefined,
+  customer_ids: [] as number[],
+  warrant_ids: [] as number[],
+  remark: '' as string | null,
+});
+
+/** 是否保证类（选客户）：ware_category == GUARANTOR */
+const isSureGuarantee = computed(() => sureForm.ware_category === WARE_GUARANTOR);
+/** 是否抵质押类（选权证）：ware_category 不是 GUARANTOR */
+const isSurePledge = computed(() =>
+  sureForm.ware_category !== undefined && sureForm.ware_category !== WARE_GUARANTOR,
+);
+
+/** ware/method 变化时清空客户/权证选择（避免旧维度的关联数据残留） */
+function onSureWareChange() {
+  sureForm.customer_ids = [];
+  sureForm.warrant_ids = [];
+}
+function onSureMethodChange() {
+  sureForm.customer_ids = [];
+  sureForm.warrant_ids = [];
+}
 
 async function loadTabs() {
   if (!props.articleId) return;
@@ -212,15 +235,12 @@ const lendingOrderLoading = ref(false);
 const editingOrderId = ref<number | null>(null);
 
 const lendingOrderForm = reactive({
-  seq: 1 as number,
   order_amount: 0 as number,
   remark: '' as string | null,
 });
 
 function resetLendingOrderForm() {
-  const nextSeq = Math.max(0, ...lendingOrders.value.map((o) => o.seq)) + 1;
   Object.assign(lendingOrderForm, {
-    seq: Math.min(nextSeq, 5),
     order_amount: 0,
     remark: null,
   });
@@ -242,13 +262,8 @@ async function submitAddLendingOrder() {
     message.warning('放款金额必须大于 0');
     return;
   }
-  if (lendingOrderForm.seq < 1 || lendingOrderForm.seq > 5) {
-    message.warning('次序序号必须在 1-5 之间');
-    return;
-  }
   try {
     await addOrder(props.articleId, {
-      seq: lendingOrderForm.seq,
       order_amount: lendingOrderForm.order_amount,
       remark: lendingOrderForm.remark || null,
     });
@@ -260,10 +275,9 @@ async function submitAddLendingOrder() {
   }
 }
 
-/** 打开编辑 Modal（序号只读） */
+/** 打开编辑 Modal（序号由后端分配不允许改，编辑仅改金额/备注） */
 function openEditLendingOrder(order: ArticleOrderItem) {
   Object.assign(lendingOrderForm, {
-    seq: order.seq,
     order_amount: Number(order.order_amount),
     remark: order.remark ?? null,
   });
@@ -324,36 +338,17 @@ const sureModalLoading = ref(false);
 const sureTargetOrderId = ref<number | null>(null);
 const sureTargetOrderSeq = ref<number>(1);
 
-const sureForm = reactive({
-  sure_type: undefined as number | undefined,
-  remark: '' as string | null,
-  customer_ids: [] as number[],
-  warrant_ids: [] as number[],
-});
-
-/** 当前 sure_type 是保证类（选客户）还是抵质押类（选权证） */
-const isSureGuarantee = computed(() =>
-  sureForm.sure_type ? SURE_TYPE_GUARANTEE.includes(sureForm.sure_type) : false,
-);
-const isSurePledge = computed(() =>
-  sureForm.sure_type ? SURE_TYPE_PLEDGE.includes(sureForm.sure_type) : false,
-);
-
-function openSureModal(order: ArticleOrderItem) {
+async function openSureModal(order: ArticleOrderItem) {
   // 状态门槛：与后端 upsert_sure 校验保持一致，不满足时直接拦截
   if (!detail.value || !SURE_ELIGIBLE_STATES.has(detail.value.article_state)) {
     message.warning('仅『待反馈 / 待变更』状态可设置反担保措施');
     return;
   }
-  // 自愈：字典为空（首次加载失败/时序问题）时重置标志重新拉取
-  if (!sureTypeOpts.value.length) {
-    dictLoaded = false;
-    loadDicts();
-  }
   sureTargetOrderId.value = order.id;
   sureTargetOrderSeq.value = order.seq;
   Object.assign(sureForm, {
-    sure_type: undefined,
+    ware_category: undefined,
+    method_category: undefined,
     remark: null,
     customer_ids: [],
     warrant_ids: [],
@@ -363,8 +358,12 @@ function openSureModal(order: ArticleOrderItem) {
 
 async function saveSure() {
   if (!props.articleId || !sureTargetOrderId.value) return;
-  if (!sureForm.sure_type) {
-    message.warning('请选择反担保类型');
+  if (sureForm.ware_category === undefined) {
+    message.warning('请选择担保物');
+    return;
+  }
+  if (sureForm.method_category === undefined) {
+    message.warning('请选择担保方式');
     return;
   }
   if (isSureGuarantee.value && sureForm.customer_ids.length === 0) {
@@ -379,7 +378,8 @@ async function saveSure() {
   try {
     await upsertSure(props.articleId, {
       order_id: sureTargetOrderId.value,
-      sure_type: sureForm.sure_type,
+      ware_category: sureForm.ware_category,
+      method_category: sureForm.method_category,
       remark: sureForm.remark || null,
       customer_ids: sureForm.customer_ids,
       warrant_ids: sureForm.warrant_ids,
@@ -785,15 +785,8 @@ const supplyColumns = [
             <!-- 放款次序（样式与权证产权人 Tab 一致：内联添加 + Table + 编辑 Modal） -->
             <TabPane key="lending-orders" :tab="`放款次序(${lendingOrders.length})`">
               <Spin :spinning="tabLoading">
-                <!-- 内联添加表单（与产权人 Tab 相同布局：无标签前缀、无分隔线） -->
+                <!-- 内联添加表单（序号由后端自动分配，无需输入） -->
                 <div class="mb-2 flex flex-wrap items-center gap-2">
-                  <InputNumber
-                      v-model:value="lendingOrderForm.seq"
-                      :min="1"
-                      :max="5"
-                      placeholder="序号"
-                      style="width: 110px"
-                    />
                     <InputNumber
                       v-model:value="lendingOrderForm.order_amount"
                       :min="0"
@@ -1296,18 +1289,6 @@ const supplyColumns = [
     @ok="saveLendingOrder"
   >
     <Form :model="lendingOrderForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-      <FormItem label="次序序号" required>
-        <InputNumber
-          v-model:value="lendingOrderForm.seq"
-          :min="1"
-          :max="5"
-          :disabled="editingOrderId !== null"
-          class="!w-full"
-        />
-        <div v-if="editingOrderId" class="text-gray-400 text-xs">
-          序号不允许修改（需先删除再重建）
-        </div>
-      </FormItem>
       <FormItem label="放款金额(元)" required>
         <InputNumber
           v-model:value="lendingOrderForm.order_amount"
@@ -1335,14 +1316,27 @@ const supplyColumns = [
     @ok="saveSure"
   >
     <Form :model="sureForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-      <FormItem label="担保类型" required>
+      <!-- 两个独立维度：担保物 × 担保方式，共同确定一条反担保措施 -->
+      <FormItem label="担保物" required>
         <Select
-          v-model:value="sureForm.sure_type"
-          :options="sureTypeOpts"
+          v-model:value="sureForm.ware_category"
+          :options="wareCategoryOpts"
           placeholder="请选择"
           class="!w-full"
           show-search
           option-filter-prop="label"
+          @change="onSureWareChange"
+        />
+      </FormItem>
+      <FormItem label="担保方式" required>
+        <Select
+          v-model:value="sureForm.method_category"
+          :options="methodCategoryOpts"
+          placeholder="请选择"
+          class="!w-full"
+          show-search
+          option-filter-prop="label"
+          @change="onSureMethodChange"
         />
       </FormItem>
 
