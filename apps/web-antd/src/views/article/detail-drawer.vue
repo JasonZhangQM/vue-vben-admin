@@ -6,6 +6,9 @@ import type {
   ArticleDetail,
   ArticleSupplyItem,
   ArticleOrderItem,
+  SureItem,
+  GuarantorItem,
+  CollateralItem,
 } from '#/api/basic/article';
 
 import { reactive, ref, watch, computed } from 'vue';
@@ -14,10 +17,12 @@ import { useRouter } from 'vue-router';
 import { AccessControl } from '@vben/access';
 import { useUserStore } from '@vben/stores';
 import {
+  AutoComplete,
   Button,
   Card,
   Descriptions,
   DescriptionsItem,
+  Divider,
   Drawer,
   Empty,
   Form,
@@ -26,6 +31,7 @@ import {
   InputNumber,
   message,
   Modal,
+  Popconfirm,
   Select,
   Spin,
   Table,
@@ -35,6 +41,7 @@ import {
   Timeline,
   TimelineItem,
 } from 'ant-design-vue';
+import { requestClient } from '#/api/request';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
@@ -116,6 +123,24 @@ const customerOptions = ref<{ label: string; value: number }[]>([]);
 /** 全部权证列表（担保措施弹窗下拉） */
 const warrantOptions = ref<{ label: string; value: number }[]>([]);
 
+// ware_category / method_category 纯枚举，由 /dicts/article 聚合接口返回
+const wareCategoryOpts = ref<{ label: string; value: number }[]>([]);
+const methodCategoryOpts = ref<{ label: string; value: number }[]>([]);
+/** 保证类（选客户）判定：ware_category == GUARANTOR(1) */
+const WARE_GUARANTOR = 1;
+/** WareCategory → WarrantType 映射（前端硬编码，与后端枚举一致） */
+const WARE_TO_WARRANT_TYPE: Record<number, number> = {
+  11: 1,    // 房产 → HOUSE
+  14: 5,    // 土地 → GROUND
+  16: 6,    // 在建工程 → CONSTRUCTION
+  21: 11,   // 应收账款 → RECEIVABLE
+  31: 31,   // 票据 → DRAFT
+  41: 21,   // 股权 → STOCK
+  51: 41,   // 车辆 → VEHICLE
+  61: 51,   // 动产 → CHATTEL
+  91: 55,   // 其他 → OTHER
+};
+
 let dictLoaded = false;
 
 async function loadDicts() {
@@ -167,6 +192,98 @@ const approvals = ref<ApprovalInstanceItem[]>([]);
 const lendingOrders = ref<ArticleOrderItem[]>([]);
 const tabLoading = ref(false);
 
+// ========== 反担保区域状态（放款次序 Tab 内部独立区域） ==========
+/** 当前选中的放款次序 ID（点击"第N次"链接或动态 Tabs 切换时设置） */
+const activeSureOrderId = ref<number | undefined>(undefined);
+/** 当前选中次序下的 WareCategory 子 Tab key */
+const activeSureWareCategory = ref<string>('');
+/** 反担保区域 DOM 引用，用于滚动定位 */
+const sureSectionRef = ref<HTMLElement | null>(null);
+
+/** jumpToSureSection：从放款次序列表点击"第N次"链接时调用 */
+function jumpToSureSection(order: ArticleOrderItem) {
+  activeSureOrderId.value = order.id;
+  activeSureWareCategory.value = ''; // 让 watch 兜底选第一个分组
+  // 滚动到反担保区域
+  setTimeout(() => {
+    sureSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+/** 当前选中次序的详情（显示在 Card 标题中） */
+const activeOrder = computed<ArticleOrderItem | undefined>(() =>
+  lendingOrders.value.find((o) => o.id === activeSureOrderId.value),
+);
+
+/** 当前选中次序的 SureItem[] */
+const currentOrderSures = computed<SureItem[]>(() => activeOrder.value?.sures ?? []);
+
+/** 当前选中次序的 WareCategory 分组列表 —— 每个分组内数据已展平：
+ *  - 保证类(ware=1): items = GuarantorItem[]  每个保证人一行
+ *  - 抵质押类(ware!=1): items = CollateralItem[]  每个权证一行
+ */
+type SureWareGroup =
+  | { key: string; label: string; type: 'guarantor'; ware_category: number; items: GuarantorItem[] }
+  | { key: string; label: string; type: 'collateral'; ware_category: number; items: CollateralItem[] };
+
+const sureWareGroups = computed<SureWareGroup[]>(() => {
+  // 依赖 wareCategoryOpts（/dicts/article 返回的所有 WareCategory 枚举）
+  // + currentOrderSures（当前放款次序已有的 SureItem[]）
+  const sures = currentOrderSures.value;
+  return wareCategoryOpts.value
+    .filter((opt) => opt.value !== WARE_GUARANTOR || true) // 保证类也保留
+    .map((opt) => {
+      const ware = opt.value;
+      const type: 'guarantor' | 'collateral' = ware === WARE_GUARANTOR ? 'guarantor' : 'collateral';
+      const matching = sures.filter((s) => s.ware_category === ware);
+      const items: GuarantorItem[] | CollateralItem[] =
+        type === 'guarantor'
+          ? matching.flatMap((s) => s.guarantors)
+          : matching.flatMap((s) => s.collaterals);
+      return {
+        key: String(ware),
+        label: opt.label,
+        type,
+        ware_category: ware,
+        items,
+      } as SureWareGroup;
+    })
+    // 过滤掉无 WarrantType 映射的抵质押类型（避免无效的权证搜索）
+    .filter(
+      (g) => g.type === 'guarantor' || WARE_TO_WARRANT_TYPE[g.ware_category] != null,
+    )
+    .sort((a, b) => Number(a.key) - Number(b.key));
+});
+
+// 初次切换到放款次序 Tab 时，默认选第一个有 sures 的放款次序
+watch(
+  () => activeTab.value,
+  (tab) => {
+    if (tab === 'lending-orders' && activeSureOrderId.value === undefined && lendingOrders.value.length) {
+      const firstWithSures = lendingOrders.value.find((o) => (o.sures?.length ?? 0) > 0);
+      activeSureOrderId.value = firstWithSures?.id ?? lendingOrders.value[0]!.id;
+    }
+  },
+);
+
+// 选中的 WareCategory 分组变化时，自动取 sures 里第一个 key
+watch(
+  sureWareGroups,
+  (groups) => {
+    if (groups.length === 0) {
+      activeSureWareCategory.value = '';
+    } else if (!groups.find((g) => g.key === activeSureWareCategory.value)) {
+      activeSureWareCategory.value = groups[0]!.key;
+    }
+  },
+  { immediate: true },
+);
+
+// 当 activeSureOrderId 变化时，重置 WareCategory 子 Tab
+watch(activeSureOrderId, () => {
+  activeSureWareCategory.value = '';
+});
+
 async function loadDetail() {
   if (!props.articleId) return;
   loading.value = true;
@@ -177,36 +294,123 @@ async function loadDetail() {
   }
 }
 
-// 字典选项：ware_category / method_category 从 /dicts/article 聚合接口返回
-const wareCategoryOpts = ref<{ label: string; value: number }[]>([]);
-const methodCategoryOpts = ref<{ label: string; value: number }[]>([]);
-/** 保证类（选客户）判定：ware_category == GUARANTOR(1) */
-const WARE_GUARANTOR = 1;
+/** ====== 内联添加反担保措施 ======
+ * 每个 WareCategory Tab 表格上方都有一个内联添加行：
+ *  - 保证类(ware=1)：AutoComplete 搜索客户（远程）→ 选 method_category（企业/个人）→ 添加
+ *  - 抵质押类(ware!=1)：AutoComplete 搜索权证（远程，按 warrant_type 过滤）→ 选 method_category → 添加
+ */
 
-/** sureForm：ware_category + method_category 两个独立字段，直接提交 */
-const sureForm = reactive({
-  ware_category: undefined as number | undefined,
-  method_category: undefined as number | undefined,
-  customer_ids: [] as number[],
-  warrant_ids: [] as number[],
-  remark: '' as string | null,
-});
-
-/** 是否保证类（选客户）：ware_category == GUARANTOR */
-const isSureGuarantee = computed(() => sureForm.ware_category === WARE_GUARANTOR);
-/** 是否抵质押类（选权证）：ware_category 不是 GUARANTOR */
-const isSurePledge = computed(() =>
-  sureForm.ware_category !== undefined && sureForm.ware_category !== WARE_GUARANTOR,
-);
-
-/** ware/method 变化时清空客户/权证选择（避免旧维度的关联数据残留） */
-function onSureWareChange() {
-  sureForm.customer_ids = [];
-  sureForm.warrant_ids = [];
+// 按 TabPane key 索引的内联表单状态（每个 Tab 独立一个）
+interface InlineSureState {
+  searchKw: string;
+  searchResults: { value: number; label: string }[];  // AutoComplete 下拉
+  selectedId: number | null;
+  methodCategory: number | undefined;
+  loading: boolean;
+  methodOpts: { label: string; value: number }[];    // 该 ware_category 可用的 method_category
 }
-function onSureMethodChange() {
-  sureForm.customer_ids = [];
-  sureForm.warrant_ids = [];
+const inlineSureMap = reactive<Record<string, InlineSureState>>({});
+
+function getInlineState(groupKey: string, groupType: 'guarantor' | 'collateral'): InlineSureState {
+  if (!inlineSureMap[groupKey]) {
+    const defaultMethod = groupType === 'guarantor'
+      ? methodCategoryOpts.value.find(m => m.value === 1)?.value  // 企业保证
+      : methodCategoryOpts.value.find(m => m.value === 11)?.value; // 抵押
+    inlineSureMap[groupKey] = {
+      searchKw: '',
+      searchResults: [],
+      selectedId: null,
+      methodCategory: defaultMethod,
+      loading: false,
+      methodOpts: methodCategoryOpts.value.filter(m => {
+        if (groupType === 'guarantor') return m.value <= 5;  // 保证类 method: 1企业/2个人
+        return m.value >= 10 && m.value !== 100;            // 抵质押类 method
+      }),
+    };
+  }
+  return inlineSureMap[groupKey];
+}
+
+/** 远程搜索（防抖由 AutoComplete 内置） */
+async function onInlineSearch(group: typeof sureWareGroups.value[number]) {
+  const state = getInlineState(group.key, group.type);
+  if (!state.searchKw || state.searchKw.length < 1) {
+    state.searchResults = [];
+    state.selectedId = null;
+    return;
+  }
+  state.loading = true;
+  try {
+    let url = '';
+    let params: Record<string, unknown> = { keyword: state.searchKw, limit: 20 };
+    if (group.type === 'guarantor') {
+      url = '/customers/search';
+    } else {
+      url = '/warrants/search';
+      const wt = WARE_TO_WARRANT_TYPE[group.ware_category];
+      if (wt) params.warrant_type = wt;
+    }
+    const data = await requestClient.get<{ id: number; name?: string; warrant_num?: string }[]>(url, { params });
+    state.searchResults = (data || []).map(item => ({
+      value: item.id,
+      label: group.type === 'guarantor' ? (item.name || '') : (item.warrant_num || ''),
+    }));
+    // 如果唯一匹配直接选
+    if (state.searchResults.length === 1) {
+      state.selectedId = state.searchResults[0]?.value ?? null;
+    } else {
+      state.selectedId = null;
+    }
+  } catch {
+    state.searchResults = [];
+  } finally {
+    state.loading = false;
+  }
+}
+
+/** 选中一条后直接提交添加 */
+async function addInlineSure(group: typeof sureWareGroups.value[number]) {
+  const state = getInlineState(group.key, group.type);
+  if (!state.selectedId) {
+    message.warning('请先搜索并选择一个目标');
+    return;
+  }
+  if (state.methodCategory === undefined) {
+    message.warning('请选择担保方式');
+    return;
+  }
+  if (!props.articleId || !activeSureOrderId.value) return;
+  if (!detail.value || !SURE_ELIGIBLE_STATES.has(detail.value.article_state)) {
+    message.warning('仅『待反馈 / 待变更』状态可设置反担保措施');
+    return;
+  }
+  const payload: Record<string, unknown> = {
+    order_id: activeSureOrderId.value,
+    ware_category: group.ware_category,
+    method_category: state.methodCategory,
+    remark: null,
+  };
+  if (group.type === 'guarantor') {
+    payload.customer_ids = [state.selectedId];
+    payload.warrant_ids = [];
+  } else {
+    payload.customer_ids = [];
+    payload.warrant_ids = [state.selectedId];
+  }
+  state.loading = true;
+  try {
+    await upsertSure(props.articleId, payload as never);
+    message.success('已添加反担保措施');
+    // 清空
+    state.searchKw = '';
+    state.searchResults = [];
+    state.selectedId = null;
+    await loadTabs();
+  } catch {
+    // requestClient 已 toast
+  } finally {
+    state.loading = false;
+  }
 }
 
 async function loadTabs() {
@@ -236,7 +440,7 @@ const editingOrderId = ref<number | null>(null);
 
 const lendingOrderForm = reactive({
   order_amount: 0 as number,
-  remark: '' as string | null,
+  remark: '' as string,
 });
 
 function resetLendingOrderForm() {
@@ -327,72 +531,23 @@ function removeLendingOrder(order: ArticleOrderItem) {
   });
 }
 
-// ========== 担保措施 Modal（嵌套在放款次序下，按 sure_type upsert）============
+// ========== 反担保行删除（占位，后端待实现按 M2M 单条删除）============
+
+/** 删除单个保证人（从 article_sure_customers M2M 中间表移除一条）。
+ *  当前后端无逐行删除 API，暂整 Sure 删除 —— 仅当该 sure 只有 1 个保证人时安全。 */
+async function deleteGuarantor(_g: GuarantorItem) {
+  message.info('反担保单行删除功能开发中');
+}
+
+/** 删除单个权证（从 article_sure_warrants M2M 中间表移除一条）。同上。 */
+async function deleteCollateral(_c: CollateralItem) {
+  message.info('反担保单行删除功能开发中');
+}
+
+// ========== 内联添加反担保措施（已在上方 sureInlineMap / addInlineSure 实现）========
 
 /** 可设置反担保措施的项目状态（待反馈/待变更，与放款次序添加门槛一致） */
 const SURE_ELIGIBLE_STATES = new Set([10, 61]);
-
-const sureModalOpen = ref(false);
-const sureModalLoading = ref(false);
-/** 正在编辑哪个放款次序的担保措施 */
-const sureTargetOrderId = ref<number | null>(null);
-const sureTargetOrderSeq = ref<number>(1);
-
-async function openSureModal(order: ArticleOrderItem) {
-  // 状态门槛：与后端 upsert_sure 校验保持一致，不满足时直接拦截
-  if (!detail.value || !SURE_ELIGIBLE_STATES.has(detail.value.article_state)) {
-    message.warning('仅『待反馈 / 待变更』状态可设置反担保措施');
-    return;
-  }
-  sureTargetOrderId.value = order.id;
-  sureTargetOrderSeq.value = order.seq;
-  Object.assign(sureForm, {
-    ware_category: undefined,
-    method_category: undefined,
-    remark: null,
-    customer_ids: [],
-    warrant_ids: [],
-  });
-  sureModalOpen.value = true;
-}
-
-async function saveSure() {
-  if (!props.articleId || !sureTargetOrderId.value) return;
-  if (sureForm.ware_category === undefined) {
-    message.warning('请选择担保物');
-    return;
-  }
-  if (sureForm.method_category === undefined) {
-    message.warning('请选择担保方式');
-    return;
-  }
-  if (isSureGuarantee.value && sureForm.customer_ids.length === 0) {
-    message.warning('保证类担保需选择至少 1 个客户');
-    return;
-  }
-  if (isSurePledge.value && sureForm.warrant_ids.length === 0) {
-    message.warning('抵质押类担保需选择至少 1 个权证');
-    return;
-  }
-  sureModalLoading.value = true;
-  try {
-    await upsertSure(props.articleId, {
-      order_id: sureTargetOrderId.value,
-      ware_category: sureForm.ware_category,
-      method_category: sureForm.method_category,
-      remark: sureForm.remark || null,
-      customer_ids: sureForm.customer_ids,
-      warrant_ids: sureForm.warrant_ids,
-    });
-    message.success('反担保措施已保存');
-    sureModalOpen.value = false;
-    await loadTabs();
-  } catch {
-    // requestClient 已 toast
-  } finally {
-    sureModalLoading.value = false;
-  }
-}
 
 // ========== 打开抽屉生命周期 ==========
 watch(
@@ -821,7 +976,7 @@ const supplyColumns = [
 
                 <Table
                   :columns="[
-                    { title: '序号', dataIndex: 'seq', width: 110 },
+                    { title: '次序', dataIndex: 'seq', width: 110 },
                     { title: '放款金额(元)', dataIndex: 'order_amount', width: 150, align: 'right' },
                     { title: '状态', dataIndex: 'state', width: 90, align: 'center' },
                     { title: '备注', dataIndex: 'remark', ellipsis: true },
@@ -833,10 +988,10 @@ const supplyColumns = [
                   size="small"
                 >
                   <template #bodyCell="{ column, record }">
-                    <!-- 序号列：链接 → 担保措施 Modal（始终可见，否则用户找不到入口） -->
+                    <!-- 次序列：链接 → 滚动到放款次序 Tab 下方的反担保区域 -->
                     <template v-if="column.dataIndex === 'seq'">
-                      <a @click="openSureModal(record as ArticleOrderItem)"
-                        >放款次序 #{{ record.seq }}</a
+                      <a @click="jumpToSureSection(record as ArticleOrderItem)"
+                        >第{{ record.seq }}次</a
                       >
                     </template>
                     <template v-else-if="column.dataIndex === 'order_amount'">
@@ -858,13 +1013,7 @@ const supplyColumns = [
                         <Button
                           type="link"
                           size="small"
-                          :disabled="!detail || !SURE_ELIGIBLE_STATES.has(detail.article_state)"
-                          :title="
-                            detail && !SURE_ELIGIBLE_STATES.has(detail.article_state)
-                              ? '仅『待反馈 / 待变更』状态可设置'
-                              : ''
-                          "
-                          @click="openSureModal(record as ArticleOrderItem)"
+                          @click="jumpToSureSection(record as ArticleOrderItem)"
                         >
                           担保措施
                         </Button>
@@ -890,7 +1039,149 @@ const supplyColumns = [
                   </template>
                 </Table>
               </Spin>
+
+              <!-- ===== 反担保区域：无 Card 包装，直接 Tabs + 内联添加 ===== -->
+              <Divider class="!my-4" />
+              <div ref="sureSectionRef">
+                <Spin :spinning="tabLoading">
+                  <!-- 未选中放款次序 → 提示 -->
+                  <template v-if="!activeOrder">
+                    <Empty description="请先在上方放款次序列表点击『第N次』链接选择放款次序" />
+                  </template>
+                  <template v-else-if="sureWareGroups.length > 0">
+                    <!-- 选中次序下 → 按 WareCategory 分组 Tabs（始终显示所有可能类型） -->
+                    <div class="mb-2 text-sm text-gray-500">
+                      第{{ activeOrder.seq }}次放款 · 反担保措施
+                    </div>
+                    <Tabs v-model:activeKey="activeSureWareCategory" size="small">
+                      <TabPane
+                        v-for="g in sureWareGroups"
+                        :key="g.key"
+                        :tab="`${g.label}(${g.items.length})`"
+                      >
+                        <!-- ===== 内联添加行 ===== -->
+                        <div class="mb-2 flex flex-wrap items-center gap-2">
+                          <AutoComplete
+                            v-model:value="getInlineState(g.key, g.type).searchKw"
+                            :options="getInlineState(g.key, g.type).searchResults"
+                            :allow-clear="true"
+                            :placeholder="
+                              g.type === 'guarantor'
+                                ? '搜索客户名称/证件号…'
+                                : '搜索权证编号…'
+                            "
+                            :loading="getInlineState(g.key, g.type).loading"
+                            style="width: 240px"
+                            @search="onInlineSearch(g)"
+                            @select="(opt) => { const s = getInlineState(g.key, g.type); s.selectedId = Number(opt.value); }"
+                          />
+                          <Select
+                            v-model:value="getInlineState(g.key, g.type).methodCategory"
+                            :options="getInlineState(g.key, g.type).methodOpts"
+                            placeholder="担保方式"
+                            style="width: 120px"
+                            size="small"
+                          />
+                          <AccessControl :codes="['article:order']" type="code">
+                            <Button
+                              size="small"
+                              type="primary"
+                              :disabled="
+                                !detail || !SURE_ELIGIBLE_STATES.has(detail.article_state)
+                              "
+                              :title="
+                                detail && !SURE_ELIGIBLE_STATES.has(detail.article_state)
+                                  ? '仅『待反馈 / 待变更』状态可添加反担保'
+                                  : ''
+                              "
+                              :loading="getInlineState(g.key, g.type).loading"
+                              @click="addInlineSure(g)"
+                            >
+                              添加
+                            </Button>
+                          </AccessControl>
+                        </div>
+
+                        <!-- ===== 保证类 Tab：每行一个 GuarantorItem ===== -->
+                        <Table
+                          v-if="g.type === 'guarantor'"
+                          :columns="[
+                            { title: '保证人', dataIndex: 'name', width: 260 },
+                            { title: '类型', dataIndex: 'genre_display', width: 80, align: 'center' },
+                            { title: '联系地址', dataIndex: 'address', ellipsis: true },
+                            { title: '联系人', dataIndex: 'contact_name', width: 90 },
+                            { title: '联系电话', dataIndex: 'contact_phone', width: 120 },
+                            { title: '操作', key: 'op', width: 80, align: 'center' },
+                          ]"
+                          :data-source="g.items as GuarantorItem[]"
+                          :pagination="false"
+                          :row-key="(_, idx) => `${g.key}-g-${idx}`"
+                          size="small"
+                        >
+                          <template #bodyCell="{ column, record }">
+                            <template v-if="column.dataIndex === 'name'">
+                              <a @click="router.push(`/customer/custom/${record.id}`)">{{ record.name }}</a>
+                            </template>
+                            <template v-else-if="column.dataIndex === 'genre_display'">
+                              <Tag :color="record.genre === 1 ? 'blue' : 'cyan'" size="small">
+                                {{ record.genre_display }}
+                              </Tag>
+                            </template>
+                            <template v-else-if="column.dataIndex === 'contact_phone'">
+                              {{ record.contact_phone || '-' }}
+                            </template>
+                            <template v-else-if="column.key === 'op'">
+                              <Popconfirm title="确定删除该保证人的反担保？" ok-text="删除" cancel-text="取消">
+                                <Button type="link" danger size="small" @click="() => deleteGuarantor(record as GuarantorItem)">删除</Button>
+                              </Popconfirm>
+                            </template>
+                          </template>
+                        </Table>
+
+                        <!-- ===== 抵质押类 Tab：每行一个 CollateralItem ===== -->
+                        <Table
+                          v-else
+                          :columns="[
+                            { title: '产权证号', dataIndex: 'ownership_num', width: 160, ellipsis: true },
+                            { title: '所有权人', dataIndex: 'owners', width: 160, ellipsis: true },
+                            { title: '地址', dataIndex: 'address', ellipsis: true },
+                            { title: '面积(㎡)', dataIndex: 'area', width: 100, align: 'right' },
+                            { title: '房产用途', dataIndex: 'house_usage_display', width: 90, align: 'center' },
+                            { title: '描述', dataIndex: 'description', width: 140, ellipsis: true },
+                            { title: '操作', key: 'op', width: 80, align: 'center' },
+                          ]"
+                          :data-source="g.items as CollateralItem[]"
+                          :pagination="false"
+                          :row-key="(_, idx) => `${g.key}-c-${idx}`"
+                          size="small"
+                        >
+                          <template #bodyCell="{ column, record }">
+                            <template v-if="column.dataIndex === 'ownership_num'">
+                              <a @click="router.push(`/warrant/warrants/${record.id}`)">{{ record.ownership_num || '—' }}</a>
+                            </template>
+                            <template v-else-if="column.dataIndex === 'area'">
+                              {{ record.area != null ? Number(record.area).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '-' }}
+                            </template>
+                            <template v-else-if="column.dataIndex === 'house_usage_display'">
+                              {{ record.house_usage_display || '-' }}
+                            </template>
+                            <template v-else-if="column.key === 'op'">
+                              <Popconfirm title="确定删除该反担保物？" ok-text="删除" cancel-text="取消">
+                                <Button type="link" danger size="small" @click="() => deleteCollateral(record as CollateralItem)">删除</Button>
+                              </Popconfirm>
+                            </template>
+                          </template>
+                        </Table>
+                      </TabPane>
+                    </Tabs>
+                  </template>
+                  <template v-else>
+                    <Empty description="暂无反担保种类配置" />
+                  </template>
+                </Spin>
+              </div>
             </TabPane>
+
             <!-- 签批（ArticleApproval 一对一）：Card 包裹 + 非 bordered Descriptions -->
             <TabPane
               v-if="detail && (detail.review_date || detail.sign_type || detail.summary_num)"
@@ -1304,90 +1595,6 @@ const supplyColumns = [
           :maxlength="256"
         />
       </FormItem>
-    </Form>
-  </Modal>
-
-  <!-- ===== 担保措施 Modal ===== -->
-  <Modal
-    v-model:open="sureModalOpen"
-    :confirm-loading="sureModalLoading"
-    :title="`放款次序 #${sureTargetOrderSeq} 的反担保措施`"
-    :width="520"
-    @ok="saveSure"
-  >
-    <Form :model="sureForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
-      <!-- 两个独立维度：担保物 × 担保方式，共同确定一条反担保措施 -->
-      <FormItem label="担保物" required>
-        <Select
-          v-model:value="sureForm.ware_category"
-          :options="wareCategoryOpts"
-          placeholder="请选择"
-          class="!w-full"
-          show-search
-          option-filter-prop="label"
-          @change="onSureWareChange"
-        />
-      </FormItem>
-      <FormItem label="担保方式" required>
-        <Select
-          v-model:value="sureForm.method_category"
-          :options="methodCategoryOpts"
-          placeholder="请选择"
-          class="!w-full"
-          show-search
-          option-filter-prop="label"
-          @change="onSureMethodChange"
-        />
-      </FormItem>
-
-      <!-- 保证类：选客户 -->
-      <FormItem
-        v-if="isSureGuarantee"
-        label="保证人"
-        required
-      >
-        <Select
-          v-model:value="sureForm.customer_ids"
-          mode="multiple"
-          :options="customerOptions"
-          :placeholder="customerOptions.length ? '选择保证客户' : '无客户可选（请先在客户列表添加）'"
-          class="!w-full"
-          show-search
-          option-filter-prop="label"
-          :disabled="customerOptions.length === 0"
-        />
-      </FormItem>
-
-      <!-- 抵质押类：选权证 -->
-      <FormItem
-        v-if="isSurePledge"
-        label="抵质押物"
-        required
-      >
-        <Select
-          v-model:value="sureForm.warrant_ids"
-          mode="multiple"
-          :options="warrantOptions"
-          :placeholder="warrantOptions.length ? '选择抵质押权证' : '无权证可选（请先在权证列表添加）'"
-          class="!w-full"
-          show-search
-          option-filter-prop="label"
-          :disabled="warrantOptions.length === 0"
-        />
-      </FormItem>
-
-      <FormItem label="备注">
-        <Input
-          v-model:value="sureForm.remark"
-          type="textarea"
-          :rows="2"
-          :maxlength="256"
-          placeholder="可选：补充说明"
-        />
-      </FormItem>
-      <div class="text-gray-400 text-xs">
-        同一放款次序 + 同一担保类型 = 一条 upsert 记录，保存时会替换旧数据。
-      </div>
     </Form>
   </Modal>
 </template>

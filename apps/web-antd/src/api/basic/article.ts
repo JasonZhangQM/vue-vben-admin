@@ -112,16 +112,37 @@ export function addOrder(id: number, data: Record<string, unknown>) {
 }
 
 /** 放款次序 + 嵌套反担保措施（详情 Tab 用） */
+export interface GuarantorItem {
+  id: number;
+  name: string;
+  genre: number;
+  genre_display: string;
+  address: string;
+  contact_name: string;
+  contact_phone: string;
+}
+
+export interface CollateralItem {
+  id: number;
+  warrant_type: number;
+  address: string;
+  area: number | null;
+  owners: string;
+  ownership_num: string;
+  description: string;
+  house_usage: number | null;
+  house_usage_display: string;
+}
+
 export interface SureItem {
+  sure_id: number;
   ware_category: number;
   ware_category_display: string;
   method_category: number;
   method_category_display: string;
   remark: string | null;
-  customer_ids: number[];
-  customer_names: string[];
-  warrant_ids: number[];
-  warrant_names: string[];
+  guarantors: GuarantorItem[];
+  collaterals: CollateralItem[];
 }
 
 export interface ArticleOrderItem {
