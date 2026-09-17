@@ -63,6 +63,9 @@ onMounted(async () => {
 
 // ============ 列表 ============
 const { rowClassName, customRow } = useRowHighlight();
+
+// 评审安排 Modal 内子表独立高亮
+const { customRow: arrangeCustomRow, rowClassName: arrangeRowClassName } = useRowHighlight();
 const list = ref<AppraisalListItem[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -411,6 +414,8 @@ onMounted(loadList);
           :pagination="false"
           :scroll="{ y: 260 }"
           row-key="article_id"
+          :custom-row="arrangeCustomRow"
+          :row-class-name="arrangeRowClassName"
         >
           <Table.Column title="项目编号" dataIndex="article_num" width="160" />
           <Table.Column title="客户" dataIndex="customer_name" width="160">

@@ -66,6 +66,7 @@ import {
   getIndustryTree,
 } from '#/api/basic/dict';
 import { useDetailColumns } from '#/composables/useDetailColumns';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store';
 import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
 
@@ -76,6 +77,13 @@ const emit = defineEmits<{ updated: [] }>();
 
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
+
+// 各子表独立高亮状态
+const { customRow: contactCustomRow, rowClassName: contactRowClassName } = useRowHighlight();
+const { customRow: shareholderCustomRow, rowClassName: shareholderRowClassName } = useRowHighlight();
+const { customRow: directorCustomRow, rowClassName: directorRowClassName } = useRowHighlight();
+const { customRow: limitCustomRow, rowClassName: limitRowClassName } = useRowHighlight();
+const { customRow: extendCustomRow, rowClassName: extendRowClassName } = useRowHighlight();
 
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | CustomerDetail>(null);
@@ -721,6 +729,8 @@ async function saveTags() {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="contactCustomRow"
+            :row-class-name="contactRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'name'">
@@ -776,6 +786,8 @@ async function saveTags() {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="shareholderCustomRow"
+            :row-class-name="shareholderRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'shareholder_name'">
@@ -809,6 +821,8 @@ async function saveTags() {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="directorCustomRow"
+            :row-class-name="directorRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'director_name'">
@@ -852,6 +866,8 @@ async function saveTags() {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="limitCustomRow"
+            :row-class-name="limitRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'valid'">
@@ -958,6 +974,8 @@ async function saveTags() {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="extendCustomRow"
+            :row-class-name="extendRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'sales_revenue'">

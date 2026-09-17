@@ -9,7 +9,10 @@ import { Page } from '@vben/common-ui';
 
 import { Button, Card, Input, Table, Tag } from 'ant-design-vue';
 
+import { useRowHighlight } from '#/composables/useRowHighlight';
 import { getLoginLogs } from '#/api/system/log';
+
+const { customRow, rowClassName } = useRowHighlight();
 
 const loading = ref(false);
 const list = ref<LoginLogItem[]>([]);
@@ -90,6 +93,8 @@ onMounted(loadList);
         row-key="id"
         :scroll="{ x: 'max-content' }"
         size="small"
+        :custom-row="customRow"
+        :row-class-name="rowClassName"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'status'">

@@ -87,6 +87,11 @@ const statusColor = (s: number) => ({ 10: 'green', 20: 'red', 90: 'default' })[s
 // 表格行点击高亮(useRowHighlight composable 全局共享)
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
+// 抽屉内各子表独立高亮状态
+const { customRow: contactCustomRow, rowClassName: contactRowClassName } = useRowHighlight();
+const { customRow: branchCustomRow, rowClassName: branchRowClassName } = useRowHighlight();
+const { customRow: agreementCustomRow, rowClassName: agreementRowClassName } = useRowHighlight();
+
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 const loading = ref(false);
@@ -662,6 +667,8 @@ onMounted(loadList);
               :pagination="false"
               row-key="id"
               size="small"
+              :custom-row="contactCustomRow"
+              :row-class-name="contactRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'name'">
@@ -706,6 +713,8 @@ onMounted(loadList);
               :pagination="false"
               row-key="id"
               size="small"
+              :custom-row="branchCustomRow"
+              :row-class-name="branchRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'name'">
@@ -746,6 +755,8 @@ onMounted(loadList);
               :pagination="false"
               row-key="id"
               size="small"
+              :custom-row="agreementCustomRow"
+              :row-class-name="agreementRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'agreement_type'">

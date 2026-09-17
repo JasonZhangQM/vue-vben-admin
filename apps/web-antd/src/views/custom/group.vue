@@ -51,6 +51,10 @@ const dictStore = useDictStore();
 // 表格行点击高亮(全局共享 composable)
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
+// 抽屉内子表独立高亮
+const { customRow: memberCustomRow, rowClassName: memberRowClassName } = useRowHighlight();
+const { customRow: subCustomRow, rowClassName: subRowClassName } = useRowHighlight();
+
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
@@ -566,6 +570,8 @@ onMounted(() => {
               }"
               row-key="id"
               size="small"
+              :custom-row="memberCustomRow"
+              :row-class-name="memberRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'classification'">
@@ -602,10 +608,12 @@ onMounted(() => {
               :pagination="false"
               row-key="id"
               size="small"
+              :custom-row="subCustomRow"
+              :row-class-name="subRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'name'">
-                  <a @click="openDetail(record)">{{ record.name }}</a>
+                  <a @click="openGroupDetail(record.id)">{{ record.name }}</a>
                 </template>
                 <template v-else-if="column.dataIndex === 'parent_customer_name'">
                   {{ dash(record.parent_customer_name) }}

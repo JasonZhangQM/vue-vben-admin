@@ -53,6 +53,9 @@ const CLASSIFICATION_COLORS: Record<number, string> = {
 // ============ 列表 ============
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
+// 抽屉内客户表独立高亮
+const { customRow: tagCustomerCustomRow, rowClassName: tagCustomerRowClassName } = useRowHighlight();
+
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 const loading = ref(false);
@@ -380,6 +383,8 @@ onMounted(loadList);
               :scroll="{ x: 'max-content' }"
               row-key="id"
               size="small"
+              :custom-row="tagCustomerCustomRow"
+              :row-class-name="tagCustomerRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'name'">

@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 权证详情抽屉：基本信息 / 产权人 / 房产 / 出入库(联动状态)/ 评估。 */
 
 import type { WarrantDetail } from '#/api/basic/warrant';
@@ -32,6 +32,7 @@ import {
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/api/basic/dict';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
 
@@ -67,6 +68,16 @@ const dictStore = useDictStore();
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | WarrantDetail>(null);
 const loading = ref(false);
+
+// 各子表独立高亮状态（抽屉内 Tab 多，互不干扰）
+const { customRow: ownerCustomRow, rowClassName: ownerRowClassName } = useRowHighlight();
+const { customRow: houseCustomRow, rowClassName: houseRowClassName } = useRowHighlight();
+const { customRow: groundCustomRow, rowClassName: groundRowClassName } = useRowHighlight();
+const { customRow: constructionCustomRow, rowClassName: constructionRowClassName } = useRowHighlight();
+const { customRow: receiveCustomRow, rowClassName: receiveRowClassName } = useRowHighlight();
+const { customRow: draftCustomRow, rowClassName: draftRowClassName } = useRowHighlight();
+const { customRow: storageCustomRow, rowClassName: storageRowClassName } = useRowHighlight();
+const { customRow: evaluateCustomRow, rowClassName: evaluateRowClassName } = useRowHighlight();
 
 // 状态 → Tag 颜色映射已抽到 ./constants.ts(避免两处维护 + 拍卖/权证状态语义串用)
 
@@ -626,6 +637,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="ownerCustomRow"
+            :row-class-name="ownerRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'owner_name'">
@@ -704,6 +717,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="houseCustomRow"
+            :row-class-name="houseRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'region_name'">
@@ -749,6 +764,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="groundCustomRow"
+            :row-class-name="groundRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'region_name'">
@@ -791,6 +808,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="constructionCustomRow"
+            :row-class-name="constructionRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'region_name'">
@@ -827,6 +846,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="receiveCustomRow"
+            :row-class-name="receiveRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'op'">
@@ -905,6 +926,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="draftCustomRow"
+            :row-class-name="draftRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'draft_amount'">
@@ -999,6 +1022,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="storageCustomRow"
+            :row-class-name="storageRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'storage_type'">
@@ -1038,6 +1063,8 @@ async function onDeleteConstruction(record: any) {
             :pagination="false"
             row-key="id"
             size="small"
+            :custom-row="evaluateCustomRow"
+            :row-class-name="evaluateRowClassName"
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'evaluate_method'">

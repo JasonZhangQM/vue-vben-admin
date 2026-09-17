@@ -67,6 +67,9 @@ const detail = ref<null | RoleDetail>(null);
 
 const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
 
+// 详情抽屉内绑定用户表独立高亮
+const { customRow: roleUserCustomRow, rowClassName: roleUserRowClassName } = useRowHighlight();
+
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
 
@@ -376,6 +379,8 @@ onMounted(async () => {
               :pagination="false"
               row-key="id"
               size="small"
+              :custom-row="roleUserCustomRow"
+              :row-class-name="roleUserRowClassName"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'dept_name'">

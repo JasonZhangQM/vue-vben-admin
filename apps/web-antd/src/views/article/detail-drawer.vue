@@ -45,6 +45,7 @@ import { requestClient } from '#/api/request';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash } from '#/utils/format';
 
 import {
@@ -88,6 +89,12 @@ const activeTab = ref('lending-orders');
 
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
+
+// 各子表独立高亮状态（同一抽屉内多个 Tab 的表格互不干扰）
+const { customRow: guarantorCustomRow, rowClassName: guarantorRowClassName } = useRowHighlight();
+const { customRow: collateralCustomRow, rowClassName: collateralRowClassName } = useRowHighlight();
+const { customRow: commentCustomRow, rowClassName: commentRowClassName } = useRowHighlight();
+const { customRow: supplyCustomRow, rowClassName: supplyRowClassName } = useRowHighlight();
 
 // ========== 编辑 Modal ==========
 const editVisible = ref(false);
@@ -1114,6 +1121,8 @@ const supplyColumns = [
                           :scroll="{ x: 670 }"
                           :row-key="(_, idx) => `${g.key}-g-${idx}`"
                           size="small"
+                          :custom-row="guarantorCustomRow"
+                          :row-class-name="guarantorRowClassName"
                         >
                           <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex === 'name'">
@@ -1152,6 +1161,8 @@ const supplyColumns = [
                           :scroll="{ x: 880 }"
                           :row-key="(_, idx) => `${g.key}-c-${idx}`"
                           size="small"
+                          :custom-row="collateralCustomRow"
+                          :row-class-name="collateralRowClassName"
                         >
                           <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex === 'ownership_num'">
@@ -1227,6 +1238,8 @@ const supplyColumns = [
                     size="small"
                     row-key="id"
                     bordered
+                    :custom-row="commentCustomRow"
+                    :row-class-name="commentRowClassName"
                   >
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.dataIndex === 'score'">
@@ -1250,6 +1263,8 @@ const supplyColumns = [
                     size="small"
                     row-key="id"
                     bordered
+                    :custom-row="supplyCustomRow"
+                    :row-class-name="supplyRowClassName"
                   >
                     <template #bodyCell="{ column, record }">
                       <template v-if="column.dataIndex === 'is_resolved'">
