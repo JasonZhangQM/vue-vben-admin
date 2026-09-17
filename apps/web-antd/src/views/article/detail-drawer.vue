@@ -1151,8 +1151,8 @@ const supplyColumns = [
                               {{ record.contact_phone || '-' }}
                             </template>
                             <template v-else-if="column.key === 'op'">
-                              <Popconfirm title="确定删除该保证人的反担保？" ok-text="删除" cancel-text="取消">
-                                <Button type="link" danger size="small" @click="() => deleteGuarantor(record as GuarantorItem)">删除</Button>
+                              <Popconfirm title="确定删除该保证人的反担保？" ok-text="删除" cancel-text="取消" @confirm="() => deleteGuarantor(record as GuarantorItem)">
+                                <Button type="link" danger size="small">删除</Button>
                               </Popconfirm>
                             </template>
                           </template>
@@ -1193,8 +1193,8 @@ const supplyColumns = [
                               {{ record.house_usage_display || '-' }}
                             </template>
                             <template v-else-if="column.key === 'op'">
-                              <Popconfirm title="确定删除该反担保物？" ok-text="删除" cancel-text="取消">
-                                <Button type="link" danger size="small" @click="() => deleteCollateral(record as CollateralItem)">删除</Button>
+                              <Popconfirm title="确定删除该反担保物？" ok-text="删除" cancel-text="取消" @confirm="() => deleteCollateral(record as CollateralItem)">
+                                <Button type="link" danger size="small">删除</Button>
                               </Popconfirm>
                             </template>
                           </template>

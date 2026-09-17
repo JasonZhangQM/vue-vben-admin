@@ -193,9 +193,9 @@ export function deleteSureRow(
   rowType: 'customer' | 'warrant',
   rowId: number,
 ) {
-  return requestClient.delete<void>(`/articles/${articleId}/sures/${sureId}/rows`, {
-    params: { row_type: rowType, row_id: rowId },
-  });
+  return requestClient.delete<void>(
+    `/articles/${articleId}/sures/${sureId}/rows?row_type=${rowType}&row_id=${rowId}`,
+  );
 }
 
 // ============ 审批 ============
