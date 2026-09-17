@@ -966,7 +966,6 @@ const supplyColumns = [
                     />
                   <AccessControl :codes="['article:order']" type="code">
                     <Button
-                      size="small"
                       type="primary"
                       :disabled="
                         !detail || ![10, 61].includes(detail.article_state)
