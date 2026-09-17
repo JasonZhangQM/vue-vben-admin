@@ -13,6 +13,13 @@
   background-color: #e6f4ff !important;
 }
 
+/* 暗色模式覆盖：#e6f4ff 在暗背景下几乎和白色文字混在一起不可读，
+ * 换 Ant Design 暗主题 colorBgSpotlight (#15325b) — 深蓝底对白字对比度充足 */
+.dark .ant-table-tbody > tr.row-active > td,
+.dark .ant-table-tbody > tr.row-active > td.ant-table-cell-row-hover {
+  background-color: #15325b !important;
+}
+
 /* ---------- 分页：每页条数选择框加宽 ----------
  * Ant Design Vue Pagination 给 "每页条数" Select 加的是复合类名
  * .ant-select.ant-pagination-options-size-changer（同一个元素），
