@@ -357,6 +357,9 @@ async function onInlineSearch(group: typeof sureWareGroups.value[number], keywor
   try {
     let url = '';
     const params: Record<string, unknown> = { keyword: keyword.trim(), limit: 20 };
+    if (activeSureOrderId.value) {
+      params.exclude_order_id = activeSureOrderId.value;
+    }
     if (group.type === 'guarantor') {
       url = '/customers/search';
       // 担保方式 → 客户 genre 过滤：企业保证(1)=企业客户(1) / 个人保证(2)=个人客户(2)
@@ -1162,7 +1165,7 @@ const supplyColumns = [
                         <Table
                           v-else
                           :columns="[
-                            { title: '担保方式', dataIndex: 'method_category_display', width: 110, align: 'center' },
+                            { title: '担保方式', dataIndex: 'method_category_display', width: 80, align: 'center' },
                             { title: '所有权人', dataIndex: 'owners', width: 180 },
                             { title: '产权证', dataIndex: 'ownership_num', width: 180 },
                             { title: '地址', dataIndex: 'address', width: 200 },
