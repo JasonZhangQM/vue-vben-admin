@@ -113,6 +113,7 @@ export function addOrder(id: number, data: Record<string, unknown>) {
 
 /** 放款次序 + 嵌套反担保措施（详情 Tab 用） */
 export interface GuarantorItem {
+  sure_id: number;
   id: number;
   name: string;
   genre: number;
@@ -123,13 +124,18 @@ export interface GuarantorItem {
 }
 
 export interface CollateralItem {
+  sure_id: number;
   id: number;
   warrant_type: number;
+  method_category: number;
+  method_category_display: string;
   address: string;
   area: number | null;
   owners: string;
   ownership_num: string;
   description: string;
+  house_app: number | null;
+  house_app_display: string;
   house_usage: number | null;
   house_usage_display: string;
 }
@@ -178,6 +184,18 @@ export function deleteOrder(articleId: number, orderId: number) {
 /** 反担保措施 upsert */
 export function upsertSure(id: number, data: Record<string, unknown>) {
   return requestClient.post<void>(`/articles/${id}/sures`, data);
+}
+
+/** 删除反担保单行（保证人 / 权证） */
+export function deleteSureRow(
+  articleId: number,
+  sureId: number,
+  rowType: 'customer' | 'warrant',
+  rowId: number,
+) {
+  return requestClient.delete<void>(`/articles/${articleId}/sures/${sureId}/rows`, {
+    params: { row_type: rowType, row_id: rowId },
+  });
 }
 
 // ============ 审批 ============

@@ -52,6 +52,7 @@ import {
   addOrder,
   deleteArticle,
   deleteOrder,
+  deleteSureRow,
   getArticleApprovalInstances,
   getArticleComments,
   getArticleDetail,
@@ -540,17 +541,31 @@ function removeLendingOrder(order: ArticleOrderItem) {
   });
 }
 
-// ========== 反担保行删除（占位，后端待实现按 M2M 单条删除）============
+// ========== 反担保行删除 ==========
 
 /** 删除单个保证人（从 article_sure_customers M2M 中间表移除一条）。
- *  当前后端无逐行删除 API，暂整 Sure 删除 —— 仅当该 sure 只有 1 个保证人时安全。 */
-async function deleteGuarantor(_g: GuarantorItem) {
-  message.info('反担保单行删除功能开发中');
+ *  删除后若该 Sure 已无任何关联，后端自动级联删 Sure。 */
+async function deleteGuarantor(g: GuarantorItem) {
+  if (!props.articleId) return;
+  try {
+    await deleteSureRow(props.articleId, g.sure_id, 'customer', g.id);
+    message.success('保证人已移除');
+    await loadTabs();
+  } catch {
+    // requestClient 已 toast
+  }
 }
 
-/** 删除单个权证（从 article_sure_warrants M2M 中间表移除一条）。同上。 */
-async function deleteCollateral(_c: CollateralItem) {
-  message.info('反担保单行删除功能开发中');
+/** 删除单个权证（从 article_sure_warrants M2M 中间表移除一条）。 */
+async function deleteCollateral(c: CollateralItem) {
+  if (!props.articleId) return;
+  try {
+    await deleteSureRow(props.articleId, c.sure_id, 'warrant', c.id);
+    message.success('反担保物已移除');
+    await loadTabs();
+  } catch {
+    // requestClient 已 toast
+  }
 }
 
 // ========== 内联添加反担保措施（已在上方 sureInlineMap / addInlineSure 实现）========
@@ -1147,17 +1162,18 @@ const supplyColumns = [
                         <Table
                           v-else
                           :columns="[
-                            { title: '产权证号', dataIndex: 'ownership_num', width: 160, ellipsis: true },
-                            { title: '所有权人', dataIndex: 'owners', width: 160, ellipsis: true },
-                            { title: '地址', dataIndex: 'address', width: 180, ellipsis: true },
+                            { title: '担保方式', dataIndex: 'method_category_display', width: 110, align: 'center' },
+                            { title: '所有权人', dataIndex: 'owners', width: 180 },
+                            { title: '产权证', dataIndex: 'ownership_num', width: 180 },
+                            { title: '地址', dataIndex: 'address', width: 200 },
                             { title: '面积(㎡)', dataIndex: 'area', width: 90, align: 'right' },
-                            { title: '房产用途', dataIndex: 'house_usage_display', width: 90, align: 'center' },
-                            { title: '描述', dataIndex: 'description', width: 120, ellipsis: true },
+                            { title: '用途', dataIndex: 'house_app_display', width: 100, align: 'center' },
+                            { title: '使用现状', dataIndex: 'house_usage_display', width: 90, align: 'center' },
                             { title: '操作', key: 'op', width: 80, align: 'center' },
                           ]"
                           :data-source="g.items as CollateralItem[]"
                           :pagination="false"
-                          :scroll="{ x: 880 }"
+                          :scroll="{ x: 1030 }"
                           :row-key="(_, idx) => `${g.key}-c-${idx}`"
                           size="small"
                           :custom-row="collateralCustomRow"
@@ -1169,6 +1185,9 @@ const supplyColumns = [
                             </template>
                             <template v-else-if="column.dataIndex === 'area'">
                               {{ record.area != null ? Number(record.area).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '-' }}
+                            </template>
+                            <template v-else-if="column.dataIndex === 'house_app_display'">
+                              {{ record.house_app_display || '-' }}
                             </template>
                             <template v-else-if="column.dataIndex === 'house_usage_display'">
                               {{ record.house_usage_display || '-' }}
