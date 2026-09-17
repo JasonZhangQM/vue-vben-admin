@@ -210,6 +210,7 @@ const sureSectionRef = ref<HTMLElement | null>(null);
 
 /** jumpToSureSection：从放款次序列表点击"第N次"链接时调用 */
 function jumpToSureSection(order: ArticleOrderItem) {
+  if (activeSureOrderId.value === order.id) return; // 点击当前激活行不做任何状态变更
   activeSureOrderId.value = order.id;
   activeSureWareCategory.value = ''; // 让 watch 兜底选第一个分组
   // 滚动到反担保区域
@@ -1006,7 +1007,7 @@ const supplyColumns = [
                     { title: '放款金额(元)', dataIndex: 'order_amount', width: 150, align: 'right' },
                     { title: '状态', dataIndex: 'state', width: 90, align: 'center' },
                     { title: '备注', dataIndex: 'remark', ellipsis: true },
-                    { title: '操作', key: 'op', width: 200, align: 'center' },
+                    { title: '操作', key: 'op', width: 110, align: 'center' },
                   ]"
                   :data-source="lendingOrders"
                   :pagination="false"
