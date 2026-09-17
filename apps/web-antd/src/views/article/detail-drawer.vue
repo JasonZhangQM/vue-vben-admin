@@ -358,6 +358,9 @@ async function onInlineSearch(group: typeof sureWareGroups.value[number], keywor
     const params: Record<string, unknown> = { keyword: keyword.trim(), limit: 20 };
     if (group.type === 'guarantor') {
       url = '/customers/search';
+      // 担保方式 → 客户 genre 过滤：企业保证(1)=企业客户(1) / 个人保证(2)=个人客户(2)
+      if (state.methodCategory === 1) params.genre = 1;
+      else if (state.methodCategory === 2) params.genre = 2;
     } else {
       url = '/warrants/search';
       const wt = WARE_TO_WARRANT_TYPE[group.ware_category];
@@ -1073,9 +1076,8 @@ const supplyColumns = [
                                 ? '搜索客户名称/证件号…'
                                 : '搜索权证编号…'
                             "
-                            size="small"
-                            :allow-clear="true"
-                            style="width: 240px"
+                            allow-clear
+                            style="width: 280px"
                             @search="(kw) => onInlineSearch(g, kw)"
                           />
                           <Select
@@ -1083,11 +1085,9 @@ const supplyColumns = [
                             :options="getInlineState(g.key, g.type).methodOpts"
                             placeholder="担保方式"
                             style="width: 120px"
-                            size="small"
                           />
                           <AccessControl :codes="['article:order']" type="code">
                             <Button
-                              size="small"
                               type="primary"
                               :disabled="
                                 !detail || !SURE_ELIGIBLE_STATES.has(detail.article_state)
