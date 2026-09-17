@@ -723,7 +723,7 @@ async function saveTags() {
               { title: '备注', dataIndex: 'remark', width: 140, ellipsis: true },
               { title: '首选', dataIndex: 'is_primary', width: 70, align: 'center' },
               { title: '创建人', dataIndex: 'created_by_name', width: 100, ellipsis: true },
-              { title: '操作', key: 'op', width: 70, align: 'center' },
+              { title: '操作', key: 'op', width: 120, align: 'center' },
             ]"
             :data-source="detail.contacts ?? []"
             :pagination="false"
@@ -734,7 +734,7 @@ async function saveTags() {
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.dataIndex === 'name'">
-                <a @click="openContactEdit(record)">{{ dash(record.name) }}</a>
+                {{ dash(record.name) }}
               </template>
               <template v-else-if="column.dataIndex === 'phone'">
                 {{ dash(record.phone) }}
@@ -756,6 +756,7 @@ async function saveTags() {
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['customer:update']" type="code">
+                  <Button size="small" type="link" @click="openContactEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteContact(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>

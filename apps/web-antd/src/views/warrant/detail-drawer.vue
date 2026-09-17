@@ -631,7 +631,7 @@ async function onDeleteConstruction(record: any) {
               { title: '姓名', dataIndex: 'owner_name' },
               { title: '权证编号', dataIndex: 'ownership_num' },
               { title: '份额(%)', dataIndex: 'share_ratio', width: 100 },
-              { title: '操作', key: 'op', width: 80, align: 'center' },
+              { title: '操作', key: 'op', width: 120, align: 'center' },
             ]"
             :data-source="detail.owners"
             :pagination="false"
@@ -641,14 +641,12 @@ async function onDeleteConstruction(record: any) {
             :row-class-name="ownerRowClassName"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'owner_name'">
-                <a @click="openOwnerEdit(record)">{{ record.owner_name }}</a>
-              </template>
-              <template v-else-if="column.dataIndex === 'share_ratio'">
+              <template v-if="column.dataIndex === 'share_ratio'">
                 {{ record.share_ratio ?? '—' }}
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
+                  <Button size="small" type="link" @click="openOwnerEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteOwner(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>
