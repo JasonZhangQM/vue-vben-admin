@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 新增权证抽屉：分区 Card(基本信息 / 类型扩展 / 产权人)+ 真实校验 + 类型切换保护。
  *
  * 从 index.vue 抽出(复用优先)：payload 组装逻辑沿用已验证版本，后端零改动。
@@ -42,27 +42,27 @@ const dictStore = useDictStore();
 const { gridColsClass } = useFormColumns();
 
 // 枚举值常量(代码判断用，镜像后端 warrant/enums.py)
-const WARRANT_TYPE_HOUSE = 1;
-const WARRANT_TYPE_GROUND = 5;
-const WARRANT_TYPE_CONSTRUCTION = 6;
-const WARRANT_TYPE_RECEIVABLE = 11;
-const WARRANT_TYPE_STOCK = 21;
-const WARRANT_TYPE_VEHICLE = 41;
-const WARRANT_TYPE_CHATTEL = 51;
-const WARRANT_TYPE_OTHER = 55;
+const WARRANT_TYPE_HOUSE = 11;
+const WARRANT_TYPE_GROUND = 14;
+const WARRANT_TYPE_CONSTRUCTION = 16;
+const WARRANT_TYPE_RECEIVABLE = 21;
 const WARRANT_TYPE_DRAFT = 31;
+const WARRANT_TYPE_STOCK = 41;
+const WARRANT_TYPE_VEHICLE = 51;
+const WARRANT_TYPE_CHATTEL = 61;
+const WARRANT_TYPE_OTHER = 91;
 
 // 类型扩展区标题(分区 Card 标题随类型动态变化)
 const EXT_TITLES: Record<number, string> = {
-  1: '房产信息(支持多套)',
-  5: '土地信息',
-  6: '在建工程信息',
-  11: '应收账款信息(可为空)',
-  21: '股权信息',
+  11: '房产信息(支持多套)',
+  14: '土地信息',
+  16: '在建工程信息',
+  21: '应收账款信息(可为空)',
   31: '票据信息',
-  41: '车辆信息',
-  51: '动产信息',
-  55: '其他权证信息',
+  41: '股权信息',
+  51: '车辆信息',
+  61: '动产信息',
+  91: '其他权证信息',
 };
 
 // ================= 主表单 =================
@@ -74,7 +74,7 @@ const attempted = ref(false);
 
 const createForm = reactive({
   warrant_num: '',
-  warrant_type: 1 as number,
+  warrant_type: 11 as number,
   remark: '',
   // 土地
   ground_region_id: undefined as number | undefined,
@@ -308,7 +308,7 @@ async function loadOptions() {
 // ================= 类型切换保护 =================
 
 /** 已填扩展数据时切换类型：确认后清空，取消则回退 */
-let lastType = 1;
+let lastType = 11;
 function onTypeChange(value: number) {
   if (value === lastType) return;
   if (isExtDirty()) {
@@ -343,14 +343,14 @@ function isExtDirty(): boolean {
   if (createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION) {
     return constructionRows.value.some((c) => c.construct_locate || c.construct_app || c.construct_area);
   }
-  if (createForm.warrant_type === 31) {
+  if (createForm.warrant_type === WARRANT_TYPE_DRAFT) {
     return draftRows.value.some((d) => d.draft_num || d.acceptor_id || d.core_id || d.draft_amount || d.issue_date || d.due_date);
   }
   const fieldsByType: Record<number, (string | number | undefined)[]> = {
-    21: [createForm.stock_target, createForm.stock_ratio, createForm.stock_remark],
-    41: [createForm.frame_num, createForm.plate_num, createForm.vehicle_brand],
-    51: [createForm.chattel_detail],
-    55: [createForm.other_detail],
+    41: [createForm.stock_target, createForm.stock_ratio, createForm.stock_remark],
+    51: [createForm.frame_num, createForm.plate_num, createForm.vehicle_brand],
+    61: [createForm.chattel_detail],
+    91: [createForm.other_detail],
   };
   return (fieldsByType[createForm.warrant_type] ?? []).some(
     (v) => v !== '' && v !== undefined && v !== 0,
@@ -475,7 +475,7 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
         .filter(Boolean);
       return { ext: { receive_units } };
     }
-    case 31: {
+    case WARRANT_TYPE_DRAFT: {
       // 票据明细：每行需完整（票据号/承兑人/核心企业/金额/出票日/到期日均必填）
       const hasAny = draftRows.value.some(
         (d) => d.draft_num || d.acceptor_id || d.core_id || d.draft_amount || d.issue_date || d.due_date,
@@ -580,8 +580,8 @@ async function onSubmit() {
     (payload as any).draft_extends = (extResult.ext as any)?.draft_extends ?? [];
   }
   const extKeyByType: Record<number, string> = {
-    21: 'stock',
-    41: 'vehicle', 51: 'chattel', 55: 'other',
+    41: 'stock',
+    51: 'vehicle', 61: 'chattel', 91: 'other',
   };
   const extKey = extKeyByType[createForm.warrant_type];
   if (extKey && extResult.ext) {
@@ -602,7 +602,7 @@ async function onSubmit() {
 /** 打开时重置为初始空白状态 */
 function resetAll() {
   Object.assign(createForm, {
-    warrant_num: '', warrant_type: 1, remark: '',
+    warrant_num: '', warrant_type: 11, remark: '',
     ground_region_id: undefined, ground_locate: '', ground_app: '', ground_area: undefined,
     construct_region_id: undefined, construct_locate: '', construct_app: '', construct_area: undefined,
     stock_type: 10, stock_target: '', stock_ratio: undefined,
@@ -615,7 +615,7 @@ function resetAll() {
   ownerRows.value = [emptyOwnerRow()];
   receiveUnitRows.value = [];
   draftRows.value = [];
-  lastType = 1;
+  lastType = 11;
   attempted.value = false;
   formRef.value?.clearValidate();
 }
@@ -704,7 +704,7 @@ onMounted(() => {
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_GROUND" size="small" type="link" @click="addGroundRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_CONSTRUCTION" size="small" type="link" @click="addConstructionRow">+ 增加</Button>
           <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_RECEIVABLE" size="small" type="link" @click="addReceiveUnitRow">+ 增加</Button>
-          <Button v-else-if="createForm.warrant_type === 31" size="small" type="link" @click="addDraftRow">+ 增加</Button>
+          <Button v-else-if="createForm.warrant_type === WARRANT_TYPE_DRAFT" size="small" type="link" @click="addDraftRow">+ 增加</Button>
         </template>
         <!-- 房产：1:N 房产包，可编辑表格 -->
         <template v-if="createForm.warrant_type === WARRANT_TYPE_HOUSE">
@@ -925,7 +925,7 @@ onMounted(() => {
           </Table>
         </template>
         <!-- type=31 票据明细表格 -->
-        <template v-if="createForm.warrant_type === 31">
+        <template v-if="createForm.warrant_type === WARRANT_TYPE_DRAFT">
           <Table
             :columns="draftColumns"
             :data-source="draftRows"

@@ -136,17 +136,17 @@ const wareCategoryOpts = ref<{ label: string; value: number }[]>([]);
 const methodCategoryOpts = ref<{ label: string; value: number }[]>([]);
 /** 保证类（选客户）判定：ware_category == GUARANTOR(1) */
 const WARE_GUARANTOR = 1;
-/** WareCategory → WarrantType 映射（前端硬编码，与后端枚举一致） */
+/** WareCategory → WarrantType 映射（现在数值相同，恒等映射，保留变量名避免到处改调用方） */
 const WARE_TO_WARRANT_TYPE: Record<number, number> = {
-  11: 1,    // 房产 → HOUSE
-  14: 5,    // 土地 → GROUND
-  16: 6,    // 在建工程 → CONSTRUCTION
-  21: 11,   // 应收账款 → RECEIVABLE
-  31: 31,   // 票据 → DRAFT
-  41: 21,   // 股权 → STOCK
-  51: 41,   // 车辆 → VEHICLE
-  61: 51,   // 动产 → CHATTEL
-  91: 55,   // 其他 → OTHER
+  11: 11,   // 房产
+  14: 14,   // 土地
+  16: 16,   // 在建工程
+  21: 21,   // 应收账款
+  31: 31,   // 票据
+  41: 41,   // 股权
+  51: 51,   // 车辆
+  61: 61,   // 动产
+  91: 91,   // 其他
 };
 
 let dictLoaded = false;

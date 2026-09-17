@@ -676,7 +676,7 @@ async function onDeleteConstruction(record: any) {
         </TabPane>
 
         <!-- 房产包(可独立添加/删除) -->
-        <TabPane v-if="detail.warrant_type === 1" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
+        <TabPane v-if="detail.warrant_type === 11" key="houses" :tab="`房产(${detail.houses?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
             <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 280px" />
@@ -740,7 +740,7 @@ async function onDeleteConstruction(record: any) {
         </TabPane>
 
         <!-- 土地包(type=5) -->
-        <TabPane v-if="detail.warrant_type === 5" key="grounds" :tab="`土地(${detail.grounds?.length ?? 0})`">
+        <TabPane v-if="detail.warrant_type === 14" key="grounds" :tab="`土地(${detail.grounds?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <RegionTreeSelect v-model:value="addGroundForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
             <Input v-model:value="addGroundForm.ground_locate" placeholder="详细地址 *" style="width: 280px" />
@@ -784,7 +784,7 @@ async function onDeleteConstruction(record: any) {
         </TabPane>
 
         <!-- 在建工程包(type=6) -->
-        <TabPane v-if="detail.warrant_type === 6" key="constructions" :tab="`在建工程(${detail.constructions?.length ?? 0})`">
+        <TabPane v-if="detail.warrant_type === 16" key="constructions" :tab="`在建工程(${detail.constructions?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <RegionTreeSelect v-model:value="addConstructionForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
             <Input v-model:value="addConstructionForm.construct_locate" placeholder="详细地址 *" style="width: 280px" />
@@ -828,7 +828,7 @@ async function onDeleteConstruction(record: any) {
         </TabPane>
 
         <!-- 应收明细(type=11，参照房产 tab：内联添加 + 表格删除) -->
-        <TabPane v-if="detail.warrant_type === 11" key="receive-extends" :tab="`应收明细(${detail.receive_units?.length ?? 0})`">
+        <TabPane v-if="detail.warrant_type === 21" key="receive-extends" :tab="`应收明细(${detail.receive_units?.length ?? 0})`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <Input v-model:value="addReceiveUnitForm.receive_unit" placeholder="应收单位名称 *" style="width: 280px" @pressEnter="submitAddReceiveUnit" />
             <AccessControl :codes="['warrant:update']" type="code">
