@@ -298,7 +298,7 @@ onMounted(() => {
       :title="`${actAction === 10 ? '同意' : '驳回'}审批单 #${detail?.id ?? ''}`"
       @ok="submitAct"
     >
-      <div class="mb-2 text-sm text-gray-500">{{ detail?.summary }}</div>
+      <div class="mb-2 text-sm text-muted-foreground">{{ detail?.summary }}</div>
       <Textarea
         v-model:value="actOpinion"
         :placeholder="actAction === 20 ? '驳回意见(必填)' : '审批意见(可空)'"
@@ -365,16 +365,16 @@ onMounted(() => {
             >
               <div class="text-sm">
                 <span class="font-medium">{{ task.node_name }}</span>
-                <span class="ml-2 text-gray-500">{{ task.approver_name }}</span>
+                <span class="ml-2 text-muted-foreground">{{ task.approver_name }}</span>
                 <Tag class="ml-2" :color="TASK_STATUS_COLOR[task.status]">
                   {{ task.status_display }}
                 </Tag>
               </div>
-              <div v-if="task.opinion" class="text-xs text-gray-500">意见：{{ task.opinion }}</div>
-              <div v-if="task.acted_at" class="text-xs text-gray-400">{{ task.acted_at }}</div>
+              <div v-if="task.opinion" class="text-xs text-muted-foreground">意见：{{ task.opinion }}</div>
+              <div v-if="task.acted_at" class="text-xs text-muted-foreground">{{ task.acted_at }}</div>
             </TimelineItem>
           </Timeline>
-          <div v-else class="text-sm text-gray-400">暂无任务</div>
+          <div v-else class="text-sm text-muted-foreground">暂无任务</div>
         </Card>
       </div>
     </Drawer>

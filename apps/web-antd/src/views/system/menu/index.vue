@@ -255,7 +255,7 @@ onMounted(loadTree);
           </template>
           <template v-else-if="column.dataIndex === 'permission_code'">
             <code v-if="record.permission_code">{{ record.permission_code }}</code>
-            <span v-else class="text-gray-400">—</span>
+            <span v-else class="text-muted-foreground">—</span>
           </template>
           <template v-else-if="column.dataIndex === 'created_by_name'">
             {{ record.created_by_name || '—' }}

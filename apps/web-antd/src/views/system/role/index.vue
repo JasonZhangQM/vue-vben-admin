@@ -406,11 +406,11 @@ onMounted(async () => {
             <div
               v-for="(group, gi) in groupedPerms"
               :key="group.module"
-              class="mb-3 overflow-hidden rounded border border-gray-200"
+              class="mb-3 overflow-hidden rounded border border-border"
             >
               <!-- 模块标题行：整行可点击，点击全选/全不选 -->
               <div
-                class="flex items-center gap-2 bg-gray-50 px-3 py-2 font-medium"
+                class="flex items-center gap-2 bg-muted px-3 py-2 font-medium"
                 @click="toggleGroup(gi, !group.allChecked)"
               >
                 <Checkbox
@@ -420,7 +420,7 @@ onMounted(async () => {
                   @change="(e: any) => toggleGroup(gi, e.target.checked)"
                 />
                 <span>模块：{{ group.module }}</span>
-                <span class="ml-auto text-xs text-gray-400">
+                <span class="ml-auto text-xs text-muted-foreground">
                   {{ group.items.filter((i) => checkedPermIds.includes(i.id)).length }}
                   / {{ group.items.length }}
                 </span>

@@ -1359,7 +1359,7 @@ const supplyColumns = [
               </template>
               <template v-else>
                 <Empty description="尚未提交风控反馈">
-                  <div class="text-gray-400 text-xs mt-2">
+                  <div class="text-muted-foreground text-xs mt-2">
                     点击上方「反馈」按钮填写风控意见，提交后项目状态将变为『已反馈』。
                   </div>
                 </Empty>
@@ -1391,9 +1391,9 @@ const supplyColumns = [
                       >
                         {{ inst.status_display }}
                       </Tag>
-                      <span class="text-gray-400">{{ inst.submitter_name }} · {{ inst.submitted_at }}</span>
+                      <span class="text-muted-foreground">{{ inst.submitter_name }} · {{ inst.submitted_at }}</span>
                     </div>
-                    <div v-if="inst.summary" class="mb-2 text-gray-500 text-sm">摘要：{{ inst.summary }}</div>
+                    <div v-if="inst.summary" class="mb-2 text-muted-foreground text-sm">摘要：{{ inst.summary }}</div>
                     <Timeline>
                       <TimelineItem
                         v-for="(task, idx) in inst.tasks"
@@ -1407,11 +1407,11 @@ const supplyColumns = [
                           <Tag v-else-if="task.status === 30" color="error">驳回</Tag>
                           <Tag v-else-if="task.status === 40">跳过</Tag>
                         </div>
-                        <div class="text-gray-500 text-sm">
+                        <div class="text-muted-foreground text-sm">
                           {{ task.approver_name }}
                           <span v-if="task.acted_at"> · {{ task.acted_at }}</span>
                         </div>
-                        <div v-if="task.opinion" class="text-gray-600 mt-1">{{ task.opinion }}</div>
+                        <div v-if="task.opinion" class="text-muted-foreground mt-1">{{ task.opinion }}</div>
                         <div v-if="task.action" class="text-blue-500 text-xs mt-1">操作：{{ task.action }}</div>
                       </TimelineItem>
                     </Timeline>
@@ -1516,7 +1516,7 @@ const supplyColumns = [
       </FormItem>
       <FormItem label="合计">
         <Tag color="blue">{{ signForm.renewal + signForm.augment }} 元（= 续贷 + 新增）</Tag>
-        <div class="text-gray-400 text-xs mt-1">
+        <div class="text-muted-foreground text-xs mt-1">
           后端会校验：Σ额度 = Σ放款次序 = 签批总额（允许 ±0.01 误差）
         </div>
       </FormItem>
@@ -1524,14 +1524,14 @@ const supplyColumns = [
         <input
           v-model="signForm.sign_date"
           type="date"
-          class="w-full border border-gray-300 rounded px-2 py-1"
+          class="w-full border border-border rounded px-2 py-1"
         />
       </FormItem>
       <FormItem label="签批详情">
         <textarea
           v-model="signForm.sign_detail"
           rows="3"
-          class="w-full border border-gray-300 rounded px-2 py-1"
+          class="w-full border border-border rounded px-2 py-1"
           placeholder="可选，补充签批上下文"
         />
       </FormItem>
@@ -1550,7 +1550,7 @@ const supplyColumns = [
         <textarea
           v-model="changeForm.change_detail"
           rows="4"
-          class="w-full border border-gray-300 rounded px-2 py-1"
+          class="w-full border border-border rounded px-2 py-1"
           placeholder="请说明变更的具体内容和原因（必填）"
         />
       </FormItem>
@@ -1558,10 +1558,10 @@ const supplyColumns = [
         <input
           v-model="changeForm.change_date"
           type="date"
-          class="w-full border border-gray-300 rounded px-2 py-1"
+          class="w-full border border-border rounded px-2 py-1"
         />
       </FormItem>
-      <div class="text-gray-400 text-xs">
+      <div class="text-muted-foreground text-xs">
         流程：风控审批 → 总经理审批（2 步）；通过后项目进入『待变更』状态
       </div>
     </Form>
@@ -1588,7 +1588,7 @@ const supplyColumns = [
         <textarea
           v-model="feedbackForm.analysis"
           rows="4"
-          class="w-full border border-gray-300 rounded px-2 py-1"
+          class="w-full border border-border rounded px-2 py-1"
           placeholder="可选：填写对客户/项目的风险分析"
         />
       </FormItem>
@@ -1596,11 +1596,11 @@ const supplyColumns = [
         <textarea
           v-model="feedbackForm.suggestion"
           rows="4"
-          class="w-full border border-gray-300 rounded px-2 py-1"
+          class="w-full border border-border rounded px-2 py-1"
           placeholder="可选：具体风控建议（如授信额度建议、担保措施要求等）"
         />
       </FormItem>
-      <div class="text-gray-400 text-xs">
+      <div class="text-muted-foreground text-xs">
         提交后项目状态将变为『已反馈』；已反馈状态下可再次修改（upsert）。
       </div>
     </Form>

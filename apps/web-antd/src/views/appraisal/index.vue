@@ -435,7 +435,7 @@ onMounted(loadList);
             </template>
           </Table.Column>
           <template #emptyText>
-            <div class="py-4 text-gray-400">尚未安排项目，请在下方选择添加</div>
+            <div class="py-4 text-muted-foreground">尚未安排项目，请在下方选择添加</div>
           </template>
         </Table>
       </div>
@@ -456,7 +456,7 @@ onMounted(loadList);
           />
           <Button type="primary" :loading="arrangeSaving" @click="onAddArticles">排入</Button>
         </div>
-        <div class="mt-1 text-xs text-gray-400">已出现在上表的项目会自动过滤，不可重复添加</div>
+        <div class="mt-1 text-xs text-muted-foreground">已出现在上表的项目会自动过滤，不可重复添加</div>
       </div>
     </Modal>
   </Page>

@@ -894,11 +894,11 @@ async function saveTags() {
           <div
             v-for="group in groupedTags"
             :key="group.type"
-            class="mb-3 overflow-hidden rounded border border-gray-200"
+            class="mb-3 overflow-hidden rounded border border-border"
           >
             <!-- 分组标题行：整行可点击，点击全选/全不选 -->
             <div
-              class="flex items-center gap-2 bg-gray-50 px-3 py-2 font-medium"
+              class="flex items-center gap-2 bg-muted px-3 py-2 font-medium"
               @click="toggleTagGroup(group.type, !group.allChecked)"
             >
               <Checkbox
@@ -908,7 +908,7 @@ async function saveTags() {
                 @change="(e: any) => toggleTagGroup(group.type, e.target.checked)"
               />
               <span>{{ group.label }}</span>
-              <span class="ml-auto text-xs text-gray-400">
+              <span class="ml-auto text-xs text-muted-foreground">
                 {{ group.checkedCount }} / {{ group.total }}
               </span>
             </div>
@@ -924,7 +924,7 @@ async function saveTags() {
               </Checkbox>
             </div>
           </div>
-          <div v-if="!groupedTags.length" class="text-gray-400">暂无可选标签(请先在客户标签页创建)</div>
+          <div v-if="!groupedTags.length" class="text-muted-foreground">暂无可选标签(请先在客户标签页创建)</div>
         </TabPane>
 
         <!-- 经营快照(仅企业客户，独立 API 拉取历史) -->

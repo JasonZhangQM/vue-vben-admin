@@ -285,7 +285,7 @@ onMounted(() => {
         <Button @click="resetQuery">重置</Button>
         <div class="flex-1" />
         <template v-if="selectedRowKeys.length > 0">
-          <span class="text-xs text-gray-500">已选 {{ selectedRowKeys.length }} 条</span>
+          <span class="text-xs text-muted-foreground">已选 {{ selectedRowKeys.length }} 条</span>
           <AccessControl :codes="['warrant:storage']" type="code">
             <Button size="small" @click="openBatchStorage">批量出入库</Button>
             <Button size="small" @click="openBatchTransfer">批量移交</Button>
