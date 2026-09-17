@@ -252,7 +252,13 @@ const sureWareGroups = computed<SureWareGroup[]>(() => {
     .filter(
       (g) => g.type === 'guarantor' || WARE_TO_WARRANT_TYPE[g.ware_category] != null,
     )
-    .sort((a, b) => Number(a.key) - Number(b.key));
+    // 排序：非空分组优先，组内按枚举值序
+    .sort((a, b) => {
+      const aEmpty = a.items.length === 0;
+      const bEmpty = b.items.length === 0;
+      if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
+      return Number(a.key) - Number(b.key);
+    });
 });
 
 // 初次切换到放款次序 Tab 时，默认选第一个有 sures 的放款次序
@@ -331,10 +337,10 @@ function getInlineState(groupKey: string, groupType: 'guarantor' | 'collateral')
   return inlineSureMap[groupKey];
 }
 
-/** 远程搜索（防抖由 AutoComplete 内置） */
-async function onInlineSearch(group: typeof sureWareGroups.value[number]) {
+/** 远程搜索（SearchSelect remote 自带防抖 300ms） */
+async function onInlineSearch(group: typeof sureWareGroups.value[number], keyword?: string) {
   const state = getInlineState(group.key, group.type);
-  if (!state.searchKw || state.searchKw.length < 1) {
+  if (!keyword?.trim()) {
     state.searchResults = [];
     state.selectedId = null;
     return;
@@ -342,7 +348,7 @@ async function onInlineSearch(group: typeof sureWareGroups.value[number]) {
   state.loading = true;
   try {
     let url = '';
-    let params: Record<string, unknown> = { keyword: state.searchKw, limit: 20 };
+    const params: Record<string, unknown> = { keyword: keyword.trim(), limit: 20 };
     if (group.type === 'guarantor') {
       url = '/customers/search';
     } else {
@@ -351,16 +357,10 @@ async function onInlineSearch(group: typeof sureWareGroups.value[number]) {
       if (wt) params.warrant_type = wt;
     }
     const data = await requestClient.get<{ id: number; name?: string; warrant_num?: string }[]>(url, { params });
-    state.searchResults = (data || []).map(item => ({
-      value: item.id,
-      label: group.type === 'guarantor' ? (item.name || '') : (item.warrant_num || ''),
-    }));
-    // 如果唯一匹配直接选
-    if (state.searchResults.length === 1) {
-      state.selectedId = state.searchResults[0]?.value ?? null;
-    } else {
-      state.selectedId = null;
-    }
+    state.searchResults = (data || []).map((item) => {
+      const display = group.type === 'guarantor' ? (item.name || '') : (item.warrant_num || '');
+      return { label: display, value: item.id };
+    });
   } catch {
     state.searchResults = [];
   } finally {
@@ -401,8 +401,7 @@ async function addInlineSure(group: typeof sureWareGroups.value[number]) {
   try {
     await upsertSure(props.articleId, payload as never);
     message.success('已添加反担保措施');
-    // 清空
-    state.searchKw = '';
+    // 清空搜索选择状态
     state.searchResults = [];
     state.selectedId = null;
     await loadTabs();
@@ -1015,13 +1014,6 @@ const supplyColumns = [
                     <template v-else-if="column.key === 'op'">
                       <AccessControl :codes="['article:order']" type="code">
                         <Button
-                          type="link"
-                          size="small"
-                          @click="jumpToSureSection(record as ArticleOrderItem)"
-                        >
-                          担保措施
-                        </Button>
-                        <Button
                             type="link"
                             size="small"
                             :disabled="![10, 20, 30, 40, 61].includes(record.state)"
@@ -1053,27 +1045,31 @@ const supplyColumns = [
                     <Empty description="请在上方放款次序列表点击一行选择放款次序" />
                   </template>
                   <template v-else-if="sureWareGroups.length > 0">
-                    <Tabs v-model:activeKey="activeSureWareCategory" size="small">
+                    <Tabs v-model:activeKey="activeSureWareCategory" size="small" class="sure-tabs">
                       <TabPane
                         v-for="g in sureWareGroups"
                         :key="g.key"
-                        :tab="`${g.label}(${g.items.length})`"
                       >
+                        <template #tab>
+                          <span :class="{ 'sure-tab-empty': g.items.length === 0 }">
+                            {{ g.label }}({{ g.items.length }})
+                          </span>
+                        </template>
                         <!-- ===== 内联添加行 ===== -->
                         <div class="mb-2 flex flex-wrap items-center gap-2">
-                          <AutoComplete
-                            v-model:value="getInlineState(g.key, g.type).searchKw"
+                          <SearchSelect
+                            v-model:value="getInlineState(g.key, g.type).selectedId"
+                            remote
                             :options="getInlineState(g.key, g.type).searchResults"
-                            :allow-clear="true"
                             :placeholder="
                               g.type === 'guarantor'
                                 ? '搜索客户名称/证件号…'
                                 : '搜索权证编号…'
                             "
-                            :loading="getInlineState(g.key, g.type).loading"
+                            size="small"
+                            :allow-clear="true"
                             style="width: 240px"
-                            @search="onInlineSearch(g)"
-                            @select="(opt) => { const s = getInlineState(g.key, g.type); s.selectedId = Number(opt.value); }"
+                            @search="(kw) => onInlineSearch(g, kw)"
                           />
                           <Select
                             v-model:value="getInlineState(g.key, g.type).methodCategory"
@@ -1106,15 +1102,16 @@ const supplyColumns = [
                         <Table
                           v-if="g.type === 'guarantor'"
                           :columns="[
-                            { title: '保证人', dataIndex: 'name', width: 260 },
+                            { title: '保证人', dataIndex: 'name', width: 300, ellipsis: true },
                             { title: '类型', dataIndex: 'genre_display', width: 80, align: 'center' },
-                            { title: '联系地址', dataIndex: 'address', ellipsis: true },
-                            { title: '联系人', dataIndex: 'contact_name', width: 90 },
-                            { title: '联系电话', dataIndex: 'contact_phone', width: 120 },
+                            { title: '联系地址', dataIndex: 'address', width: 220, ellipsis: true },
+                            { title: '联系人', dataIndex: 'contact_name', width: 80 },
+                            { title: '联系电话', dataIndex: 'contact_phone', width: 130 },
                             { title: '操作', key: 'op', width: 80, align: 'center' },
                           ]"
                           :data-source="g.items as GuarantorItem[]"
                           :pagination="false"
+                          :scroll="{ x: 890 }"
                           :row-key="(_, idx) => `${g.key}-g-${idx}`"
                           size="small"
                         >
@@ -1144,14 +1141,15 @@ const supplyColumns = [
                           :columns="[
                             { title: '产权证号', dataIndex: 'ownership_num', width: 160, ellipsis: true },
                             { title: '所有权人', dataIndex: 'owners', width: 160, ellipsis: true },
-                            { title: '地址', dataIndex: 'address', ellipsis: true },
-                            { title: '面积(㎡)', dataIndex: 'area', width: 100, align: 'right' },
+                            { title: '地址', dataIndex: 'address', width: 180, ellipsis: true },
+                            { title: '面积(㎡)', dataIndex: 'area', width: 90, align: 'right' },
                             { title: '房产用途', dataIndex: 'house_usage_display', width: 90, align: 'center' },
-                            { title: '描述', dataIndex: 'description', width: 140, ellipsis: true },
+                            { title: '描述', dataIndex: 'description', width: 120, ellipsis: true },
                             { title: '操作', key: 'op', width: 80, align: 'center' },
                           ]"
                           :data-source="g.items as CollateralItem[]"
                           :pagination="false"
+                          :scroll="{ x: 880 }"
                           :row-key="(_, idx) => `${g.key}-c-${idx}`"
                           size="small"
                         >
@@ -1598,3 +1596,26 @@ const supplyColumns = [
     </Form>
   </Modal>
 </template>
+
+<style scoped>
+/* ===== 反担保区域内层 Tabs ===== */
+/* 超宽时横向滚动 */
+.sure-tabs :deep(.ant-tabs-nav) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.sure-tabs :deep(.ant-tabs-nav-list) {
+  flex-wrap: nowrap;
+}
+/* 空分组 Tab 视觉弱化 */
+.sure-tab-empty {
+  color: #bfbfbf;
+  font-size: 12px;
+}
+/* active 状态下即使是空 tab 也恢复正常（用户选中后需要清晰） */
+.sure-tabs :deep(.ant-tabs-tab-active .sure-tab-empty) {
+  color: inherit;
+  font-size: inherit;
+}
+</style>
