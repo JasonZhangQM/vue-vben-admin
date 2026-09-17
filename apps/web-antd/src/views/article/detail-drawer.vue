@@ -984,15 +984,19 @@ const supplyColumns = [
                   ]"
                   :data-source="lendingOrders"
                   :pagination="false"
+                  :custom-row="(record: ArticleOrderItem) => ({
+                    onClick: () => jumpToSureSection(record),
+                  })"
+                  :row-class-name="(record: ArticleOrderItem) =>
+                    record.id === activeSureOrderId ? 'row-active' : ''
+                  "
                   row-key="id"
                   size="small"
                 >
                   <template #bodyCell="{ column, record }">
-                    <!-- 次序列：链接 → 滚动到放款次序 Tab 下方的反担保区域 -->
+                    <!-- 次序列：纯文本（整行已可点击，不再需要独立链接） -->
                     <template v-if="column.dataIndex === 'seq'">
-                      <a @click="jumpToSureSection(record as ArticleOrderItem)"
-                        >第{{ record.seq }}次</a
-                      >
+                      第{{ record.seq }}次
                     </template>
                     <template v-else-if="column.dataIndex === 'order_amount'">
                       {{ Number(record.order_amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
@@ -1046,13 +1050,9 @@ const supplyColumns = [
                 <Spin :spinning="tabLoading">
                   <!-- 未选中放款次序 → 提示 -->
                   <template v-if="!activeOrder">
-                    <Empty description="请先在上方放款次序列表点击『第N次』链接选择放款次序" />
+                    <Empty description="请在上方放款次序列表点击一行选择放款次序" />
                   </template>
                   <template v-else-if="sureWareGroups.length > 0">
-                    <!-- 选中次序下 → 按 WareCategory 分组 Tabs（始终显示所有可能类型） -->
-                    <div class="mb-2 text-sm text-gray-500">
-                      第{{ activeOrder.seq }}次放款 · 反担保措施
-                    </div>
                     <Tabs v-model:activeKey="activeSureWareCategory" size="small">
                       <TabPane
                         v-for="g in sureWareGroups"
