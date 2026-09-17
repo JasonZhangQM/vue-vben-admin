@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 审批中心：待我审批 / 我的申请；摘要列为详情入口，审批动作收纳在详情抽屉内。 */
 
 import type {
@@ -229,7 +229,7 @@ onMounted(() => {
               pageSize: tasksQuery.page_size,
               total: tasksTotal,
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: [10, 20, 50, 100],
               showTotal: (t: number) => `共 ${t} 条`,
               onChange: (p: number) => { tasksQuery.page = p; loadTasks(); },
               onShowSizeChange: (_c: number, s: number) => { tasksQuery.page = 1; tasksQuery.page_size = s; loadTasks(); },
@@ -263,7 +263,7 @@ onMounted(() => {
               pageSize: mineQuery.page_size,
               total: mineTotal,
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: [10, 20, 50, 100],
               showTotal: (t: number) => `共 ${t} 条`,
               onChange: (p: number) => { mineQuery.page = p; loadMine(); },
               onShowSizeChange: (_c: number, s: number) => { mineQuery.page = 1; mineQuery.page_size = s; loadMine(); },

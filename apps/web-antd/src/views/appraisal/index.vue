@@ -284,15 +284,12 @@ onMounted(loadList);
           showSizeChanger: true,
           pageSizeOptions: [10, 20, 50, 100],
           showTotal: (t: number) => `共 ${t} 条`,
-          onChange: (p: number, ps: number) => {
-            query.page = p;
-            query.page_size = ps;
-            loadList();
-          },
+          onChange: (p: number) => { query.page = p; loadList(); },
+          onShowSizeChange: (_c: number, s: number) => { query.page = 1; query.page_size = s; loadList(); },
         }"
         :custom-row="customRow"
         :row-class-name="rowClassName"
-        :scroll="{ x: 1100 }"
+        :scroll="{ x: 'max-content' }"
       >
         <template #bodyCell="{ column, record }">
           <!-- 状态标签 -->

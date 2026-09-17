@@ -12,3 +12,28 @@
 .ant-table-tbody > tr.row-active > td.ant-table-cell-row-hover {
   background-color: #e6f4ff !important;
 }
+
+/* ---------- 分页：每页条数选择框加宽 ----------
+ * Ant Design Vue Pagination 给 "每页条数" Select 加的是复合类名
+ * .ant-select.ant-pagination-options-size-changer（同一个元素），
+ * 默认 width:auto ≈ 56px，中文环境下 "10条/页" "50条/页" 长数字会被省略号吃掉。
+ */
+.ant-pagination-options-size-changer.ant-select {
+  width: 110px !important;
+}
+.ant-pagination-options-size-changer.ant-select .ant-select-selector {
+  padding-inline: 8px 24px !important;
+}
+
+/* ---------- 表格全局紧凑化 ----------
+ * AntD size="small" 的默认 td padding 是 8px 上下 → 行高 40px。
+ * 业务场景数据密度较高，把 td/th 的 vertical padding 统一砍到 4px，
+ * 行高降到 ~32px（small 表）/ ~40px（default 表），更紧凑同时不拥挤。
+ * 表头 th 也同步，保持表头与数据行视觉协调。
+ */
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td,
+.ant-table-tbody > tr > th {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}

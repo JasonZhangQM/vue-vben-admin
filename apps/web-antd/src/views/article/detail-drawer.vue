@@ -1102,16 +1102,16 @@ const supplyColumns = [
                         <Table
                           v-if="g.type === 'guarantor'"
                           :columns="[
-                            { title: '保证人', dataIndex: 'name', width: 300, ellipsis: true },
-                            { title: '类型', dataIndex: 'genre_display', width: 80, align: 'center' },
+                            { title: '保证人', dataIndex: 'name', width: 240, ellipsis: true },
+                            { title: '类型', dataIndex: 'genre_display', width: 60, align: 'center' },
                             { title: '联系地址', dataIndex: 'address', width: 220, ellipsis: true },
-                            { title: '联系人', dataIndex: 'contact_name', width: 80 },
+                            { title: '联系人', dataIndex: 'contact_name', width: 60 },
                             { title: '联系电话', dataIndex: 'contact_phone', width: 130 },
                             { title: '操作', key: 'op', width: 80, align: 'center' },
                           ]"
                           :data-source="g.items as GuarantorItem[]"
                           :pagination="false"
-                          :scroll="{ x: 890 }"
+                          :scroll="{ x: 790 }"
                           :row-key="(_, idx) => `${g.key}-g-${idx}`"
                           size="small"
                         >

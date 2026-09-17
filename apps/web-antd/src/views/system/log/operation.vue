@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 操作日志：动作列为详情入口；纯只读审计，无操作按钮。 */
 
 import type { OperationLogItem } from '#/api/system/log';
@@ -117,7 +117,7 @@ onMounted(loadList);
           pageSize: query.page_size,
           total,
           showSizeChanger: true,
-          pageSizeOptions: ['10', '20', '50', '100'],
+          pageSizeOptions: [10, 20, 50, 100],
           showTotal: (t: number) => `共 ${t} 条`,
           onChange: (p: number) => { query.page = p; loadList(); },
           onShowSizeChange: (_c: number, s: number) => { query.page = 1; query.page_size = s; loadList(); },
