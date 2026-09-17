@@ -31,7 +31,11 @@ const tokenTheme = computed(() => {
 </script>
 
 <template>
-  <ConfigProvider :locale="antdLocale" :theme="tokenTheme" component-size="small">
+  <ConfigProvider
+    :locale="antdLocale"
+    :theme="tokenTheme"
+    component-size="small"
+  >
     <App>
       <RouterView />
     </App>

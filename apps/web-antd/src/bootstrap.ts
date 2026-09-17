@@ -1,4 +1,6 @@
-﻿import { createApp, watchEffect } from 'vue';
+import { createApp, watchEffect } from 'vue';
+
+import { Drawer, Modal } from 'ant-design-vue';
 
 import { registerAccessDirective } from '@vben/access';
 import { registerLoadingDirective } from '@vben/common-ui/es/loading';
@@ -21,6 +23,30 @@ import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
 import { router } from './router';
+
+// ------- Monkey patch AntD Drawer/Modal 默认 maskClosable=false -------
+// 原因：ConfigProvider.drawerProps/modalProps 是 AntD Vue 5.x 才有，
+// app.component() 包装也无效 — 页面在 <script setup> 里 import 原生 Drawer，
+// 本地注册优先级 > 全局 app.component。
+// 所以直接改 AntD 组件 props 定义里的 default 值，所有 import 的地方自动生效。
+const patchDefaultMaskClosable = (comp: any, name: string) => {
+  const beforeDefault = comp?.props?.maskClosable?.default;
+  if (comp?.props && typeof comp.props === 'object' && comp.props.maskClosable) {
+    comp.props.maskClosable.default = false;
+    console.log(
+      `[patch] ${name}.props.maskClosable.default: ${beforeDefault} → false ✅`,
+    );
+  } else {
+    console.warn(
+      `[patch] ${name}: props.maskClosable 不存在，patch 失败！comp.props =`,
+      comp?.props,
+      'comp.type =',
+      typeof comp,
+    );
+  }
+};
+patchDefaultMaskClosable(Drawer, 'Drawer');
+patchDefaultMaskClosable(Modal, 'Modal');
 
 async function bootstrap(namespace: string) {
   // 初始化组件适配器
