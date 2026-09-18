@@ -11,7 +11,7 @@ import type {
   CollateralItem,
 } from '#/api/basic/article';
 
-import { reactive, ref, watch, computed } from 'vue';
+import { reactive, ref, watch, computed, h } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AccessControl } from '@vben/access';
@@ -47,6 +47,7 @@ import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash } from '#/utils/format';
+import CustomDetailDrawer from '#/views/custom/detail-drawer.vue';
 
 import {
   addOrder,
@@ -96,6 +97,10 @@ const { customRow: guarantorCustomRow, rowClassName: guarantorRowClassName } = u
 const { customRow: collateralCustomRow, rowClassName: collateralRowClassName } = useRowHighlight();
 const { customRow: commentCustomRow, rowClassName: commentRowClassName } = useRowHighlight();
 const { customRow: supplyCustomRow, rowClassName: supplyRowClassName } = useRowHighlight();
+
+// ========== 客户详情抽屉（从保证人/房产等入口打开） ==========
+const customerDetailOpen = ref(false);
+const customerDetailId = ref<number | null>(null);
 
 // ========== 编辑 Modal ==========
 const editVisible = ref(false);
@@ -1144,7 +1149,7 @@ const supplyColumns = [
                         >
                           <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex === 'name'">
-                              <a @click="router.push(`/customer/custom/${record.id}`)">{{ record.name }}</a>
+                              <a @click="() => { customerDetailId = record.id; customerDetailOpen = true; }">{{ record.name }}</a>
                             </template>
                             <template v-else-if="column.dataIndex === 'genre_display'">
                               <Tag :color="record.genre === 1 ? 'blue' : 'cyan'" size="small">
@@ -1632,6 +1637,12 @@ const supplyColumns = [
       </FormItem>
     </Form>
   </Modal>
+
+  <!-- 客户详情抽屉：从保证人列等入口打开 -->
+  <CustomDetailDrawer
+    v-model:open="customerDetailOpen"
+    :customer-id="customerDetailId"
+  />
 </template>
 
 <style scoped>
