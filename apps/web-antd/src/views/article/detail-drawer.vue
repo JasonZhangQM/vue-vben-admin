@@ -48,6 +48,7 @@ import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { dash } from '#/utils/format';
 import CustomDetailDrawer from '#/views/custom/detail-drawer.vue';
+import WarrantDetailDrawer from '#/views/warrant/detail-drawer.vue';
 
 import {
   addOrder,
@@ -98,9 +99,11 @@ const { customRow: collateralCustomRow, rowClassName: collateralRowClassName } =
 const { customRow: commentCustomRow, rowClassName: commentRowClassName } = useRowHighlight();
 const { customRow: supplyCustomRow, rowClassName: supplyRowClassName } = useRowHighlight();
 
-// ========== 客户详情抽屉（从保证人/房产等入口打开） ==========
+// ========== 客户 / 权证详情抽屉 ==========
 const customerDetailOpen = ref(false);
 const customerDetailId = ref<number | null>(null);
+const warrantDetailOpen = ref(false);
+const warrantDetailId = ref<number | null>(null);
 
 // ========== 编辑 Modal ==========
 const editVisible = ref(false);
@@ -866,7 +869,7 @@ const supplyColumns = [
 <template>
   <Drawer
     v-model:open="open"
-    :title="detail ? `项目 ${detail.article_num}` : '项目详情'"
+    :title="detail ? detail.article_num : '项目详情'"
     width="66%"
     :destroyOnClose="true"
   >
@@ -1149,7 +1152,10 @@ const supplyColumns = [
                         >
                           <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex === 'name'">
-                              <a @click="() => { customerDetailId = record.id; customerDetailOpen = true; }">{{ record.name }}</a>
+                              <AccessControl :codes="['customer:detail']" type="code">
+                                <a @click="() => { customerDetailId = record.id; customerDetailOpen = true; }">{{ record.name }}</a>
+                                <template #fallback>{{ record.name }}</template>
+                              </AccessControl>
                             </template>
                             <template v-else-if="column.dataIndex === 'genre_display'">
                               <Tag :color="record.genre === 1 ? 'blue' : 'cyan'" size="small">
@@ -1190,7 +1196,10 @@ const supplyColumns = [
                         >
                           <template #bodyCell="{ column, record }">
                             <template v-if="column.dataIndex === 'ownership_num'">
-                              <a @click="router.push(`/warrant/warrants/${record.id}`)">{{ record.ownership_num || '—' }}</a>
+                              <AccessControl :codes="['warrant:detail']" type="code">
+                                <a @click="() => { warrantDetailId = record.id; warrantDetailOpen = true; }">{{ record.ownership_num || '—' }}</a>
+                                <template #fallback>{{ record.ownership_num || '—' }}</template>
+                              </AccessControl>
                             </template>
                             <template v-else-if="column.dataIndex === 'area'">
                               {{ record.area != null ? Number(record.area).toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '-' }}
@@ -1638,10 +1647,16 @@ const supplyColumns = [
     </Form>
   </Modal>
 
-  <!-- 客户详情抽屉：从保证人列等入口打开 -->
+  <!-- 客户详情抽屉 -->
   <CustomDetailDrawer
     v-model:open="customerDetailOpen"
     :customer-id="customerDetailId"
+  />
+
+  <!-- 权证详情抽屉 -->
+  <WarrantDetailDrawer
+    v-model:open="warrantDetailOpen"
+    :warrant-id="warrantDetailId"
   />
 </template>
 

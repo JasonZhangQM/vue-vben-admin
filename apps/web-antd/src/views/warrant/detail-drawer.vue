@@ -29,6 +29,8 @@ import {
   Tag,
 } from 'ant-design-vue';
 
+import CustomDetailDrawer from '#/views/custom/detail-drawer.vue';
+
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/api/basic/dict';
@@ -68,6 +70,10 @@ const dictStore = useDictStore();
 const open = defineModel<boolean>('open', { default: false });
 const detail = ref<null | WarrantDetail>(null);
 const loading = ref(false);
+
+// ========== 客户详情抽屉（从产权人列等入口打开） ==========
+const customerDetailOpen = ref(false);
+const customerDetailId = ref<number | null>(null);
 
 // 各子表独立高亮状态（抽屉内 Tab 多，互不干扰）
 const { customRow: ownerCustomRow, rowClassName: ownerRowClassName } = useRowHighlight();
@@ -562,7 +568,7 @@ async function onDeleteConstruction(record: any) {
 </script>
 
 <template>
-  <Drawer v-model:open="open" :title="detail ? `权证 ${detail.warrant_num}` : '权证详情'" width="66%">
+  <Drawer v-model:open="open" :title="detail ? detail.warrant_num : '权证详情'" width="66%">
     <div v-if="detail" class="space-y-4">
       <Card size="small" title="基本信息">
         <template #extra>
@@ -641,7 +647,10 @@ async function onDeleteConstruction(record: any) {
             :row-class-name="ownerRowClassName"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.dataIndex === 'share_ratio'">
+              <template v-if="column.dataIndex === 'owner_name'">
+                <a @click="() => { customerDetailId = record.owner_id; customerDetailOpen = true; }">{{ record.owner_name }}</a>
+              </template>
+              <template v-else-if="column.dataIndex === 'share_ratio'">
                 {{ record.share_ratio ?? '—' }}
               </template>
               <template v-else-if="column.key === 'op'">
@@ -1170,6 +1179,12 @@ async function onDeleteConstruction(record: any) {
       </Form>
     </Modal>
   </Drawer>
+
+  <!-- 客户详情抽屉：从产权人列等入口打开 -->
+  <CustomDetailDrawer
+    v-model:open="customerDetailOpen"
+    :customer-id="customerDetailId"
+  />
 </template>
 
 
