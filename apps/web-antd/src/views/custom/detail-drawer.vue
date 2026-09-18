@@ -592,7 +592,19 @@ async function saveTags() {
 </script>
 
 <template>
-  <Drawer v-model:open="open" :title="detail?.name ?? '客户详情'" width="66%">
+  <Drawer v-model:open="open" width="66%">
+    <template #title>
+      <span class="mr-2">{{ detail?.name ?? '客户详情' }}</span>
+      <Button
+        v-if="detail?.name"
+        size="small"
+        type="link"
+        target="_blank"
+        :href="`https://www.tianyancha.com/search?key=${encodeURIComponent(detail.name)}`"
+      >
+        天眼查
+      </Button>
+    </template>
     <div v-if="detail" class="space-y-4">
       <Card size="small" title="基本信息">
         <template #extra>
