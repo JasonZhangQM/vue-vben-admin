@@ -232,11 +232,16 @@ async function onSubmit() {
       await updateArticle(editingId.value, form);
       message.success('修改成功');
     } else {
-      await createArticle(form);
+      const res = await createArticle(form);
       message.success('创建成功');
+      createOpen.value = false;
+      await loadList();
+      // 直接打开刚创建的项目详情
+      if (res?.id) {
+        const row = list.value.find((r) => r.id === res.id);
+        if (row) openDetail(row);
+      }
     }
-    createOpen.value = false;
-    await loadList();
   } catch {
     // requestClient 已 toast
   } finally {
