@@ -291,6 +291,7 @@ const groupTreeData = ref<any[]>([]);
 const editForm = reactive({
   name: '',
   short_name: '',
+  license_num: '',
   region_id: undefined as number | undefined,
   license_addr: '',
   credit_region_id: undefined as number | undefined,
@@ -312,6 +313,7 @@ async function openEdit() {
   Object.assign(editForm, {
     name: detail.value.name ?? '',
     short_name: detail.value.short_name ?? '',
+    license_num: detail.value.license_num ?? '',
     region_id: detail.value.region_id,
     license_addr: detail.value.license_addr ?? '',
     credit_region_id: detail.value.credit_region_id,
@@ -331,6 +333,7 @@ async function submitEdit() {
     await updateCustomer(detail.value.id, {
       name: opt(editForm.name),
       short_name: opt(editForm.short_name),
+      license_num: opt(editForm.license_num),
       region_id: editForm.region_id,
       license_addr: opt(editForm.license_addr),
       credit_region_id: editForm.credit_region_id,
@@ -1053,6 +1056,14 @@ async function saveTags() {
         </FormItem>
         <FormItem label="简称">
           <Input v-model:value="editForm.short_name" :disabled="!canUpdate" />
+        </FormItem>
+        <FormItem :label="detail?.genre === 1 ? '统一社会信用代码' : '证件号码'">
+          <Input
+            v-model:value="editForm.license_num"
+            :disabled="!canUpdate"
+            :maxlength="18"
+            :placeholder="detail?.genre === 1 ? '18 位信用代码' : '18 位身份证号'"
+          />
         </FormItem>
         <FormItem label="行政区域">
           <RegionTreeSelect
