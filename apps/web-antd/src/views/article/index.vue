@@ -97,6 +97,8 @@ const query = reactive({
   article_state: undefined as number | undefined,
   product_id: undefined as number | undefined,
   director_id: undefined as number | undefined,
+  assistant_id: undefined as number | undefined,
+  control_id: undefined as number | undefined,
 });
 
 async function loadList() {
@@ -120,6 +122,8 @@ function onReset() {
   query.article_state = undefined;
   query.product_id = undefined;
   query.director_id = undefined;
+  query.assistant_id = undefined;
+  query.control_id = undefined;
   query.page = 1;
   loadList();
 }
@@ -130,11 +134,14 @@ const columns = computed<TableColumnType[]>(() => [
   { title: '客户名称', dataIndex: 'customer_name' },
   { title: '产品', dataIndex: 'product_name', width: 120 },
   { title: '续贷额(元)', dataIndex: 'renewal', width: 110, align: 'right' },
+  { title: '新增额(元)', dataIndex: 'augment', width: 120, align: 'right' },
+  { title: '授信期限', dataIndex: 'credit_term_display', width: 100 },
   { title: '项目经理', dataIndex: 'director_name', width: 110 },
+  { title: '项目助理', dataIndex: 'assistant_name', width: 110 },
   { title: '风控经理', dataIndex: 'control_name', width: 110 },
   { title: '余额', dataIndex: 'balance', width: 100, align: 'right' },
   { title: '签批日期', dataIndex: 'sign_date', width: 120 },
-  { title: '创建时间', dataIndex: 'created_at', width: 170 },
+  { title: '创建时间', dataIndex: 'created_at', width: 170, sorter: false, defaultSortOrder: 'descend' },
   { title: '创建人', dataIndex: 'created_by_name', width: 100, fixed: 'right' },
 ]);
 
@@ -275,8 +282,8 @@ onMounted(loadList);
         <Input
           v-model:value="query.keyword"
           allow-clear
-          placeholder="项目编号"
-          style="min-width: 200px; width: fit-content"
+          placeholder="客户名称/简称"
+          style="width: 260px"
           @press-enter="onQuery"
         />
         <SearchSelect
@@ -291,14 +298,28 @@ onMounted(loadList);
           :options="productOpts"
           allow-clear
           placeholder="产品"
-          style="width: 120px"
+          style="width: 160px"
         />
         <SearchSelect
           v-model:value="query.director_id"
           :options="pmOptions"
           allow-clear
           placeholder="项目经理"
-          style="min-width: 160px; width: fit-content"
+          style="width: 140px"
+        />
+        <SearchSelect
+          v-model:value="query.assistant_id"
+          :options="employeeOptions"
+          allow-clear
+          placeholder="项目助理"
+          style="width: 140px"
+        />
+        <SearchSelect
+          v-model:value="query.control_id"
+          :options="controlOptions"
+          allow-clear
+          placeholder="风控经理"
+          style="width: 140px"
         />
         <Button type="primary" @click="onQuery">查询</Button>
         <Button @click="onReset">重置</Button>
@@ -344,13 +365,9 @@ onMounted(loadList);
               {{ (record as ArticleListItem).article_state_display || '-' }}
             </Tag>
           </template>
-          <!-- 授信额 -->
-          <template v-else-if="column.dataIndex === 'renewal'">
-            {{ ((record as ArticleListItem).renewal + (record as ArticleListItem).augment).toFixed(2) }}
-          </template>
-          <!-- 余额 -->
-          <template v-else-if="column.dataIndex === 'balance'">
-            {{ (record as ArticleListItem).balance?.toFixed(2) ?? '-' }}
+          <!-- 金额列（toFixed 格式化） -->
+          <template v-else-if="['renewal','augment','balance','notify_sum','provide_sum','repayment_sum'].includes(column.dataIndex as string)">
+            {{ ((record as ArticleListItem)[column.dataIndex as keyof ArticleListItem] as number)?.toFixed(2) ?? '0.00' }}
           </template>
           <!-- 需要 dash 兜底的文本列 -->
           <template v-else-if="['customer_name','product_name','director_name','control_name','sign_date','created_at','created_by_name'].includes(column.dataIndex as string)">
