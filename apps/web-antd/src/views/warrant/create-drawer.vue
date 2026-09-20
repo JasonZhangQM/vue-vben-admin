@@ -123,7 +123,6 @@ interface HouseRow {
   house_locate: string;
   house_app: number | undefined;
   house_area: number | undefined;
-  house_name: string;
   house_build_year: number | undefined;
   house_usage: number;
   _key: number;
@@ -166,7 +165,7 @@ const nextKey = () => ++rowKeySeq;
 
 const emptyHouseRow = (): HouseRow => ({
   region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined,
-  house_name: '', house_build_year: undefined, house_usage: 10,
+  house_build_year: undefined, house_usage: 10,
   _key: nextKey(),
 });
 const emptyOwnerRow = (): OwnerRow => ({
@@ -334,7 +333,7 @@ function onTypeChange(value: number) {
 function isExtDirty(): boolean {
   if (createForm.warrant_type === WARRANT_TYPE_HOUSE) {
     return houseRows.value.some(
-      (h) => h.house_locate || h.house_app || h.house_area || h.house_name || h.house_build_year,
+      (h) => h.house_locate || h.house_app || h.house_area || h.house_build_year,
     );
   }
   if (createForm.warrant_type === WARRANT_TYPE_GROUND) {
@@ -399,7 +398,6 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
           house_locate: h.house_locate,
           house_app: h.house_app,
           house_area: h.house_area,
-          house_name: h.house_name || undefined,
           house_build_year: h.house_build_year ?? undefined,
           house_usage: h.house_usage,
         })),

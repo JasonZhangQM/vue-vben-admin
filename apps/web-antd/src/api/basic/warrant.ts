@@ -28,7 +28,6 @@ export interface HouseItem {
   house_area: number;
   house_build_year?: null | number;
   house_locate: string;
-  house_name?: null | string;
   house_usage?: number;
   id?: number;
   region_id: number;
@@ -230,6 +229,9 @@ export function deleteWarrantOwner(id: number, ownerRowId: number) {
 
 export function addWarrantHouse(id: number, data: Omit<HouseItem, 'id' | 'region_name'>) {
   return requestClient.post<{ id: number }>(`/warrants/${id}/houses`, data);
+}
+export function updateWarrantHouse(id: number, houseId: number, data: Omit<HouseItem, 'id' | 'region_name'>) {
+  return requestClient.put(`/warrants/${id}/houses/${houseId}`, data);
 }
 export function deleteWarrantHouse(id: number, houseId: number) {
   return requestClient.delete(`/warrants/${id}/houses/${houseId}`);

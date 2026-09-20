@@ -56,6 +56,7 @@ import {
   deleteWarrantReceiveExtend,
   getWarrantDetail,
   updateWarrant,
+  updateWarrantHouse,
   updateWarrantOwner,
   updateWarrantTypeDetail,
 } from '#/api/basic/warrant';
@@ -398,13 +399,61 @@ async function onDeleteOwner(record: any) {
   await refresh();
 }
 
+// ===== 房产编辑 =====
+const houseEditVisible = ref(false);
+const houseEditLoading = ref(false);
+const houseEditForm = reactive({
+  id: 0,
+  region_id: undefined as number | undefined,
+  house_locate: '',
+  house_app: undefined as number | undefined,
+  house_area: undefined as number | undefined,
+  house_build_year: undefined as number | undefined,
+  house_usage: 10 as number,
+});
+function openHouseEdit(record: any) {
+  Object.assign(houseEditForm, {
+    id: record.id,
+    region_id: record.region_id,
+    house_locate: record.house_locate ?? '',
+    house_app: record.house_app,
+    house_area: record.house_area,
+    house_build_year: record.house_build_year ?? undefined,
+    house_usage: record.house_usage ?? 10,
+  });
+  houseEditVisible.value = true;
+}
+async function submitHouseEdit() {
+  if (!detail.value) return;
+  const { region_id, house_locate, house_app, house_area } = houseEditForm;
+  if (!region_id || !house_locate.trim() || !house_app || !house_area) {
+    message.warning('请填写行政区域、详细地址、用途和面积');
+    return;
+  }
+  houseEditLoading.value = true;
+  try {
+    await updateWarrantHouse(detail.value.id, houseEditForm.id, {
+      region_id,
+      house_locate: house_locate.trim(),
+      house_app,
+      house_area,
+      house_build_year: houseEditForm.house_build_year,
+      house_usage: houseEditForm.house_usage,
+    });
+    message.success('房产已更新');
+    houseEditVisible.value = false;
+    await refresh();
+  } finally {
+    houseEditLoading.value = false;
+  }
+}
+
 // ===== 房产/土地/在建 添加 =====
 const addHouseForm = reactive({
   region_id: undefined as number | undefined,
   house_locate: '',
   house_app: undefined as number | undefined,
   house_area: undefined as number | undefined,
-  house_name: '',
   house_build_year: undefined as number | undefined,
   house_usage: 10 as number,
 });
@@ -418,11 +467,10 @@ async function submitAddHouse() {
   await addWarrantHouse(detail.value.id, {
     region_id, house_locate: house_locate.trim(),
     house_app, house_area,
-    house_name: addHouseForm.house_name || undefined,
     house_build_year: addHouseForm.house_build_year,
     house_usage: addHouseForm.house_usage,
   });
-  Object.assign(addHouseForm, { region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined, house_name: '', house_build_year: undefined, house_usage: 10 });
+  Object.assign(addHouseForm, { region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined, house_build_year: undefined, house_usage: 10 });
   message.success('房产已添加');
   await refresh();
 }
@@ -707,7 +755,6 @@ async function onDeleteConstruction(record: any) {
               style="width: 100px"
             />
             <InputNumber v-model:value="addHouseForm.house_build_year" :min="1900" :max="2100" :precision="0" placeholder="建成年份" style="width: 90px" />
-            <Input v-model:value="addHouseForm.house_name" placeholder="建筑名称(可空)" style="width: 110px" />
             <AccessControl :codes="['warrant:update']" type="code">
               <Button size="small" type="primary" @click="submitAddHouse">添加</Button>
             </AccessControl>
@@ -720,8 +767,7 @@ async function onDeleteConstruction(record: any) {
               { title: '用途', dataIndex: 'house_app', width: 90 },
               { title: '使用现状', dataIndex: 'house_usage', width: 80 },
               { title: '建成年份', dataIndex: 'house_build_year', width: 90 },
-              { title: '楼盘名', dataIndex: 'house_name', width: 120 },
-              { title: '操作', key: 'op', width: 80, align: 'center' },
+              { title: '操作', key: 'op', width: 130, align: 'center' },
             ]"
             :data-source="detail.houses"
             :pagination="false"
@@ -740,14 +786,12 @@ async function onDeleteConstruction(record: any) {
               <template v-else-if="column.dataIndex === 'house_usage'">
                 {{ dictStore.labelOf('warrant.house_usage', record.house_usage) }}
               </template>
-              <template v-else-if="column.dataIndex === 'house_name'">
-                {{ record.house_name || '—' }}
-              </template>
               <template v-else-if="column.dataIndex === 'house_build_year'">
                 {{ record.house_build_year ?? '—' }}
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
+                  <Button size="small" type="link" @click="openHouseEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteHouse(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>
@@ -1139,6 +1183,50 @@ async function onDeleteConstruction(record: any) {
         </FormItem>
       </Form>
     </Modal>
+
+    <!-- 房产编辑 Modal(字段对齐后端 HouseItem) -->
+    <Modal
+      v-model:open="houseEditVisible"
+      :confirm-loading="houseEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="修改房产"
+      @ok="submitHouseEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="行政区域" required>
+          <RegionTreeSelect v-model:value="houseEditForm.region_id" :disabled="!canUpdate" allow-clear class="w-full" />
+        </FormItem>
+        <FormItem label="详细地址" required>
+          <Input v-model:value="houseEditForm.house_locate" :disabled="!canUpdate" :maxlength="255" />
+        </FormItem>
+        <FormItem label="面积(㎡)" required>
+          <InputNumber v-model:value="houseEditForm.house_area" :disabled="!canUpdate" :min="0.01" :precision="2" class="w-full" />
+        </FormItem>
+        <FormItem label="用途" required>
+          <Select
+            v-model:value="houseEditForm.house_app"
+            :options="houseAppOptions"
+            :disabled="!canUpdate"
+            class="w-full"
+            show-search
+            option-filter-prop="label"
+            @focus="loadHouseAppOptions"
+          />
+        </FormItem>
+        <FormItem label="使用现状">
+          <SearchSelect
+            v-model:value="houseEditForm.house_usage"
+            :options="dictStore.get('warrant.house_usage')"
+            :disabled="!canUpdate"
+          />
+        </FormItem>
+        <FormItem label="建成年份">
+          <InputNumber v-model:value="houseEditForm.house_build_year" :disabled="!canUpdate" :min="1900" :max="2100" :precision="0" class="w-full" />
+        </FormItem>
+      </Form>
+    </Modal>
+
     <!-- 股权编辑 Modal -->
     <Modal
       v-model:open="stockEditVisible"
