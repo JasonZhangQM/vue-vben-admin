@@ -37,10 +37,21 @@ import DetailDrawer from './detail-drawer.vue';
 const loading = ref(false);
 const list = ref<UserListItem[]>([]);
 const total = ref(0);
-const query = reactive({ page: 1, page_size: 20, q: '', status: undefined as number | undefined });
+const query = reactive({
+  page: 1,
+  page_size: 20,
+  q: '',
+  status: undefined as number | undefined,
+  dept_id: undefined as number | undefined,
+  role: undefined as string | undefined,
+});
 
 const statusDict = ref<{ label: string; value: number }[]>([]);
 const statusMap = computed(() => new Map(statusDict.value.map((d) => [d.value, d.label])));
+
+// 筛选区下拉选项
+const deptFilterOptions = ref<{ label: string; value: number }[]>([]);
+const roleFilterOptions = ref<{ label: string; value: string }[]>([]);
 
 async function loadList() {
   loading.value = true;
@@ -57,6 +68,8 @@ async function loadList() {
 function resetQuery() {
   query.q = '';
   query.status = undefined;
+  query.dept_id = undefined;
+  query.role = undefined;
   query.page = 1;
   loadList();
 }
@@ -154,8 +167,14 @@ const columns: TableColumnType[] = [
 ];
 
 onMounted(async () => {
-  const [dicts] = await Promise.all([getUserStatusDict()]);
+  const [dicts, depts, roles] = await Promise.all([
+    getUserStatusDict(),
+    getDeptTree(),
+    getRoleList(),
+  ]);
   statusDict.value = dicts;
+  deptFilterOptions.value = flattenDept(depts);
+  roleFilterOptions.value = roles.map((r) => ({ label: r.name, value: r.code }));
   await loadList();
 });
 </script>
@@ -179,6 +198,20 @@ onMounted(async () => {
           allow-clear
           placeholder="状态"
           style="width: 120px"
+        />
+        <SearchSelect
+          v-model:value="query.dept_id"
+          :options="deptFilterOptions"
+          allow-clear
+          placeholder="部门"
+          style="width: 180px"
+        />
+        <SearchSelect
+          v-model:value="query.role"
+          :options="roleFilterOptions"
+          allow-clear
+          placeholder="角色"
+          style="width: 160px"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
         <Button @click="resetQuery">重置</Button>

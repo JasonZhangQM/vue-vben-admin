@@ -909,6 +909,10 @@ const supplyColumns = [
           <Card size="small" title="基本信息">
             <template #extra>
               <div class="flex gap-2">
+                <!-- 分配风控（专项权限 article:control_assign） -->
+                <AccessControl :codes="['article:control_assign']" type="code">
+                  <Button size="small" type="primary" @click="openAssignControl">分配风控</Button>
+                </AccessControl>
                 <!-- 发起签批：仅已上会/待变更 且无进行中审批 可操作 -->
                 <AccessControl :codes="['article:sign']" type="code">
                   <Button
@@ -927,10 +931,6 @@ const supplyColumns = [
                   >
                     发起签批
                   </Button>
-                </AccessControl>
-                <!-- 分配风控经理（专项权限 article:control_assign） -->
-                <AccessControl :codes="['article:control_assign']" type="code">
-                  <Button size="small" @click="openAssignControl">分配风控经理</Button>
                 </AccessControl>
                 <!-- 发起变更：仅已签批/放款中/待变更 且无进行中审批 可操作 -->
                 <AccessControl :codes="['article:change']" type="code">
@@ -1680,18 +1680,18 @@ const supplyColumns = [
     </Form>
   </Modal>
 
-  <!-- 分配风控经理 Modal -->
+  <!-- 分配风控 Modal -->
   <Modal
     v-model:open="assignControlVisible"
     :confirm-loading="assignControlLoading"
     destroy-on-close
-    title="分配风控经理"
+    title="分配风控"
     @ok="confirmAssignControl"
   >
     <div class="py-2">
       <SearchSelect
         v-model:value="assignControlId"
-        :options="employeeOptions"
+        :options="controlOptions"
         allow-clear
         placeholder="选择风控经理"
         style="width: 100%"
