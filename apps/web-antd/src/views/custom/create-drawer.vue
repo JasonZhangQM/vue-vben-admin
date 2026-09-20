@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 /** 新增客户抽屉：基本信息 + 关联归属 + 联系人可编辑表格。
  *
  * 布局策略：
@@ -45,7 +45,7 @@ import { useDictStore } from '#/store';
 import { filterTreeOption, toTreeData } from '#/utils/format';
 import { useFormColumns } from '#/composables/useFormColumns';
 
-const emit = defineEmits<{ created: [] }>();
+const emit = defineEmits<{ created: [customerId: number] }>();
 const open = defineModel<boolean>('open', { default: false });
 
 const userStore = useUserStore();
@@ -299,7 +299,7 @@ async function onSubmit() {
       }
     }
 
-    await createCustomer({
+    const data = await createCustomer({
       name: createForm.name,
       short_name: createForm.short_name,
       genre: createForm.genre,
@@ -318,9 +318,10 @@ async function onSubmit() {
       personal: personalPayload,
       contacts: contactPayload.length > 0 ? contactPayload : undefined,
     });
+    const newId = data?.id ?? (data as any)?.data?.id ?? (data as any)?.data ?? data;
     message.success('客户已创建');
     open.value = false;
-    emit('created');
+    emit('created', Number(newId));
   } finally {
     submitting.value = false;
   }

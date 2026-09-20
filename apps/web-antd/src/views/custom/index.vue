@@ -84,6 +84,11 @@ function openDetail(row: any) {
   detailOpen.value = true;
 }
 
+function openDetailById(id: number) {
+  detailCustomerId.value = id;
+  detailOpen.value = true;
+}
+
 // ================= 新建 =================
 const createOpen = ref(false);
 function openCreate() {
@@ -240,7 +245,7 @@ onMounted(async () => {
     </Card>
 
     <!-- 新增客户抽屉 -->
-    <CreateDrawer v-model:open="createOpen" @created="loadList" />
+    <CreateDrawer v-model:open="createOpen" @created="(id) => { loadList(); openDetailById(id); }" />
 
     <!-- 客户详情抽屉 -->
     <DetailDrawer v-model:open="detailOpen" :customer-id="detailCustomerId" @updated="loadList" />

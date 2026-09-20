@@ -33,7 +33,7 @@ import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/a
 import { createWarrant } from '#/api/basic/warrant';
 import { useFormColumns } from '#/composables/useFormColumns';
 
-const emit = defineEmits<{ created: [] }>();
+const emit = defineEmits<{ created: [id: number] }>();
 const open = defineModel<boolean>('open', { default: false });
 
 const dictStore = useDictStore();
@@ -590,10 +590,10 @@ async function onSubmit() {
 
   submitting.value = true;
   try {
-    await createWarrant(payload);
+    const res = await createWarrant(payload);
     message.success('权证已创建');
     open.value = false;
-    emit('created');
+    emit('created', res.id);
   } finally {
     submitting.value = false;
   }
