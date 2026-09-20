@@ -99,6 +99,11 @@ export function deleteArticle(id: number) {
   return requestClient.delete<void>(`/articles/${id}`);
 }
 
+/** 分配风控经理（专项权限 article:control_assign） */
+export function assignControl(articleId: number, controlId: number) {
+  return requestClient.post<void>(`/articles/${articleId}/control-assign`, { control_id: controlId });
+}
+
 // ============ 子资源 ============
 
 /** 风控反馈（upsert） */

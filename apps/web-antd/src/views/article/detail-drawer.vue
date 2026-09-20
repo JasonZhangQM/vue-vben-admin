@@ -52,6 +52,7 @@ import WarrantDetailDrawer from '#/views/warrant/detail-drawer.vue';
 
 import {
   addOrder,
+  assignControl,
   deleteArticle,
   deleteOrder,
   deleteSureRow,
@@ -199,6 +200,34 @@ async function loadDicts() {
     warrantOptions.value = [];
   }
   dictLoaded = true;
+}
+
+// ========== 分配风控经理 Modal ==========
+const assignControlVisible = ref(false);
+const assignControlLoading = ref(false);
+const assignControlId = ref<number | undefined>(undefined);
+
+async function openAssignControl() {
+  assignControlId.value = detail.value?.control_id;
+  assignControlVisible.value = true;
+}
+
+async function confirmAssignControl() {
+  if (!detail.value || !assignControlId.value) return;
+  assignControlLoading.value = true;
+  try {
+    await assignControl(detail.value.id, assignControlId.value);
+    message.success('风控经理已分配');
+    assignControlVisible.value = false;
+    // 刷新详情里的 control_id / control_name
+    const fresh = await getArticleDetail(detail.value.id);
+    detail.value = fresh;
+    emit('saved', detail.value.id);
+  } catch {
+    // requestClient 已 toast
+  } finally {
+    assignControlLoading.value = false;
+  }
 }
 
 // ========== Tab 数据 ==========
@@ -898,6 +927,10 @@ const supplyColumns = [
                   >
                     发起签批
                   </Button>
+                </AccessControl>
+                <!-- 分配风控经理（专项权限 article:control_assign） -->
+                <AccessControl :codes="['article:control_assign']" type="code">
+                  <Button size="small" @click="openAssignControl">分配风控经理</Button>
                 </AccessControl>
                 <!-- 发起变更：仅已签批/放款中/待变更 且无进行中审批 可操作 -->
                 <AccessControl :codes="['article:change']" type="code">
@@ -1645,6 +1678,25 @@ const supplyColumns = [
         />
       </FormItem>
     </Form>
+  </Modal>
+
+  <!-- 分配风控经理 Modal -->
+  <Modal
+    v-model:open="assignControlVisible"
+    :confirm-loading="assignControlLoading"
+    destroy-on-close
+    title="分配风控经理"
+    @ok="confirmAssignControl"
+  >
+    <div class="py-2">
+      <SearchSelect
+        v-model:value="assignControlId"
+        :options="employeeOptions"
+        allow-clear
+        placeholder="选择风控经理"
+        style="width: 100%"
+      />
+    </div>
   </Modal>
 
   <!-- 客户详情抽屉 -->
