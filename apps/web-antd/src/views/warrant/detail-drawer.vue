@@ -356,17 +356,12 @@ function createCustomerSearch() {
 }
 const ownerCustomerSearch = createCustomerSearch();
 
-/** 房产用途选项(树形字典拍平) */
+/** 房产用途选项(后端已返回扁平列表) */
 const houseAppOptions = ref<{ label: string; value: number }[]>([]);
 async function loadHouseAppOptions() {
   if (houseAppOptions.value.length > 0) return;
-  const flatten = (nodes: any[]) => {
-    for (const n of nodes ?? []) {
-      houseAppOptions.value.push({ label: n.name, value: n.id });
-      flatten(n.children);
-    }
-  };
-  flatten(await getHouseApps());
+  const items = await getHouseApps();
+  houseAppOptions.value = items.map((i) => ({ label: i.name, value: i.id }));
 }
 
 // ===== 产权人添加 =====

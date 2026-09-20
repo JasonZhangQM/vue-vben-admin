@@ -289,15 +289,9 @@ async function onSearchCustomer(keyword: string) {
 }
 
 async function loadOptions() {
-  // 房产用途树
+  // 房产用途（后端已返回扁平列表）
   const houseApps = await getHouseApps();
-  const flatten = (nodes: any[]) => {
-    for (const n of nodes ?? []) {
-      houseAppOptions.value.push({ label: n.name, value: n.id });
-      flatten(n.children);
-    }
-  };
-  flatten(houseApps);
+  houseAppOptions.value = houseApps.map((i) => ({ label: i.name, value: i.id }));
   // 承兑人 / 核心企业 全量拉取，本地搜索
   const [acceptors, cores] = await Promise.all([getAcceptorDict(), getCoreDict()]);
   acceptorOptions.value = acceptors.map((c) => ({ label: c.name, value: c.id }));
