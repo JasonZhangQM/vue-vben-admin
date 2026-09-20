@@ -55,9 +55,12 @@ import {
   deleteWarrantOwner,
   deleteWarrantReceiveExtend,
   getWarrantDetail,
+  updateDraftExtend,
   updateWarrant,
+  updateWarrantGround,
   updateWarrantHouse,
   updateWarrantOwner,
+  updateWarrantReceiveExtend,
   updateWarrantTypeDetail,
 } from '#/api/basic/warrant';
 
@@ -606,6 +609,132 @@ async function onDeleteConstruction(record: any) {
   message.success('在建工程已删除');
   await refresh();
 }
+
+// ===== 土地编辑 =====
+const groundEditVisible = ref(false);
+const groundEditLoading = ref(false);
+const groundEditForm = reactive({
+  id: 0,
+  region_id: undefined as number | undefined,
+  ground_locate: '',
+  ground_app: '',
+  ground_area: undefined as number | undefined,
+});
+function openGroundEdit(record: any) {
+  Object.assign(groundEditForm, {
+    id: record.id,
+    region_id: record.region_id,
+    ground_locate: record.ground_locate ?? '',
+    ground_app: record.ground_app ?? '',
+    ground_area: record.ground_area,
+  });
+  groundEditVisible.value = true;
+}
+async function submitGroundEdit() {
+  if (!detail.value) return;
+  const { region_id, ground_locate, ground_app, ground_area } = groundEditForm;
+  if (!region_id || !ground_locate.trim() || !ground_area) {
+    message.warning('请填写行政区域、详细地址和面积');
+    return;
+  }
+  groundEditLoading.value = true;
+  try {
+    await updateWarrantGround(detail.value.id, groundEditForm.id, {
+      region_id,
+      ground_locate: ground_locate.trim(),
+      ground_app: ground_app?.trim() || undefined,
+      ground_area,
+    });
+    message.success('土地已更新');
+    groundEditVisible.value = false;
+    await refresh();
+  } finally {
+    groundEditLoading.value = false;
+  }
+}
+
+// ===== 应收单位编辑 =====
+const receiveEditVisible = ref(false);
+const receiveEditLoading = ref(false);
+const receiveEditForm = reactive({ id: 0, receive_unit: '' });
+function openReceiveEdit(record: any) {
+  Object.assign(receiveEditForm, { id: record.id, receive_unit: record.receive_unit ?? '' });
+  receiveEditVisible.value = true;
+}
+async function submitReceiveEdit() {
+  if (!detail.value) return;
+  const unit = receiveEditForm.receive_unit.trim();
+  if (!unit) {
+    message.warning('请填写应收单位名称');
+    return;
+  }
+  receiveEditLoading.value = true;
+  try {
+    await updateWarrantReceiveExtend(detail.value.id, receiveEditForm.id, { receive_unit: unit });
+    message.success('应收单位已更新');
+    receiveEditVisible.value = false;
+    await refresh();
+  } finally {
+    receiveEditLoading.value = false;
+  }
+}
+
+// ===== 票据明细编辑（全字段）=====
+const draftEditVisible = ref(false);
+const draftEditLoading = ref(false);
+const draftEditForm = reactive({
+  id: 0,
+  draft_type: 10 as number,
+  draft_num: '',
+  acceptor_id: undefined as number | undefined,
+  core_id: undefined as number | undefined,
+  draft_amount: undefined as number | undefined,
+  issue_date: '',
+  due_date: '',
+});
+async function openDraftEdit(record: any) {
+  await loadDraftOptions();
+  Object.assign(draftEditForm, {
+    id: record.id,
+    draft_type: record.draft_type ?? 10,
+    draft_num: record.draft_num ?? '',
+    acceptor_id: record.acceptor_id,
+    core_id: record.core_id,
+    draft_amount: record.draft_amount,
+    issue_date: record.issue_date ?? '',
+    due_date: record.due_date ?? '',
+  });
+  draftEditVisible.value = true;
+}
+async function submitDraftEdit() {
+  if (!detail.value) return;
+  const { draft_type, draft_num, acceptor_id, core_id, draft_amount, issue_date, due_date } = draftEditForm;
+  if (!draft_num.trim() || !acceptor_id || !core_id || !draft_amount || !issue_date || !due_date) {
+    message.warning('票据号/承兑人/核心企业/金额/出票日/到期日均为必填');
+    return;
+  }
+  if (due_date < issue_date) {
+    message.warning('到期日不能早于出票日');
+    return;
+  }
+  draftEditLoading.value = true;
+  try {
+    await updateDraftExtend(detail.value.id, draftEditForm.id, {
+      draft_type,
+      draft_num: draft_num.trim(),
+      acceptor_id,
+      core_id,
+      draft_amount,
+      issue_date,
+      due_date,
+    });
+    message.success('票据明细已更新');
+    draftEditVisible.value = false;
+    await refresh();
+  } finally {
+    draftEditLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -813,7 +942,7 @@ async function onDeleteConstruction(record: any) {
               { title: '详细地址', dataIndex: 'ground_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'ground_area', width: 90 },
               { title: '用途', dataIndex: 'ground_app' },
-              { title: '操作', key: 'op', width: 80, align: 'center' },
+              { title: '操作', key: 'op', width: 120, align: 'center' },
             ]"
             :data-source="detail.grounds"
             :pagination="false"
@@ -831,6 +960,7 @@ async function onDeleteConstruction(record: any) {
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
+                  <Button size="small" type="link" @click="openGroundEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteGround(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>
@@ -895,7 +1025,7 @@ async function onDeleteConstruction(record: any) {
           <Table
             :columns="[
               { title: '应收单位', dataIndex: 'receive_unit', ellipsis: true },
-              { title: '操作', key: 'op', width: 80, align: 'center' },
+              { title: '操作', key: 'op', width: 120, align: 'center' },
             ]"
             :data-source="detail.receive_units ?? []"
             :pagination="false"
@@ -907,6 +1037,7 @@ async function onDeleteConstruction(record: any) {
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
+                  <Button size="small" type="link" @click="openReceiveEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteReceiveUnit(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>
@@ -975,7 +1106,7 @@ async function onDeleteConstruction(record: any) {
               { title: '出票日', dataIndex: 'issue_date', width: 110 },
               { title: '到期日', dataIndex: 'due_date', width: 110 },
               { title: '状态', dataIndex: 'draft_state', width: 90 },
-              { title: '操作', key: 'op', width: 80, align: 'center' },
+              { title: '操作', key: 'op', width: 120, align: 'center' },
             ]"
             :data-source="detail.draft_extends ?? []"
             :pagination="false"
@@ -999,6 +1130,7 @@ async function onDeleteConstruction(record: any) {
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
+                  <Button size="small" type="link" @click="openDraftEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteDraft(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>
@@ -1219,6 +1351,110 @@ async function onDeleteConstruction(record: any) {
         </FormItem>
         <FormItem label="建成年份">
           <InputNumber v-model:value="houseEditForm.house_build_year" :disabled="!canUpdate" :min="1900" :max="2100" :precision="0" class="w-full" />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- 土地编辑 Modal -->
+    <Modal
+      v-model:open="groundEditVisible"
+      :confirm-loading="groundEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="修改土地"
+      @ok="submitGroundEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="行政区域" required>
+          <RegionTreeSelect v-model:value="groundEditForm.region_id" :disabled="!canUpdate" allow-clear class="w-full" />
+        </FormItem>
+        <FormItem label="详细地址" required>
+          <Input v-model:value="groundEditForm.ground_locate" :disabled="!canUpdate" :maxlength="255" />
+        </FormItem>
+        <FormItem label="面积(㎡)" required>
+          <InputNumber v-model:value="groundEditForm.ground_area" :disabled="!canUpdate" :min="0.01" :precision="2" class="w-full" />
+        </FormItem>
+        <FormItem label="用途">
+          <Input v-model:value="groundEditForm.ground_app" :disabled="!canUpdate" :maxlength="128" placeholder="如：工业用地" />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- 应收单位编辑 Modal -->
+    <Modal
+      v-model:open="receiveEditVisible"
+      :confirm-loading="receiveEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="修改应收单位"
+      @ok="submitReceiveEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="应收单位" required>
+          <Input v-model:value="receiveEditForm.receive_unit" :disabled="!canUpdate" :maxlength="128" placeholder="应收单位名称" />
+        </FormItem>
+      </Form>
+    </Modal>
+
+    <!-- 票据明细编辑 Modal -->
+    <Modal
+      v-model:open="draftEditVisible"
+      :confirm-loading="draftEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="修改票据明细"
+      @ok="submitDraftEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="票据类型" required>
+          <Select
+            v-model:value="draftEditForm.draft_type"
+            :options="dictStore.get('warrant.draft_type')"
+            :disabled="!canUpdate"
+            class="w-full"
+          />
+        </FormItem>
+        <FormItem label="票据号" required>
+          <Input v-model:value="draftEditForm.draft_num" :disabled="!canUpdate" :maxlength="128" placeholder="唯一编号" />
+        </FormItem>
+        <FormItem label="承兑人" required>
+          <SearchSelect
+            v-model:value="draftEditForm.acceptor_id"
+            :options="draftAcceptorOptions"
+            :disabled="!canUpdate"
+            placeholder="选择承兑人"
+            allow-clear
+            class="w-full"
+          />
+        </FormItem>
+        <FormItem label="核心企业" required>
+          <SearchSelect
+            v-model:value="draftEditForm.core_id"
+            :options="draftCoreOptions"
+            :disabled="!canUpdate"
+            placeholder="选择核心企业"
+            allow-clear
+            class="w-full"
+          />
+        </FormItem>
+        <FormItem label="金额" required>
+          <InputNumber v-model:value="draftEditForm.draft_amount" :disabled="!canUpdate" :min="0.01" :precision="2" class="w-full" />
+        </FormItem>
+        <FormItem label="出票日" required>
+          <DatePicker
+            v-model:value="draftEditForm.issue_date"
+            :disabled="!canUpdate"
+            class="w-full"
+            value-format="YYYY-MM-DD"
+          />
+        </FormItem>
+        <FormItem label="到期日" required>
+          <DatePicker
+            v-model:value="draftEditForm.due_date"
+            :disabled="!canUpdate"
+            class="w-full"
+            value-format="YYYY-MM-DD"
+          />
         </FormItem>
       </Form>
     </Modal>

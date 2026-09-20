@@ -241,6 +241,9 @@ export function deleteWarrantHouse(id: number, houseId: number) {
 export function addWarrantGround(id: number, data: Omit<GroundItem, 'id' | 'region_name'>) {
   return requestClient.post<{ id: number }>(`/warrants/${id}/grounds`, data);
 }
+export function updateWarrantGround(id: number, groundId: number, data: Omit<GroundItem, 'id' | 'region_name'>) {
+  return requestClient.put(`/warrants/${id}/grounds/${groundId}`, data);
+}
 export function deleteWarrantGround(id: number, groundId: number) {
   return requestClient.delete(`/warrants/${id}/grounds/${groundId}`);
 }
@@ -256,6 +259,9 @@ export function deleteWarrantConstruction(id: number, constructionId: number) {
 
 export function addWarrantReceiveExtend(id: number, data: { receive_unit: string }) {
   return requestClient.post<{ id: number }>(`/warrants/${id}/receive-extends`, data);
+}
+export function updateWarrantReceiveExtend(id: number, extendId: number, data: { receive_unit: string }) {
+  return requestClient.put(`/warrants/${id}/receive-extends/${extendId}`, data);
 }
 export function deleteWarrantReceiveExtend(id: number, extendId: number) {
   return requestClient.delete(`/warrants/${id}/receive-extends/${extendId}`);
@@ -301,6 +307,22 @@ export function addDraftExtend(
   },
 ) {
   return requestClient.post(`/warrants/${id}/draft-extends`, data);
+}
+
+export function updateDraftExtend(
+  id: number,
+  extendId: number,
+  data: {
+    draft_type?: number;
+    draft_num?: string;
+    acceptor_id?: number;
+    core_id?: number;
+    draft_amount?: number;
+    issue_date?: string;
+    due_date?: string;
+  },
+) {
+  return requestClient.patch(`/warrants/${id}/draft-extends/${extendId}`, data);
 }
 
 export function deleteDraftExtend(id: number, extendId: number) {
