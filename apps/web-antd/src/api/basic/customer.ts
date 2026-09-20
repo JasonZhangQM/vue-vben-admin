@@ -160,6 +160,11 @@ export function updateCustomer(id: number, data: object) {
   });
 }
 
+/** 删除客户（后端校验无关联项目/权证） */
+export function deleteCustomer(id: number) {
+  return requestClient.request(`/customers/${id}`, { method: 'DELETE' });
+}
+
 /** 批量管护移交(直接生效，≤200 个客户) */
 export function batchTransfer(data: {
   customer_ids: number[];

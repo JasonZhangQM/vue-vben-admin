@@ -40,6 +40,7 @@ import {
   addDirector,
   addExtend,
   addShareholder,
+  deleteCustomer,
   deleteCustomerContact,
   deleteDirector,
   deleteExtend,
@@ -73,7 +74,7 @@ import { dash, opt, toTreeData, filterTreeOption } from '#/utils/format';
 const dictStore = useDictStore();
 
 const props = defineProps<{ customerId: null | number }>();
-const emit = defineEmits<{ updated: [] }>();
+const emit = defineEmits<{ updated: []; deleted: [] }>();
 
 // 详情基本信息响应式列数(视口越宽列越多)
 const { columns: detailColumns } = useDetailColumns();
@@ -415,6 +416,14 @@ async function onDeleteExtend(record: any) {
   await refresh();
 }
 
+async function onDeleteCustomer() {
+  if (!detail.value?.id) return;
+  await deleteCustomer(detail.value.id);
+  message.success('客户已删除');
+  open.value = false;
+  emit('deleted');
+}
+
 // ===== 核心企业额度 =====
 const limitForm = reactive({
   credit_amount: 0,
@@ -612,6 +621,18 @@ async function saveTags() {
             <!-- 编辑按钮：必备，置于首位 -->
             <AccessControl :codes="['customer:update']" type="code">
               <Button size="small" type="primary" @click="openEdit">修改</Button>
+            </AccessControl>
+            <AccessControl :codes="['customer:delete']" type="code">
+              <Popconfirm
+                title="确认删除该客户？"
+                content="删除后客户的联系人/股东/董事等子数据将一并清除。如存在项目或权证关联，后端将拒绝删除。"
+                ok-text="删除"
+                cancel-text="取消"
+                :ok-button-props="{ danger: true }"
+                @confirm="onDeleteCustomer"
+              >
+                <Button danger size="small">删除</Button>
+              </Popconfirm>
             </AccessControl>
           </div>
         </template>

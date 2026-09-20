@@ -248,6 +248,11 @@ onMounted(async () => {
     <CreateDrawer v-model:open="createOpen" @created="(id) => { loadList(); openDetailById(id); }" />
 
     <!-- 客户详情抽屉 -->
-    <DetailDrawer v-model:open="detailOpen" :customer-id="detailCustomerId" @updated="loadList" />
+    <DetailDrawer
+      v-model:open="detailOpen"
+      :customer-id="detailCustomerId"
+      @updated="loadList"
+      @deleted="loadList"
+    />
   </Page>
 </template>
