@@ -24,7 +24,8 @@ export interface WarrantListItem {
 }
 
 export interface HouseItem {
-  house_app: number;
+  house_app?: null | string;
+  app_category?: null | number;
   house_area: number;
   house_build_year?: null | number;
   house_locate: string;

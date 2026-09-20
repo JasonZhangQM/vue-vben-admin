@@ -29,7 +29,7 @@ import { useDictStore } from '#/store/dict';
 
 import type { WarrantCreateParams } from '#/api/basic/warrant';
 
-import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/api/basic/dict';
+import { getAcceptorDict, getCoreDict, getCustomerDict } from '#/api/basic/dict';
 import { createWarrant } from '#/api/basic/warrant';
 import { useFormColumns } from '#/composables/useFormColumns';
 
@@ -121,7 +121,8 @@ interface OwnerRow {
 interface HouseRow {
   region_id: number | undefined;
   house_locate: string;
-  house_app: number | undefined;
+  house_app: string | undefined;
+  app_category: number | undefined;
   house_area: number | undefined;
   house_build_year: number | undefined;
   house_usage: number;
@@ -164,7 +165,7 @@ let rowKeySeq = 0;
 const nextKey = () => ++rowKeySeq;
 
 const emptyHouseRow = (): HouseRow => ({
-  region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined,
+  region_id: undefined, house_locate: '', house_app: undefined, app_category: undefined, house_area: undefined,
   house_build_year: undefined, house_usage: 10,
   _key: nextKey(),
 });
@@ -190,7 +191,8 @@ const draftRows = ref<DraftRow[]>([]);
 const houseColumns: TableColumnType[] = [
   { title: '行政区域', dataIndex: 'region_id', width: 180 },
   { title: '详细地址 *', dataIndex: 'house_locate' },
-  { title: '用途分类 *', dataIndex: 'house_app', width: 150 },
+  { title: '产权用途', dataIndex: 'house_app', width: 130 },
+  { title: '房产类型', dataIndex: 'app_category', width: 110 },
   { title: '面积㎡ *', dataIndex: 'house_area', width: 130 },
   { title: '使用现状', dataIndex: 'house_usage', width: 110 },
   { title: '建成年份', dataIndex: 'house_build_year', width: 110 },
@@ -267,7 +269,6 @@ const draftColumns: TableColumnType[] = [
 
 /** 远程客户搜索选项（外键关联模式：按需拉取，生产客户量可达千级） */
 const remoteCustomerOptions = ref<{ label: string; value: number }[]>([]);
-const houseAppOptions = ref<{ label: string; value: number }[]>([]);
 const acceptorOptions = ref<{ label: string; value: number }[]>([]);
 const coreOptions = ref<{ label: string; value: number }[]>([]);
 
@@ -289,9 +290,6 @@ async function onSearchCustomer(keyword: string) {
 }
 
 async function loadOptions() {
-  // 房产用途（后端已返回扁平列表）
-  const houseApps = await getHouseApps();
-  houseAppOptions.value = houseApps.map((i) => ({ label: i.name, value: i.id }));
   // 承兑人 / 核心企业 全量拉取，本地搜索
   const [acceptors, cores] = await Promise.all([getAcceptorDict(), getCoreDict()]);
   acceptorOptions.value = acceptors.map((c) => ({ label: c.name, value: c.id }));
@@ -375,22 +373,23 @@ function validateExt(): { ext?: object; houses?: object[]; grounds?: object[]; c
   switch (createForm.warrant_type) {
     case WARRANT_TYPE_HOUSE: {
       const hasAny = houseRows.value.some(
-        (h) => h.region_id || h.house_locate || h.house_app || h.house_area,
+        (h) => h.region_id || h.house_locate || h.house_area,
       );
-      const valid = houseRows.value.filter((h) => h.region_id && h.house_locate && h.house_app && h.house_area);
+      const valid = houseRows.value.filter((h) => h.region_id && h.house_locate && h.house_area);
       if (valid.length === 0) {
-        message.warning(hasAny ? '房产行信息不完整(行政区域 / 坐落 / 用途 / 面积均为必填)' : '房产权证需至少填写一行完整房产');
+        message.warning(hasAny ? '房产行信息不完整(行政区域 / 坐落 / 面积均为必填)' : '房产权证需至少填写一行完整房产');
         return null;
       }
-      if (hasAny && valid.length < houseRows.value.filter((h) => h.region_id || h.house_locate || h.house_app || h.house_area).length) {
-        message.warning('存在信息不完整的房产行(行政区域 / 坐落 / 用途 / 面积均为必填)，请补全或删除');
+      if (hasAny && valid.length < houseRows.value.filter((h) => h.region_id || h.house_locate || h.house_area).length) {
+        message.warning('存在信息不完整的房产行(行政区域 / 坐落 / 面积均为必填)，请补全或删除');
         return null;
       }
       return {
         houses: valid.map((h) => ({
           region_id: h.region_id,
           house_locate: h.house_locate,
-          house_app: h.house_app,
+          house_app: h.house_app?.trim() || null,
+          app_category: h.app_category ?? null,
           house_area: h.house_area,
           house_build_year: h.house_build_year ?? undefined,
           house_usage: h.house_usage,
@@ -720,11 +719,18 @@ onMounted(() => {
                 />
               </template>
               <template v-else-if="column.dataIndex === 'house_app'">
-                <SearchSelect
+                <Input
                   v-model:value="record.house_app"
-                  :options="houseAppOptions"
-                  :status="attempted && !record.house_app ? 'error' : undefined"
-                  placeholder="用途"
+                  placeholder="如：住宅"
+                  :maxlength="128"
+                  style="width: 100%"
+                />
+              </template>
+              <template v-else-if="column.dataIndex === 'app_category'">
+                <SearchSelect
+                  v-model:value="record.app_category"
+                  :options="dictStore.get('warrant.house_app_category')"
+                  placeholder="房产类型"
                   style="width: 100%"
                 />
               </template>

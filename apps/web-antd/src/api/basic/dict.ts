@@ -137,17 +137,6 @@ export function getEvaluateMethodsDict() {
   }>('/dicts/evaluate-methods');
 }
 
-/** 房产用途（扁平列表，按 category 排序） */
-export interface HouseAppItem {
-  id: number;
-  name: string;
-  category: number | null;
-  category_label: string | null;
-}
-export function getHouseApps() {
-  return requestClient.get<HouseAppItem[]>('/dicts/house-apps');
-}
-
 /** 评估公司字典 */
 export function getEvaluateCompanies() {
   return requestClient.get<EvaluateCompanyItem[]>('/dicts/evaluate-companies');

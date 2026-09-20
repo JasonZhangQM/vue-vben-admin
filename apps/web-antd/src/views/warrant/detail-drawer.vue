@@ -33,7 +33,7 @@ import CustomDetailDrawer from '#/views/custom/detail-drawer.vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
-import { getAcceptorDict, getCoreDict, getCustomerDict, getHouseApps } from '#/api/basic/dict';
+import { getAcceptorDict, getCoreDict, getCustomerDict } from '#/api/basic/dict';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store/dict';
 import { dash, opt } from '#/utils/format';
@@ -97,7 +97,6 @@ async function refresh() {
 async function load() {
   if (!props.warrantId) return;
   loading.value = true;
-  loadHouseAppOptions(); // 确保房产用途字典已加载(详情表格渲染依赖)
   try {
     detail.value = await getWarrantDetail(props.warrantId);
   } catch {
@@ -356,14 +355,6 @@ function createCustomerSearch() {
 }
 const ownerCustomerSearch = createCustomerSearch();
 
-/** 房产用途选项(后端已返回扁平列表) */
-const houseAppOptions = ref<{ label: string; value: number }[]>([]);
-async function loadHouseAppOptions() {
-  if (houseAppOptions.value.length > 0) return;
-  const items = await getHouseApps();
-  houseAppOptions.value = items.map((i) => ({ label: i.name, value: i.id }));
-}
-
 // ===== 产权人添加 =====
 const addOwnerForm = reactive({
   owner_id: undefined as number | undefined,
@@ -401,7 +392,8 @@ const houseEditForm = reactive({
   id: 0,
   region_id: undefined as number | undefined,
   house_locate: '',
-  house_app: undefined as number | undefined,
+  house_app: undefined as string | undefined,
+  app_category: undefined as number | undefined,
   house_area: undefined as number | undefined,
   house_build_year: undefined as number | undefined,
   house_usage: 10 as number,
@@ -411,7 +403,8 @@ function openHouseEdit(record: any) {
     id: record.id,
     region_id: record.region_id,
     house_locate: record.house_locate ?? '',
-    house_app: record.house_app,
+    house_app: record.house_app ?? undefined,
+    app_category: record.app_category ?? undefined,
     house_area: record.house_area,
     house_build_year: record.house_build_year ?? undefined,
     house_usage: record.house_usage ?? 10,
@@ -420,9 +413,9 @@ function openHouseEdit(record: any) {
 }
 async function submitHouseEdit() {
   if (!detail.value) return;
-  const { region_id, house_locate, house_app, house_area } = houseEditForm;
-  if (!region_id || !house_locate.trim() || !house_app || !house_area) {
-    message.warning('请填写行政区域、详细地址、用途和面积');
+  const { region_id, house_locate, house_app, app_category, house_area } = houseEditForm;
+  if (!region_id || !house_locate.trim() || !house_area) {
+    message.warning('请填写行政区域、详细地址和面积');
     return;
   }
   houseEditLoading.value = true;
@@ -430,7 +423,8 @@ async function submitHouseEdit() {
     await updateWarrantHouse(detail.value.id, houseEditForm.id, {
       region_id,
       house_locate: house_locate.trim(),
-      house_app,
+      house_app: house_app?.trim() || null,
+      app_category: app_category ?? null,
       house_area,
       house_build_year: houseEditForm.house_build_year,
       house_usage: houseEditForm.house_usage,
@@ -447,25 +441,28 @@ async function submitHouseEdit() {
 const addHouseForm = reactive({
   region_id: undefined as number | undefined,
   house_locate: '',
-  house_app: undefined as number | undefined,
+  house_app: undefined as string | undefined,
+  app_category: undefined as number | undefined,
   house_area: undefined as number | undefined,
   house_build_year: undefined as number | undefined,
   house_usage: 10 as number,
 });
 async function submitAddHouse() {
   if (!detail.value) return;
-  const { region_id, house_locate, house_app, house_area } = addHouseForm;
-  if (!region_id || !house_locate.trim() || !house_app || !house_area) {
-    message.warning('请填写行政区域、详细地址、用途和面积');
+  const { region_id, house_locate, house_app, app_category, house_area } = addHouseForm;
+  if (!region_id || !house_locate.trim() || !house_area) {
+    message.warning('请填写行政区域、详细地址和面积');
     return;
   }
   await addWarrantHouse(detail.value.id, {
     region_id, house_locate: house_locate.trim(),
-    house_app, house_area,
+    house_app: house_app?.trim() || null,
+    app_category: app_category ?? null,
+    house_area,
     house_build_year: addHouseForm.house_build_year,
     house_usage: addHouseForm.house_usage,
   });
-  Object.assign(addHouseForm, { region_id: undefined, house_locate: '', house_app: undefined, house_area: undefined, house_build_year: undefined, house_usage: 10 });
+  Object.assign(addHouseForm, { region_id: undefined, house_locate: '', house_app: undefined, app_category: undefined, house_area: undefined, house_build_year: undefined, house_usage: 10 });
   message.success('房产已添加');
   await refresh();
 }
@@ -734,14 +731,13 @@ async function onDeleteConstruction(record: any) {
             <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
             <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 280px" />
             <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 110px" />
+            <Input v-model:value="addHouseForm.house_app" placeholder="产权用途" maxlength="128" style="width: 130px" />
             <Select
-              v-model:value="addHouseForm.house_app"
-              :options="houseAppOptions"
-              placeholder="用途 *"
-              style="width: 130px"
-              show-search
-              option-filter-prop="label"
-              @focus="loadHouseAppOptions"
+              v-model:value="addHouseForm.app_category"
+              :options="dictStore.get('warrant.house_app_category')"
+              placeholder="房产类型"
+              allow-clear
+              style="width: 100px"
             />
             <Select
               v-model:value="addHouseForm.house_usage"
@@ -759,7 +755,8 @@ async function onDeleteConstruction(record: any) {
               { title: '行政区域', dataIndex: 'region_name', width: 180 },
               { title: '详细地址', dataIndex: 'house_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'house_area', width: 90 },
-              { title: '用途', dataIndex: 'house_app', width: 90 },
+              { title: '产权用途', dataIndex: 'house_app', width: 100 },
+              { title: '房产类型', dataIndex: 'app_category', width: 80 },
               { title: '使用现状', dataIndex: 'house_usage', width: 80 },
               { title: '建成年份', dataIndex: 'house_build_year', width: 90 },
               { title: '操作', key: 'op', width: 130, align: 'center' },
@@ -776,7 +773,10 @@ async function onDeleteConstruction(record: any) {
                 {{ record.region_name || '—' }}
               </template>
               <template v-else-if="column.dataIndex === 'house_app'">
-                {{ houseAppOptions.find((o) => o.value === record.house_app)?.label ?? '—' }}
+                {{ record.house_app || '—' }}
+              </template>
+              <template v-else-if="column.dataIndex === 'app_category'">
+                {{ dictStore.labelOf('warrant.house_app_category', record.app_category) }}
               </template>
               <template v-else-if="column.dataIndex === 'house_usage'">
                 {{ dictStore.labelOf('warrant.house_usage', record.house_usage) }}
@@ -1198,15 +1198,16 @@ async function onDeleteConstruction(record: any) {
         <FormItem label="面积(㎡)" required>
           <InputNumber v-model:value="houseEditForm.house_area" :disabled="!canUpdate" :min="0.01" :precision="2" class="w-full" />
         </FormItem>
-        <FormItem label="用途" required>
+        <FormItem label="产权用途">
+          <Input v-model:value="houseEditForm.house_app" :disabled="!canUpdate" :maxlength="128" placeholder="如：住宅" />
+        </FormItem>
+        <FormItem label="房产类型">
           <Select
-            v-model:value="houseEditForm.house_app"
-            :options="houseAppOptions"
+            v-model:value="houseEditForm.app_category"
+            :options="dictStore.get('warrant.house_app_category')"
             :disabled="!canUpdate"
+            allow-clear
             class="w-full"
-            show-search
-            option-filter-prop="label"
-            @focus="loadHouseAppOptions"
           />
         </FormItem>
         <FormItem label="使用现状">
