@@ -193,7 +193,7 @@ const houseColumns: TableColumnType[] = [
   { title: '详细地址 *', dataIndex: 'house_locate' },
   { title: '用途分类 *', dataIndex: 'house_app', width: 150 },
   { title: '面积㎡ *', dataIndex: 'house_area', width: 130 },
-  { title: '性质', dataIndex: 'house_usage', width: 110 },
+  { title: '使用现状', dataIndex: 'house_usage', width: 110 },
   { title: '建成年份', dataIndex: 'house_build_year', width: 110 },
   { title: '操作', dataIndex: '_op', width: 60 },
 ];

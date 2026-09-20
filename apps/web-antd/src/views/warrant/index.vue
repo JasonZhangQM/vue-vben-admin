@@ -121,9 +121,7 @@ function openDetail(row: any) {
   detailOpen.value = true;
 }
 
-/** 新增权证保存后：刷新列表并自动打开刚创建的权证详情抽屉 */
-async function onCreated(id: number) {
-  await loadList();
+function openDetailById(id: number) {
   detailWarrantId.value = id;
   detailOpen.value = true;
 }
@@ -358,7 +356,7 @@ onMounted(() => {
     </Card>
 
     <!-- 新建权证抽屉(分区 Card + 可编辑表格 + 校验，见 create-drawer.vue) -->
-    <CreateDrawer v-model:open="createOpen" @created="onCreated" />
+    <CreateDrawer v-model:open="createOpen" @created="(id) => { loadList(); openDetailById(id); }" />
 
     <!-- 权证详情抽屉 -->
     <DetailDrawer v-model:open="detailOpen" :warrant-id="detailWarrantId" @updated="loadList" />

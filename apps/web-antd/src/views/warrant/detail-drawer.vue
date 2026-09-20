@@ -96,6 +96,7 @@ async function refresh() {
 async function load() {
   if (!props.warrantId) return;
   loading.value = true;
+  loadHouseAppOptions(); // 确保房产用途字典已加载(详情表格渲染依赖)
   try {
     detail.value = await getWarrantDetail(props.warrantId);
   } catch {
@@ -689,6 +690,7 @@ async function onDeleteConstruction(record: any) {
           <div class="mb-2 flex flex-wrap items-center gap-2">
             <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
             <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 280px" />
+            <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 110px" />
             <Select
               v-model:value="addHouseForm.house_app"
               :options="houseAppOptions"
@@ -698,15 +700,14 @@ async function onDeleteConstruction(record: any) {
               option-filter-prop="label"
               @focus="loadHouseAppOptions"
             />
-            <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 110px" />
-            <Input v-model:value="addHouseForm.house_name" placeholder="建筑名称(可空)" style="width: 110px" />
-            <InputNumber v-model:value="addHouseForm.house_build_year" :min="1900" :max="2100" :precision="0" placeholder="建成年份" style="width: 90px" />
             <Select
               v-model:value="addHouseForm.house_usage"
               :options="dictStore.get('warrant.house_usage')"
-              placeholder="使用状态"
+              placeholder="使用现状"
               style="width: 100px"
             />
+            <InputNumber v-model:value="addHouseForm.house_build_year" :min="1900" :max="2100" :precision="0" placeholder="建成年份" style="width: 90px" />
+            <Input v-model:value="addHouseForm.house_name" placeholder="建筑名称(可空)" style="width: 110px" />
             <AccessControl :codes="['warrant:update']" type="code">
               <Button size="small" type="primary" @click="submitAddHouse">添加</Button>
             </AccessControl>
@@ -716,8 +717,10 @@ async function onDeleteConstruction(record: any) {
               { title: '行政区域', dataIndex: 'region_name', width: 180 },
               { title: '详细地址', dataIndex: 'house_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'house_area', width: 90 },
-              { title: '用途', dataIndex: 'house_usage', width: 70 },
+              { title: '用途', dataIndex: 'house_app', width: 90 },
+              { title: '使用现状', dataIndex: 'house_usage', width: 80 },
               { title: '建成年份', dataIndex: 'house_build_year', width: 90 },
+              { title: '楼盘名', dataIndex: 'house_name', width: 120 },
               { title: '操作', key: 'op', width: 80, align: 'center' },
             ]"
             :data-source="detail.houses"
@@ -731,8 +734,14 @@ async function onDeleteConstruction(record: any) {
               <template v-if="column.dataIndex === 'region_name'">
                 {{ record.region_name || '—' }}
               </template>
+              <template v-else-if="column.dataIndex === 'house_app'">
+                {{ houseAppOptions.find((o) => o.value === record.house_app)?.label ?? '—' }}
+              </template>
               <template v-else-if="column.dataIndex === 'house_usage'">
                 {{ dictStore.labelOf('warrant.house_usage', record.house_usage) }}
+              </template>
+              <template v-else-if="column.dataIndex === 'house_name'">
+                {{ record.house_name || '—' }}
               </template>
               <template v-else-if="column.dataIndex === 'house_build_year'">
                 {{ record.house_build_year ?? '—' }}
