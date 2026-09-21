@@ -97,8 +97,14 @@ export function updateSummary(articleId: number, data: Record<string, unknown>) 
 
 // ============ 专家库 ============
 
-export function getExpertList() {
-  return requestClient.get<PageResult<ExpertItem>>('/review-experts');
+export function getExpertList(params?: {
+  page?: number;
+  page_size?: number;
+  expert_type?: number;
+  category_id?: number;
+  keyword?: string;
+}) {
+  return requestClient.get<PageResult<ExpertItem>>('/review-experts', { params });
 }
 
 export function createExpert(data: Record<string, unknown>) {

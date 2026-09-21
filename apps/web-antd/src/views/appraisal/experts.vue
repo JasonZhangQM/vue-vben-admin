@@ -33,6 +33,16 @@ const list = ref<ExpertItem[]>([]);
 const loading = ref(false);
 const categoryOpts = ref<{ label: string; value: number }[]>([]);
 
+const expertTypeOpts = [
+  { label: '内部专家', value: 10 },
+  { label: '外部专家', value: 20 },
+];
+
+const query = reactive({
+  keyword: '' as string,
+  expert_type: undefined as number | undefined,
+});
+
 const open = ref(false);
 const editingId = ref<number | null>(null);
 const form = reactive({
@@ -54,10 +64,20 @@ onMounted(async () => {
 async function loadList() {
   loading.value = true;
   try {
-    const data = await getExpertList();
+    const data = await getExpertList({
+      keyword: query.keyword || undefined,
+      expert_type: query.expert_type,
+    });
     list.value = data.items ?? [];
   }
   finally { loading.value = false; }
+}
+
+function onQuery() { loadList(); }
+function onReset() {
+  query.keyword = '';
+  query.expert_type = undefined;
+  loadList();
 }
 
 async function onSubmit() {
@@ -104,12 +124,40 @@ const columns = computed<TableColumnType[]>(() => [
 
 <template>
   <Page>
-    <Card size="small">
-      <template #extra>
+    <Card size="small" class="mb-3">
+      <Form layout="inline" :model="query" class="flex flex-wrap items-center gap-3">
+        <FormItem label="关键字">
+          <Input
+            v-model:value="query.keyword"
+            placeholder="姓名 / 单位"
+            allow-clear
+            style="width: 200px"
+            @press-enter="onQuery"
+          />
+        </FormItem>
+        <FormItem label="专家类型">
+          <Select
+            v-model:value="query.expert_type"
+            :options="expertTypeOpts"
+            placeholder="全部"
+            allow-clear
+            style="width: 140px"
+          />
+        </FormItem>
+        <FormItem>
+          <Space>
+            <Button type="primary" @click="onQuery">查询</Button>
+            <Button @click="onReset">重置</Button>
+          </Space>
+        </FormItem>
+        <div class="flex-1" />
         <AccessControl :codes="['appraisal:expert_create']" type="code">
           <Button type="primary" @click="onAdd">新增专家</Button>
         </AccessControl>
-      </template>
+      </Form>
+    </Card>
+
+    <Card size="small">
       <Table
         size="small"
         row-key="id"
