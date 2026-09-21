@@ -251,6 +251,9 @@ export function deleteWarrantGround(id: number, groundId: number) {
 export function addWarrantConstruction(id: number, data: Omit<ConstructionItem, 'id' | 'region_name'>) {
   return requestClient.post<{ id: number }>(`/warrants/${id}/constructions`, data);
 }
+export function updateWarrantConstruction(id: number, constructionId: number, data: Omit<ConstructionItem, 'id' | 'region_name'>) {
+  return requestClient.put(`/warrants/${id}/constructions/${constructionId}`, data);
+}
 export function deleteWarrantConstruction(id: number, constructionId: number) {
   return requestClient.delete(`/warrants/${id}/constructions/${constructionId}`);
 }

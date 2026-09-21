@@ -57,6 +57,7 @@ import {
   getWarrantDetail,
   updateDraftExtend,
   updateWarrant,
+  updateWarrantConstruction,
   updateWarrantGround,
   updateWarrantHouse,
   updateWarrantOwner,
@@ -253,6 +254,51 @@ async function submitStockEdit() {
     await refresh();
   } finally {
     stockEditLoading.value = false;
+  }
+}
+
+// ===== 车辆编辑(整体替换) =====
+const vehicleEditVisible = ref(false);
+const vehicleEditLoading = ref(false);
+const vehicleEditForm = reactive({
+  frame_num: '',
+  plate_num: '',
+  vehicle_brand: '',
+  remark: '',
+});
+
+function openVehicleEdit() {
+  if (!detail.value?.vehicle) return;
+  const v = detail.value.vehicle;
+  vehicleEditForm.frame_num = v.frame_num ?? '';
+  vehicleEditForm.plate_num = v.plate_num ?? '';
+  vehicleEditForm.vehicle_brand = v.vehicle_brand ?? '';
+  vehicleEditForm.remark = v.remark ?? '';
+  vehicleEditVisible.value = true;
+}
+
+async function submitVehicleEdit() {
+  if (!detail.value) return;
+  const { frame_num, plate_num, vehicle_brand } = vehicleEditForm;
+  if (!frame_num.trim() || !plate_num.trim() || !vehicle_brand.trim()) {
+    message.warning('请填写车架号、车牌号和品牌型号');
+    return;
+  }
+  vehicleEditLoading.value = true;
+  try {
+    await updateWarrantTypeDetail(detail.value.id, {
+      vehicle: {
+        frame_num: frame_num.trim(),
+        plate_num: plate_num.trim(),
+        vehicle_brand: vehicle_brand.trim(),
+        remark: opt(vehicleEditForm.remark),
+      },
+    });
+    message.success('车辆信息已更新');
+    vehicleEditVisible.value = false;
+    await refresh();
+  } finally {
+    vehicleEditLoading.value = false;
   }
 }
 
@@ -660,6 +706,49 @@ async function submitGroundEdit() {
   }
 }
 
+// ===== 在建工程编辑 =====
+const constructionEditVisible = ref(false);
+const constructionEditLoading = ref(false);
+const constructionEditForm = reactive({
+  id: 0,
+  region_id: undefined as number | undefined,
+  construct_locate: '',
+  construct_app: '',
+  construct_area: undefined as number | undefined,
+});
+function openConstructionEdit(record: any) {
+  Object.assign(constructionEditForm, {
+    id: record.id,
+    region_id: record.region_id,
+    construct_locate: record.construct_locate ?? '',
+    construct_app: record.construct_app ?? '',
+    construct_area: record.construct_area,
+  });
+  constructionEditVisible.value = true;
+}
+async function submitConstructionEdit() {
+  if (!detail.value) return;
+  const { region_id, construct_locate, construct_app, construct_area } = constructionEditForm;
+  if (!region_id || !construct_locate.trim() || !construct_app.trim() || !construct_area) {
+    message.warning('请填写行政区域、详细地址、用途和面积');
+    return;
+  }
+  constructionEditLoading.value = true;
+  try {
+    await updateWarrantConstruction(detail.value.id, constructionEditForm.id, {
+      region_id,
+      construct_locate: construct_locate.trim(),
+      construct_app: construct_app.trim(),
+      construct_area,
+    });
+    message.success('在建工程已更新');
+    constructionEditVisible.value = false;
+    await refresh();
+  } finally {
+    constructionEditLoading.value = false;
+  }
+}
+
 // ===== 应收单位编辑 =====
 const receiveEditVisible = ref(false);
 const receiveEditLoading = ref(false);
@@ -765,9 +854,9 @@ async function submitDraftEdit() {
           <!-- 基础标识 -->
           <DescriptionsItem label="权证号">{{ dash(detail.warrant_num) }}</DescriptionsItem>
           <DescriptionsItem label="类型">{{ dash((detail as any).warrant_type_display) }}</DescriptionsItem>
-          <DescriptionsItem label="产权人">
-            {{ (detail.owner_names as string[])?.join('、') || '—' }}
-          </DescriptionsItem>
+
+          <!-- 备注 + 审计 -->
+          <DescriptionsItem label="备注">{{ dash(detail.remark) }}</DescriptionsItem>
 
           <!-- 状态 -->
           <DescriptionsItem label="权证状态">
@@ -775,9 +864,6 @@ async function submitDraftEdit() {
               {{ dash((detail as any).warrant_state_display) }}
             </Tag>
           </DescriptionsItem>
-
-          <!-- 备注 + 审计 -->
-          <DescriptionsItem label="备注">{{ dash(detail.remark) }}</DescriptionsItem>
           <DescriptionsItem label="登记人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
           <DescriptionsItem label="登记时间">{{ dash(detail.created_at) }}</DescriptionsItem>
         </Descriptions>
@@ -994,7 +1080,7 @@ async function submitDraftEdit() {
               { title: '详细地址', dataIndex: 'construct_locate', ellipsis: true },
               { title: '面积(㎡)', dataIndex: 'construct_area', width: 90 },
               { title: '用途', dataIndex: 'construct_app' },
-              { title: '操作', key: 'op', width: 80, align: 'center' },
+              { title: '操作', key: 'op', width: 120, align: 'center' },
             ]"
             :data-source="detail.constructions"
             :pagination="false"
@@ -1012,6 +1098,7 @@ async function submitDraftEdit() {
               </template>
               <template v-else-if="column.key === 'op'">
                 <AccessControl :codes="['warrant:update']" type="code">
+                  <Button size="small" type="link" @click="openConstructionEdit(record)">修改</Button>
                   <Popconfirm @confirm="() => onDeleteConstruction(record)">
                     <Button danger size="small" type="link">删除</Button>
                   </Popconfirm>
@@ -1149,12 +1236,19 @@ async function submitDraftEdit() {
 
         <!-- 车辆(type=41) -->
         <TabPane v-if="detail.vehicle" key="vehicle" tab="车辆信息">
-          <Descriptions :column="2" size="small" bordered>
-            <DescriptionsItem label="车架号">{{ dash(detail.vehicle.frame_num) }}</DescriptionsItem>
-            <DescriptionsItem label="车牌号">{{ dash(detail.vehicle.plate_num) }}</DescriptionsItem>
-            <DescriptionsItem label="品牌型号" :span="2">{{ dash(detail.vehicle.vehicle_brand) }}</DescriptionsItem>
-            <DescriptionsItem label="备注" :span="2">{{ dash(detail.vehicle.remark) }}</DescriptionsItem>
-          </Descriptions>
+          <Card size="small" title="车辆信息">
+            <template #extra>
+              <AccessControl :codes="['warrant:update']" type="code">
+                <Button size="small" type="primary" @click="openVehicleEdit">修改</Button>
+              </AccessControl>
+            </template>
+            <Descriptions :column="4" size="small">
+              <DescriptionsItem label="车架号">{{ dash(detail.vehicle.frame_num) }}</DescriptionsItem>
+              <DescriptionsItem label="车牌号">{{ dash(detail.vehicle.plate_num) }}</DescriptionsItem>
+              <DescriptionsItem label="品牌型号">{{ dash(detail.vehicle.vehicle_brand) }}</DescriptionsItem>
+              <DescriptionsItem label="备注">{{ dash(detail.vehicle.remark) }}</DescriptionsItem>
+            </Descriptions>
+          </Card>
         </TabPane>
 
         <!-- 动产(type=51) -->
@@ -1390,6 +1484,31 @@ async function submitDraftEdit() {
       </Form>
     </Modal>
 
+    <!-- 在建工程编辑 Modal -->
+    <Modal
+      v-model:open="constructionEditVisible"
+      :confirm-loading="constructionEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="修改在建工程"
+      @ok="submitConstructionEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="行政区域" required>
+          <RegionTreeSelect v-model:value="constructionEditForm.region_id" :disabled="!canUpdate" allow-clear class="w-full" />
+        </FormItem>
+        <FormItem label="详细地址" required>
+          <Input v-model:value="constructionEditForm.construct_locate" :disabled="!canUpdate" :maxlength="255" />
+        </FormItem>
+        <FormItem label="工程用途" required>
+          <Input v-model:value="constructionEditForm.construct_app" :disabled="!canUpdate" :maxlength="128" />
+        </FormItem>
+        <FormItem label="面积(㎡)" required>
+          <InputNumber v-model:value="constructionEditForm.construct_area" :disabled="!canUpdate" :min="0.01" :precision="2" class="w-full" />
+        </FormItem>
+      </Form>
+    </Modal>
+
     <!-- 应收单位编辑 Modal -->
     <Modal
       v-model:open="receiveEditVisible"
@@ -1499,6 +1618,32 @@ async function submitDraftEdit() {
         </FormItem>
       </Form>
     </Modal>
+
+    <!-- 车辆编辑 Modal -->
+    <Modal
+      v-model:open="vehicleEditVisible"
+      :confirm-loading="vehicleEditLoading"
+      :ok-button-props="{ disabled: !canUpdate }"
+      title="修改车辆信息"
+      @ok="submitVehicleEdit"
+    >
+      <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
+      <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="车架号" required>
+          <Input v-model:value="vehicleEditForm.frame_num" :disabled="!canUpdate" :maxlength="64" />
+        </FormItem>
+        <FormItem label="车牌号" required>
+          <Input v-model:value="vehicleEditForm.plate_num" :disabled="!canUpdate" :maxlength="32" />
+        </FormItem>
+        <FormItem label="品牌型号" required>
+          <Input v-model:value="vehicleEditForm.vehicle_brand" :disabled="!canUpdate" :maxlength="64" />
+        </FormItem>
+        <FormItem label="备注">
+          <Input v-model:value="vehicleEditForm.remark" :disabled="!canUpdate" :maxlength="255" />
+        </FormItem>
+      </Form>
+    </Modal>
+
     <!-- 动产编辑 Modal -->
     <Modal
       v-model:open="chattelEditVisible"

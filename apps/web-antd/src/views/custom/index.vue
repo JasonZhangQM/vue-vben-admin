@@ -212,7 +212,7 @@ onMounted(async () => {
             <a @click="openDetail(record)">{{ record.name }}</a>
           </template>
           <template v-else-if="column.dataIndex === 'genre'">
-            {{ dictStore.labelOf('customer.genre', record.genre) }}
+            {{ record.genre_display ?? '—' }}
           </template>
           <template v-else-if="column.dataIndex === 'license_num'">
             {{ dash(record.license_num) }}
@@ -222,7 +222,7 @@ onMounted(async () => {
           </template>
           <template v-else-if="column.dataIndex === 'classification'">
             <Tag :color="classificationColor(record.classification)">
-              {{ dictStore.labelOf('customer.classification', record.classification) }}
+              {{ record.classification_display ?? '—' }}
             </Tag>
           </template>
           <template v-else-if="column.dataIndex === 'managementor_name'">
