@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import type { ExpertItem } from '#/api/basic/appraisal';
 import type { TableColumnType } from 'ant-design-vue';
 
@@ -53,7 +53,10 @@ onMounted(async () => {
 
 async function loadList() {
   loading.value = true;
-  try { list.value = await getExpertList(); }
+  try {
+    const data = await getExpertList();
+    list.value = data.items ?? [];
+  }
   finally { loading.value = false; }
 }
 

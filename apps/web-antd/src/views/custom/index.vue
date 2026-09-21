@@ -179,7 +179,7 @@ onMounted(async () => {
         <Button @click="resetQuery">重置</Button>
         <div class="flex-1" />
         <AccessControl :codes="['customer:create']" type="code">
-          <Button type="primary" @click="openCreate">新增客户</Button>
+          <Button type="primary" @click="openCreate">新建</Button>
         </AccessControl>
       </div>
     </Card>

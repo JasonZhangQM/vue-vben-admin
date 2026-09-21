@@ -1,4 +1,4 @@
-﻿/** 评审管理 API：评审会 / 专家 / 评委意见 / 补调 / 纪要。 */
+/** 评审管理 API：评审会 / 专家 / 评委意见 / 补调 / 纪要。 */
 
 import type { PageResult } from '#/api/system/user';
 
@@ -98,7 +98,7 @@ export function updateSummary(articleId: number, data: Record<string, unknown>) 
 // ============ 专家库 ============
 
 export function getExpertList() {
-  return requestClient.get<ExpertItem[]>('/review-experts');
+  return requestClient.get<PageResult<ExpertItem>>('/review-experts');
 }
 
 export function createExpert(data: Record<string, unknown>) {

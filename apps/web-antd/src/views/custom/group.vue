@@ -411,7 +411,7 @@ onMounted(() => {
         </Button>
         <div class="flex-1" />
         <AccessControl :codes="['customer:group_edit']" type="code">
-          <Button type="primary" @click="openCreate">新增集团</Button>
+          <Button type="primary" @click="openCreate">新建</Button>
         </AccessControl>
       </div>
     </Card>
@@ -455,7 +455,7 @@ onMounted(() => {
     <Modal
       v-model:open="createVisible"
       :confirm-loading="createLoading"
-      title="新增集团"
+      title="新建集团"
       @ok="submitCreate"
     >
       <Form :label-col="{ span: 5 }" :model="createForm" :wrapper-col="{ span: 17 }">

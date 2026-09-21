@@ -227,7 +227,7 @@ onMounted(loadList);
   <Page>
     <!-- 筛选卡 -->
     <Card size="small" class="mb-3">
-      <Form layout="inline" :model="query" class="flex-wrap gap-y-2">
+      <Form layout="inline" :model="query" class="flex flex-wrap items-center gap-3">
         <FormItem label="年份">
           <InputNumber
             v-model:value="query.year"
@@ -261,19 +261,15 @@ onMounted(loadList);
             <Button @click="onReset">重置</Button>
           </Space>
         </FormItem>
+        <div class="flex-1" />
+        <AccessControl :codes="['appraisal:create']" type="code">
+          <Button type="primary" @click="openCreate">新建</Button>
+        </AccessControl>
       </Form>
     </Card>
 
     <!-- 表格 -->
     <Card size="small">
-      <template #extra>
-        <Space>
-          <AccessControl :codes="['appraisal:create']" type="code">
-            <Button type="primary" @click="openCreate">新建评审会</Button>
-          </AccessControl>
-        </Space>
-      </template>
-
       <Table
         size="small"
         row-key="id"
