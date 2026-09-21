@@ -129,20 +129,20 @@ function onReset() {
 }
 
 const columns = computed<TableColumnType[]>(() => [
-  { title: '项目编号', dataIndex: 'article_num', width: 160 },
+  { title: '项目编号', dataIndex: 'article_num', width: 120 },
   { title: '状态', dataIndex: 'article_state', width: 100 },
   { title: '客户名称', dataIndex: 'customer_name' },
   { title: '产品', dataIndex: 'product_name', width: 120 },
   { title: '续贷额(元)', dataIndex: 'renewal', width: 110, align: 'right' },
   { title: '新增额(元)', dataIndex: 'augment', width: 120, align: 'right' },
   { title: '授信期限', dataIndex: 'credit_term_display', width: 100 },
-  { title: '项目经理', dataIndex: 'director_name', width: 110 },
-  { title: '项目助理', dataIndex: 'assistant_name', width: 110 },
-  { title: '风控经理', dataIndex: 'control_name', width: 110 },
+  { title: '项目经理', dataIndex: 'director_name', width: 80 },
+  { title: '项目助理', dataIndex: 'assistant_name', width: 80 },
+  { title: '风控经理', dataIndex: 'control_name', width: 80 },
   { title: '余额', dataIndex: 'balance', width: 100, align: 'right' },
   { title: '签批日期', dataIndex: 'sign_date', width: 120 },
   { title: '创建时间', dataIndex: 'created_at', width: 170, sorter: false, defaultSortOrder: 'descend' },
-  { title: '创建人', dataIndex: 'created_by_name', width: 100, fixed: 'right' },
+  { title: '创建人', dataIndex: 'created_by_name', width: 100 },
 ]);
 
 function stateColor(state: number) {

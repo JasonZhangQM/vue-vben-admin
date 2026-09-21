@@ -30,7 +30,6 @@ import { dash } from '#/utils/format';
 import { warrantStateColor } from './constants';
 
 import { getUserList } from '#/api/system/user';
-import { getCustomerDict } from '#/api/basic/dict';
 import {
   batchCancel,
   batchStorage,
@@ -54,7 +53,7 @@ const query = reactive({
   q: '',
   warrant_type: undefined as number | undefined,
   warrant_state: undefined as number | undefined,
-  owner_id: undefined as number | undefined,
+  owner_name: '',
 });
 
 // 表格勾选(批量操作用)
@@ -82,30 +81,9 @@ function resetQuery() {
   query.q = '';
   query.warrant_type = undefined;
   query.warrant_state = undefined;
-  query.owner_id = undefined;
-  ownerOptions.value = []; // 清远程搜索下拉缓存
+  query.owner_name = '';
   query.page = 1;
   loadList();
-}
-
-// 产权人远程搜索(对接后端 list_warrants 的 owner_id 筛选)
-const ownerOptions = ref<{ label: string; value: number }[]>([]);
-const ownerLoading = ref(false);
-async function onSearchOwner(keyword: string) {
-  if (!keyword) {
-    ownerOptions.value = [];
-    return;
-  }
-  ownerLoading.value = true;
-  try {
-    const { items } = await getCustomerDict({ q: keyword.trim(), page: 1, page_size: 30 });
-    ownerOptions.value = items.map((c) => ({
-      label: c.name,
-      value: c.id,
-    }));
-  } finally {
-    ownerLoading.value = false;
-  }
 }
 
 // ================= 详情 =================
@@ -276,15 +254,12 @@ onMounted(() => {
           placeholder="状态"
           style="width: 120px"
         />
-        <SearchSelect
-          v-model:value="query.owner_id"
-          :options="ownerOptions"
-          :loading="ownerLoading"
+        <Input
+          v-model:value="query.owner_name"
           allow-clear
           placeholder="产权人"
-          remote
-          style="min-width: 240px; width: fit-content"
-          @search="onSearchOwner"
+          style="min-width: 160px; width: fit-content"
+          @press-enter="() => { query.page = 1; loadList(); }"
         />
         <Button type="primary" @click="() => { query.page = 1; loadList(); }">查询</Button>
         <Button @click="resetQuery">重置</Button>

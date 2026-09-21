@@ -119,7 +119,7 @@ export interface WarrantDetail {
 }
 
 export interface WarrantListParams {
-  owner_id?: number;
+  owner_name?: string;
   page?: number;
   page_size?: number;
   q?: string;

@@ -181,6 +181,8 @@ const editPersonalSpouseOptions = ref<{ label: string; value: number }[]>([]);
 
 async function openEditPersonal() {
   if (!detail.value?.personal) return;
+  // 确保字典已加载（幂等，启动时通常已拉好，但组件可能比字典 store 挂载早）
+  await dictStore.loadAll();
   editPersonalForm.marital_status = detail.value.personal.marital_status;
   editPersonalForm.household_nature = detail.value.personal.household_nature;
   editPersonalForm.spouse_id = detail.value.personal.spouse?.id;
@@ -1220,6 +1222,7 @@ async function saveTags() {
       :confirm-loading="editPersonalLoading"
       ok-text="保存"
       cancel-text="取消"
+      destroy-on-close
       @ok="submitEditPersonal"
     >
       <Form :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
