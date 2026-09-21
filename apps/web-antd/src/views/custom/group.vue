@@ -272,12 +272,12 @@ async function loadMembers(groupId: number) {
 }
 
 const memberColumns: TableColumnType[] = [
-  { title: '客户名称', dataIndex: 'name' }, // 成员属客户模块维护，此处仅展示
-  { title: '简称', dataIndex: 'short_name', ellipsis: true },
-  { title: '五级分类', dataIndex: 'classification', width: 100, ellipsis: true },
-  { title: '管护人', dataIndex: 'managementor_name', ellipsis: true },
-  { title: '授信额度', dataIndex: 'credit_amount', width: 130, ellipsis: true },
-  { title: '在保金额', dataIndex: 'amount', width: 130, ellipsis: true },
+  { title: '客户名称', dataIndex: 'name', width: 220, ellipsis: true },
+  { title: '简称', dataIndex: 'short_name', width: 110, ellipsis: true },
+  { title: '五级分类', dataIndex: 'classification', width: 90, ellipsis: true },
+  { title: '管护人', dataIndex: 'managementor_name', width: 90, ellipsis: true },
+  { title: '授信额度', dataIndex: 'credit_amount', width: 120, align: 'right' },
+  { title: '在保金额', dataIndex: 'amount', width: 120, align: 'right' },
   { title: '操作', key: 'op', width: 70 },
 ];
 
@@ -551,6 +551,7 @@ onMounted(() => {
               :columns="memberColumns"
               :data-source="members"
               :loading="membersLoading"
+              :scroll="{ x: 'max-content' }"
               :pagination="{
                 current: membersQuery.page,
                 pageSize: membersQuery.page_size,
