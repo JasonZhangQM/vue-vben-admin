@@ -35,6 +35,8 @@ export interface ExpertItem {
   status_display?: string | null;
   created_by?: number | null;
   created_by_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 // ============ 评审会 ============
@@ -101,7 +103,7 @@ export function updateSummary(articleId: number, data: Record<string, unknown>) 
   return requestClient.put<void>(`/articles/${articleId}/summary`, data);
 }
 
-// ============ 专家库 ============
+// ============ 评委库 ============
 
 export function getExpertList(params?: {
   page?: number;
@@ -111,6 +113,10 @@ export function getExpertList(params?: {
   keyword?: string;
 }) {
   return requestClient.get<PageResult<ExpertItem>>('/review-experts', { params });
+}
+
+export function getExpert(id: number) {
+  return requestClient.get<ExpertItem>(`/review-experts/${id}`);
 }
 
 export function createExpert(data: Record<string, unknown>) {

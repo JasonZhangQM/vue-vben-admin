@@ -15,25 +15,21 @@ import {
   Input,
   message,
   Modal,
-  Popconfirm,
   Select,
   Space,
   Table,
 } from 'ant-design-vue';
 
-import {
-  createExpert,
-  deleteExpert,
-  getExpertList,
-  updateExpert,
-} from '#/api/basic/appraisal';
+import { createExpert, getExpertList } from '#/api/basic/appraisal';
+import ExpertDetailDrawer from './expert-detail-drawer.vue';
 
 const list = ref<ExpertItem[]>([]);
 const loading = ref(false);
+const submitting = ref(false);
 
 const expertTypeOpts = [
-  { label: '内部评委', value: 10 },
-  { label: '外部评委', value: 20 },
+  { label: '内部专家', value: 10 },
+  { label: '外部专家', value: 20 },
 ];
 
 const query = reactive({
@@ -41,8 +37,8 @@ const query = reactive({
   expert_type: undefined as number | undefined,
 });
 
+// ========== 新建 Modal ==========
 const open = ref(false);
-const editingId = ref<number | null>(null);
 const form = reactive({
   name: '',
   org_name: '',
@@ -52,6 +48,24 @@ const form = reactive({
   expert_type: 20,
   remark: '',
 });
+
+// ========== 详情抽屉 ==========
+const detailOpen = ref(false);
+const detailExpertId = ref<number | null>(null);
+
+function openDetail(row: ExpertItem) {
+  detailExpertId.value = row.id;
+  detailOpen.value = true;
+}
+
+function onDetailSaved() {
+  loadList();
+}
+
+function onDetailDeleted() {
+  detailExpertId.value = null;
+  loadList();
+}
 
 onMounted(loadList);
 
@@ -76,37 +90,24 @@ function onReset() {
 
 async function onSubmit() {
   if (!form.name) { message.warning('姓名必填'); return; }
-  const payload: Record<string, unknown> = { ...form };
-  if (editingId.value) {
-    await updateExpert(editingId.value, payload);
-    message.success('修改成功');
-  } else {
-    await createExpert(payload);
-    message.success('新建成功');
+  if (submitting.value) return;
+  submitting.value = true;
+  try {
+    await createExpert({ ...form });
+    message.success('新增成功');
+    open.value = false;
+    await loadList();
+  } finally {
+    submitting.value = false;
   }
-  open.value = false;
-  await loadList();
 }
 
 function onAdd() {
-  editingId.value = null;
   Object.assign(form, {
     name: '', org_name: '', title: '', contact_numb: '',
     email: '', expert_type: 20, remark: '',
   });
   open.value = true;
-}
-
-function onEdit(row: ExpertItem) {
-  editingId.value = row.id;
-  Object.assign(form, row);
-  open.value = true;
-}
-
-async function onDelete(row: ExpertItem) {
-  await deleteExpert(row.id);
-  message.success('已删除');
-  loadList();
 }
 
 const columns = computed<TableColumnType[]>(() => [
@@ -117,7 +118,6 @@ const columns = computed<TableColumnType[]>(() => [
   { title: '电话', dataIndex: 'contact_numb', width: 140 },
   { title: '邮箱', dataIndex: 'email', width: 180 },
   { title: '状态', dataIndex: 'status_display', width: 80 },
-  { title: '操作', key: 'action', width: 140, fixed: 'right' },
 ]);
 </script>
 
@@ -166,25 +166,17 @@ const columns = computed<TableColumnType[]>(() => [
         :pagination="{ pageSize: 20, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` }"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'action'">
-            <Space>
-              <AccessControl :codes="['appraisal:expert_update']" type="code">
-                <Button size="small" type="link" @click="onEdit(record as ExpertItem)">编辑</Button>
-              </AccessControl>
-              <AccessControl :codes="['appraisal:expert_delete']" type="code">
-                <Popconfirm title="确认删除？" ok-text="删除" cancel-text="取消" @confirm="onDelete(record as ExpertItem)">
-                  <Button size="small" type="link" danger>删除</Button>
-                </Popconfirm>
-              </AccessControl>
-            </Space>
+          <template v-if="column.dataIndex === 'name'">
+            <a @click="openDetail(record as ExpertItem)">{{ record.name }}</a>
           </template>
         </template>
       </Table>
     </Card>
 
+    <!-- 新增专家 Modal -->
     <Modal
       v-model:open="open"
-      :title="editingId ? '编辑专家' : '新建专家'"
+      title="新建专家"
       :footer="null"
       :width="520"
       destroy-on-close
@@ -219,8 +211,16 @@ const columns = computed<TableColumnType[]>(() => [
       </Form>
       <div class="flex justify-end gap-2 mt-4">
         <Button @click="open = false">取消</Button>
-        <Button type="primary" @click="onSubmit">确定</Button>
+        <Button type="primary" :loading="submitting" @click="onSubmit">确定</Button>
       </div>
     </Modal>
+
+    <!-- 详情抽屉 -->
+    <ExpertDetailDrawer
+      v-model:open="detailOpen"
+      :expert-id="detailExpertId"
+      @saved="onDetailSaved"
+      @deleted="onDetailDeleted"
+    />
   </Page>
 </template>
