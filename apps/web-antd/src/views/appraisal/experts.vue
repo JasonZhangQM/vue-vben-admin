@@ -32,8 +32,8 @@ const list = ref<ExpertItem[]>([]);
 const loading = ref(false);
 
 const expertTypeOpts = [
-  { label: '内部专家', value: 10 },
-  { label: '外部专家', value: 20 },
+  { label: '内部评委', value: 10 },
+  { label: '外部评委', value: 20 },
 ];
 
 const query = reactive({
@@ -82,7 +82,7 @@ async function onSubmit() {
     message.success('修改成功');
   } else {
     await createExpert(payload);
-    message.success('新增成功');
+    message.success('新建成功');
   }
   open.value = false;
   await loadList();
@@ -151,7 +151,7 @@ const columns = computed<TableColumnType[]>(() => [
         </FormItem>
         <div class="flex-1" />
         <AccessControl :codes="['appraisal:expert_create']" type="code">
-          <Button type="primary" @click="onAdd">新增</Button>
+          <Button type="primary" @click="onAdd">新建</Button>
         </AccessControl>
       </Form>
     </Card>
@@ -184,12 +184,17 @@ const columns = computed<TableColumnType[]>(() => [
 
     <Modal
       v-model:open="open"
-      :title="editingId ? '编辑专家' : ''"
+      :title="editingId ? '编辑专家' : '新建专家'"
       :footer="null"
-      :width="560"
+      :width="520"
       destroy-on-close
     >
-      <Form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }" :model="form" class="grid grid-cols-2 gap-x-4">
+      <Form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+        :model="form"
+        class="grid gap-y-2"
+      >
         <FormItem label="姓名" required>
           <Input v-model:value="form.name" placeholder="专家姓名" />
         </FormItem>
@@ -208,7 +213,7 @@ const columns = computed<TableColumnType[]>(() => [
         <FormItem label="邮箱">
           <Input v-model:value="form.email" placeholder="邮箱" />
         </FormItem>
-        <FormItem label="备注" class="col-span-2">
+        <FormItem label="备注">
           <Input v-model:value="form.remark" placeholder="备注" />
         </FormItem>
       </Form>
