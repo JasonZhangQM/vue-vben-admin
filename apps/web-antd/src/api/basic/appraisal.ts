@@ -23,12 +23,18 @@ export interface AppraisalListItem {
 export interface ExpertItem {
   id: number;
   name: string;
-  category_id?: number;
-  category_name?: string;
-  unit?: string;
-  title?: string;
-  phone?: string;
-  email?: string;
+  title?: string | null;
+  org_name?: string | null;
+  expert_type: number;
+  expert_type_display?: string | null;
+  contact_numb?: string | null;
+  email?: string | null;
+  remark?: string | null;
+  sort: number;
+  status: number;
+  status_display?: string | null;
+  created_by?: number | null;
+  created_by_name?: string | null;
 }
 
 // ============ 评审会 ============

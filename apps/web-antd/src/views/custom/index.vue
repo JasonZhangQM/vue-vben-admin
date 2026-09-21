@@ -244,7 +244,7 @@ onMounted(async () => {
       </Table>
     </Card>
 
-    <!-- 新增客户抽屉 -->
+    <!-- 新建客户抽屉 -->
     <CreateDrawer v-model:open="createOpen" @created="(id) => { loadList(); openDetailById(id); }" />
 
     <!-- 客户详情抽屉 -->

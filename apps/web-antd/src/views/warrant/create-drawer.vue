@@ -622,7 +622,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Drawer v-model:open="open" title="新增权证" width="66%">
+  <Drawer v-model:open="open" title="新建权证" width="66%">
     <div class="space-y-4">
       <!-- 分区一：基本信息 -->
       <Card size="small" title="基本信息">

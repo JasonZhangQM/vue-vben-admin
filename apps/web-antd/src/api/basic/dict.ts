@@ -192,10 +192,6 @@ export function getAppraisalDict() {
   }>('/dicts/appraisal');
 }
 
-export function getExpertCategoriesDict() {
-  return requestClient.get<{ id: number; name: string }[]>('/dicts/expert-categories');
-}
-
 // ===== 客户模块业务枚举字典 =====
 
 export function getDecisionorDict() {

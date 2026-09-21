@@ -27,11 +27,9 @@ import {
   getExpertList,
   updateExpert,
 } from '#/api/basic/appraisal';
-import { getExpertCategoriesDict } from '#/api/basic/dict';
 
 const list = ref<ExpertItem[]>([]);
 const loading = ref(false);
-const categoryOpts = ref<{ label: string; value: number }[]>([]);
 
 const expertTypeOpts = [
   { label: '内部专家', value: 10 },
@@ -47,19 +45,15 @@ const open = ref(false);
 const editingId = ref<number | null>(null);
 const form = reactive({
   name: '',
-  category_id: undefined as number | undefined,
   org_name: '',
   title: '',
   contact_numb: '',
   email: '',
-  expert_type: 20, // 默认外部专家
+  expert_type: 20,
+  remark: '',
 });
 
-onMounted(async () => {
-  const cats = await getExpertCategoriesDict();
-  categoryOpts.value = cats.map((c) => ({ label: c.name, value: c.id }));
-  await loadList();
-});
+onMounted(loadList);
 
 async function loadList() {
   loading.value = true;
@@ -82,11 +76,12 @@ function onReset() {
 
 async function onSubmit() {
   if (!form.name) { message.warning('姓名必填'); return; }
+  const payload: Record<string, unknown> = { ...form };
   if (editingId.value) {
-    await updateExpert(editingId.value, form);
+    await updateExpert(editingId.value, payload);
     message.success('修改成功');
   } else {
-    await createExpert(form);
+    await createExpert(payload);
     message.success('新增成功');
   }
   open.value = false;
@@ -95,7 +90,10 @@ async function onSubmit() {
 
 function onAdd() {
   editingId.value = null;
-  Object.assign(form, { name: '', category_id: undefined, org_name: '', title: '', contact_numb: '', email: '', expert_type: 20 });
+  Object.assign(form, {
+    name: '', org_name: '', title: '', contact_numb: '',
+    email: '', expert_type: 20, remark: '',
+  });
   open.value = true;
 }
 
@@ -113,11 +111,12 @@ async function onDelete(row: ExpertItem) {
 
 const columns = computed<TableColumnType[]>(() => [
   { title: '姓名', dataIndex: 'name', width: 120 },
-  { title: '类别', dataIndex: 'category_name', width: 120 },
+  { title: '类型', dataIndex: 'expert_type_display', width: 100 },
   { title: '单位', dataIndex: 'org_name' },
   { title: '职称', dataIndex: 'title', width: 120 },
   { title: '电话', dataIndex: 'contact_numb', width: 140 },
   { title: '邮箱', dataIndex: 'email', width: 180 },
+  { title: '状态', dataIndex: 'status_display', width: 80 },
   { title: '操作', key: 'action', width: 140, fixed: 'right' },
 ]);
 </script>
@@ -152,7 +151,7 @@ const columns = computed<TableColumnType[]>(() => [
         </FormItem>
         <div class="flex-1" />
         <AccessControl :codes="['appraisal:expert_create']" type="code">
-          <Button type="primary" @click="onAdd">新增专家</Button>
+          <Button type="primary" @click="onAdd">新增</Button>
         </AccessControl>
       </Form>
     </Card>
@@ -185,7 +184,7 @@ const columns = computed<TableColumnType[]>(() => [
 
     <Modal
       v-model:open="open"
-      :title="editingId ? '编辑专家' : '新增专家'"
+      :title="editingId ? '编辑专家' : ''"
       :footer="null"
       :width="560"
       destroy-on-close
@@ -194,14 +193,8 @@ const columns = computed<TableColumnType[]>(() => [
         <FormItem label="姓名" required>
           <Input v-model:value="form.name" placeholder="专家姓名" />
         </FormItem>
-        <FormItem label="类别">
-          <Select
-            v-model:value="form.category_id"
-            :options="categoryOpts"
-            placeholder="选择"
-            allow-clear
-            style="width: 100%"
-          />
+        <FormItem label="类型" required>
+          <Select v-model:value="form.expert_type" :options="expertTypeOpts" style="width: 100%" />
         </FormItem>
         <FormItem label="单位">
           <Input v-model:value="form.org_name" placeholder="工作单位" />
@@ -214,6 +207,9 @@ const columns = computed<TableColumnType[]>(() => [
         </FormItem>
         <FormItem label="邮箱">
           <Input v-model:value="form.email" placeholder="邮箱" />
+        </FormItem>
+        <FormItem label="备注" class="col-span-2">
+          <Input v-model:value="form.remark" placeholder="备注" />
         </FormItem>
       </Form>
       <div class="flex justify-end gap-2 mt-4">

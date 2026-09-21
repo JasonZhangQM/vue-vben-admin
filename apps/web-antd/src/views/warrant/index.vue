@@ -275,7 +275,7 @@ onMounted(() => {
           </AccessControl>
         </template>
         <AccessControl :codes="['warrant:create']" type="code">
-          <Button type="primary" @click="createOpen = true">新增权证</Button>
+          <Button type="primary" @click="createOpen = true">新建</Button>
         </AccessControl>
       </div>
     </Card>

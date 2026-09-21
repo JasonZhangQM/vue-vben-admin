@@ -325,7 +325,7 @@ onMounted(loadList);
         <Button @click="onReset">重置</Button>
         <div class="flex-1" />
         <AccessControl :codes="['article:create']" type="code">
-          <Button type="primary" @click="openCreate">新建项目</Button>
+          <Button type="primary" @click="openCreate">新建</Button>
         </AccessControl>
       </div>
     </Card>
