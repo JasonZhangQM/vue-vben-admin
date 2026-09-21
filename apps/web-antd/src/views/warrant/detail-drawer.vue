@@ -119,27 +119,34 @@ watch(
   },
 );
 
-// ===== 编辑(WarrantUpdate 仅 remark；状态变更走出入库子表接口) =====
+// ===== 编辑(WarrantUpdate：warrant_num + remark；状态变更走出入库子表接口) =====
 const { hasAccessByCodes } = useAccess();
 const canUpdate = computed(() => hasAccessByCodes(['warrant:update']));
 
 const editVisible = ref(false);
 const editLoading = ref(false);
 const editForm = reactive({
+  warrant_num: '',
   remark: '',
 });
 
 function openEdit() {
   if (!detail.value) return;
+  editForm.warrant_num = detail.value.warrant_num ?? '';
   editForm.remark = detail.value.remark ?? '';
   editVisible.value = true;
 }
 
 async function submitEdit() {
   if (!detail.value) return;
+  if (!editForm.warrant_num.trim()) {
+    message.warning('权证号不能为空');
+    return;
+  }
   editLoading.value = true;
   try {
     await updateWarrant(detail.value.id, {
+      warrant_num: editForm.warrant_num.trim(),
       remark: opt(editForm.remark),
     });
     message.success('权证信息已更新');
@@ -1266,16 +1273,19 @@ async function submitDraftEdit() {
       </Tabs>
     </div>
 
-    <!-- 权证编辑 Modal(仅基本信息；状态变更走出入库子表接口) -->
+    <!-- 权证编辑 Modal(基本信息；状态变更走出入库子表接口) -->
     <Modal
       v-model:open="editVisible"
       :confirm-loading="editLoading"
       :ok-button-props="{ disabled: !canUpdate }"
-      title="修改备注"
+      title="修改基本信息"
       @ok="submitEdit"
     >
       <Alert v-if="!canUpdate" banner class="mb-3" message="无修改权限，仅可查看" type="warning" />
       <Form :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <FormItem label="权证号" required>
+          <Input v-model:value="editForm.warrant_num" :disabled="!canUpdate" :maxlength="128" placeholder="唯一编号" />
+        </FormItem>
         <FormItem label="备注">
           <Input v-model:value="editForm.remark" :disabled="!canUpdate" :maxlength="128" placeholder="可空" />
         </FormItem>
