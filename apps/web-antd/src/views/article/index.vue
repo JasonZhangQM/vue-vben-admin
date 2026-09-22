@@ -130,7 +130,6 @@ function onReset() {
 
 const columns = computed<TableColumnType[]>(() => [
   { title: '项目编号', dataIndex: 'article_num', width: 120 },
-  { title: '状态', dataIndex: 'article_state', width: 100 },
   { title: '客户名称', dataIndex: 'customer_name' },
   { title: '产品', dataIndex: 'product_name', width: 120 },
   { title: '续贷额(元)', dataIndex: 'renewal', width: 110, align: 'right' },
@@ -143,6 +142,7 @@ const columns = computed<TableColumnType[]>(() => [
   { title: '签批日期', dataIndex: 'sign_date', width: 120 },
   { title: '创建时间', dataIndex: 'created_at', width: 170, sorter: false, defaultSortOrder: 'descend' },
   { title: '创建人', dataIndex: 'created_by_name', width: 100 },
+  { title: '状态', dataIndex: 'article_state', width: 100 },
 ]);
 
 function stateColor(state: number) {

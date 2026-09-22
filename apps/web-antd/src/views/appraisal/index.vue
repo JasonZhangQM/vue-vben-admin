@@ -40,11 +40,12 @@ import {
   getAppraisal,
   getAppraisalArticles,
   getAppraisalList,
+  getExpertList,
   removeAppraisalArticle,
   type AppraisalArticleItem,
 } from '#/api/basic/appraisal';
 import { getArticleDictList } from '#/api/basic/article';
-import { getAppraisalDict, getEmployeeDict } from '#/api/basic/dict';
+import { getAppraisalDict } from '#/api/basic/dict';
 
 // ============ 字典 ============
 const meetingStateOpts = ref<{ label: string; value: number }[]>([]);
@@ -56,8 +57,9 @@ onMounted(async () => {
   const dict = await getAppraisalDict();
   meetingStateOpts.value = dict.meeting_state;
   reviewModelOpts.value = dict.review_model;
-  const emps = await getEmployeeDict();
-  compereOptions.value = emps.map((u) => ({ label: u.name, value: u.id }));
+  // 主持人下拉：启用状态的评审委员（按 sort 排序）
+  const expertsPage = await getExpertList({ page: 1, page_size: 500, status: true });
+  compereOptions.value = (expertsPage.items ?? []).map((e) => ({ label: e.name, value: e.id }));
   // 项目下拉：走无 data_scope 的字典接口
   const artsPage = await getArticleDictList({ page: 1, page_size: 500 });
   articleOptions.value = (artsPage.items ?? []).map((a: { id: number; article_num: string; customer_name?: string | null }) => ({
