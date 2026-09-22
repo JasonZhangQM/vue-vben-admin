@@ -31,7 +31,7 @@ export interface ExpertItem {
   email?: string | null;
   remark?: string | null;
   sort: number;
-  status: number;
+  status: boolean;
   status_display?: string | null;
   created_by?: number | null;
   created_by_name?: string | null;
@@ -125,6 +125,10 @@ export function createExpert(data: Record<string, unknown>) {
 
 export function updateExpert(id: number, data: Record<string, unknown>) {
   return requestClient.put<void>(`/review-experts/${id}`, data);
+}
+
+export function toggleExpertStatus(id: number) {
+  return requestClient.post<{ status: boolean }>(`/review-experts/${id}/toggle-status`);
 }
 
 export function deleteExpert(id: number) {

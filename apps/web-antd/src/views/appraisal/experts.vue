@@ -18,6 +18,7 @@ import {
   Select,
   Space,
   Table,
+  Tag,
 } from 'ant-design-vue';
 
 import { createExpert, getExpertList } from '#/api/basic/appraisal';
@@ -28,8 +29,8 @@ const loading = ref(false);
 const submitting = ref(false);
 
 const expertTypeOpts = [
-  { label: '内部专家', value: 10 },
-  { label: '外部专家', value: 20 },
+  { label: '内部评委', value: 10 },
+  { label: '外部评委', value: 20 },
 ];
 
 const query = reactive({
@@ -110,6 +111,11 @@ function onAdd() {
   open.value = true;
 }
 
+// 状态 → 标签颜色（对齐 system/users：启用=green，停用=red）
+function statusColor(status: boolean) {
+  return status ? 'green' : 'red';
+}
+
 const columns = computed<TableColumnType[]>(() => [
   { title: '姓名', dataIndex: 'name', width: 120 },
   { title: '类型', dataIndex: 'expert_type_display', width: 100 },
@@ -117,7 +123,7 @@ const columns = computed<TableColumnType[]>(() => [
   { title: '职称', dataIndex: 'title', width: 120 },
   { title: '电话', dataIndex: 'contact_numb', width: 140 },
   { title: '邮箱', dataIndex: 'email', width: 180 },
-  { title: '状态', dataIndex: 'status_display', width: 80 },
+  { title: '状态', dataIndex: 'status', width: 80 },
 ]);
 </script>
 
@@ -134,7 +140,7 @@ const columns = computed<TableColumnType[]>(() => [
             @press-enter="onQuery"
           />
         </FormItem>
-        <FormItem label="专家类型">
+        <FormItem label="评委类型">
           <Select
             v-model:value="query.expert_type"
             :options="expertTypeOpts"
@@ -169,11 +175,16 @@ const columns = computed<TableColumnType[]>(() => [
           <template v-if="column.dataIndex === 'name'">
             <a @click="openDetail(record as ExpertItem)">{{ record.name }}</a>
           </template>
+          <template v-else-if="column.dataIndex === 'status'">
+            <Tag :color="statusColor(record.status)">
+              {{ record.status_display }}
+            </Tag>
+          </template>
         </template>
       </Table>
     </Card>
 
-    <!-- 新增专家 Modal -->
+    <!-- 新增评委 Modal -->
     <Modal
       v-model:open="open"
       title="新建专家"

@@ -879,9 +879,9 @@ function getStateTag(state: number | undefined) {
 // ========== 表格列 ==========
 const commentColumns = [
   { title: '专家', dataIndex: 'expert_name', width: 120 },
-  { title: '类型', dataIndex: 'comment_type_display', width: 100 },
+  { title: '类型', dataIndex: 'comment_display', width: 100 },
   { title: '评分', dataIndex: 'score', width: 80 },
-  { title: '意见', dataIndex: 'concrete', ellipsis: true },
+  { title: '意见', dataIndex: 'detail', ellipsis: true },
   { title: '时间', dataIndex: 'created_at', width: 160 },
 ];
 
@@ -1314,8 +1314,8 @@ const supplyColumns = [
                       <template v-if="column.dataIndex === 'score'">
                         {{ record.score != null ? record.score : '—' }}
                       </template>
-                      <template v-else-if="column.dataIndex === 'comment_type_display'">
-                        <Tag>{{ record.comment_type_display || `#${record.comment_type}` }}</Tag>
+                      <template v-else-if="column.dataIndex === 'comment_display'">
+                        <Tag>{{ record.comment_display || `#${record.comment}` }}</Tag>
                       </template>
                     </template>
                   </Table>

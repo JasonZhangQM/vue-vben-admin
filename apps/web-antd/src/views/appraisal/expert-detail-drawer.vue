@@ -17,11 +17,13 @@ import {
   message,
   Modal,
   Select,
+  Space,
   Spin,
+  Switch,
   Tag,
 } from 'ant-design-vue';
 
-import { deleteExpert, getExpert, updateExpert } from '#/api/basic/appraisal';
+import { deleteExpert, getExpert, toggleExpertStatus, updateExpert } from '#/api/basic/appraisal';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { dash } from '#/utils/format';
 
@@ -98,6 +100,14 @@ async function saveEdit() {
   }
 }
 
+async function onToggleStatus(checked: boolean) {
+  if (!props.expertId) return;
+  await toggleExpertStatus(props.expertId);
+  message.success(checked ? '已启用' : '已停用');
+  await loadExpert();
+  emit('saved', props.expertId);
+}
+
 function deleteItem() {
   if (!props.expertId || !detail.value) return;
   const deletedId = props.expertId;
@@ -114,10 +124,10 @@ function deleteItem() {
 }
 
 // ========== 状态 Tag ==========
-function statusTag(status?: number) {
-  if (status === 1) return { text: '启用', color: 'success' as const };
-  if (status === 0) return { text: '停用', color: 'default' as const };
-  return { text: String(status ?? ''), color: 'default' as const };
+function statusTag(status?: boolean) {
+  return status
+    ? { text: '启用', color: 'success' as const }
+    : { text: '停用', color: 'default' as const };
 }
 
 // ========== 打开抽屉生命周期 ==========
@@ -145,14 +155,22 @@ watch(
       <template v-if="detail">
         <Card size="small" title="基本信息">
           <template #extra>
-            <div class="flex gap-2">
+            <Space :size="8">
               <AccessControl :codes="['appraisal:expert_update']" type="code">
                 <Button size="small" type="primary" @click="startEdit">修改</Button>
+              </AccessControl>
+              <AccessControl :codes="['appraisal:expert_update']" type="code">
+                <Switch
+                  :checked="detail.status"
+                  checked-children="启用"
+                  un-checked-children="停用"
+                  @change="(checked: boolean) => onToggleStatus(checked)"
+                />
               </AccessControl>
               <AccessControl :codes="['appraisal:expert_delete']" type="code">
                 <Button size="small" danger @click="deleteItem">删除</Button>
               </AccessControl>
-            </div>
+            </Space>
           </template>
 
           <Descriptions :column="detailColumns" size="small">
