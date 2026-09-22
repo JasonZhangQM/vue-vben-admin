@@ -22,6 +22,7 @@ import {
 } from 'ant-design-vue';
 
 import { createExpert, getExpertList } from '#/api/basic/appraisal';
+import { useRowHighlight } from '#/composables/useRowHighlight';
 import ExpertDetailDrawer from './expert-detail-drawer.vue';
 
 const list = ref<ExpertItem[]>([]);
@@ -31,6 +32,7 @@ const submitting = ref(false);
 const expertTypeOpts = [
   { label: '内部评委', value: 10 },
   { label: '外部评委', value: 20 },
+  { label: '法律顾问', value: 30 },
 ];
 
 const query = reactive({
@@ -54,7 +56,11 @@ const form = reactive({
 const detailOpen = ref(false);
 const detailExpertId = ref<number | null>(null);
 
+// ========== 行点击高亮（与其他列表页一致） ==========
+const { customRow, rowClassName, highlight: highlightRow } = useRowHighlight();
+
 function openDetail(row: ExpertItem) {
+  highlightRow(row);
   detailExpertId.value = row.id;
   detailOpen.value = true;
 }
@@ -166,6 +172,8 @@ const columns = computed<TableColumnType[]>(() => [
       <Table
         size="small"
         row-key="id"
+        :custom-row="customRow"
+        :row-class-name="rowClassName"
         :columns="columns"
         :data-source="list"
         :loading="loading"
