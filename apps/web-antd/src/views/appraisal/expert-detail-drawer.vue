@@ -25,7 +25,10 @@ import {
 
 import { deleteExpert, getExpert, toggleExpertStatus, updateExpert } from '#/api/basic/appraisal';
 import { useDetailColumns } from '#/composables/useDetailColumns';
+import { useDictStore } from '#/store/dict';
 import { dash } from '#/utils/format';
+
+const dictStore = useDictStore();
 
 const props = defineProps<{ expertId: null | number }>();
 
@@ -64,10 +67,7 @@ const editForm = reactive({
   remark: '',
 });
 
-const expertTypeOpts = [
-  { label: '内部专家', value: 10 },
-  { label: '外部专家', value: 20 },
-];
+const expertTypeOpts = computed(() => dictStore.get('appraisal.expert_type'));
 
 function startEdit() {
   if (!detail.value) return;
@@ -133,8 +133,9 @@ function statusTag(status?: boolean) {
 // ========== 打开抽屉生命周期 ==========
 watch(
   () => open.value,
-  (val) => {
+  async (val) => {
     if (val) {
+      await dictStore.loadAll();
       loadExpert();
     } else {
       detail.value = null;

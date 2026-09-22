@@ -23,17 +23,16 @@ import {
 
 import { createExpert, getExpertList } from '#/api/basic/appraisal';
 import { useRowHighlight } from '#/composables/useRowHighlight';
+import { useDictStore } from '#/store/dict';
 import ExpertDetailDrawer from './expert-detail-drawer.vue';
+
+const dictStore = useDictStore();
 
 const list = ref<ExpertItem[]>([]);
 const loading = ref(false);
 const submitting = ref(false);
 
-const expertTypeOpts = [
-  { label: '内部评委', value: 10 },
-  { label: '外部评委', value: 20 },
-  { label: '法律顾问', value: 30 },
-];
+const expertTypeOpts = computed(() => dictStore.get('appraisal.expert_type'));
 
 const query = reactive({
   keyword: '' as string,
@@ -74,7 +73,10 @@ function onDetailDeleted() {
   loadList();
 }
 
-onMounted(loadList);
+onMounted(async () => {
+  await dictStore.loadAll();
+  loadList();
+});
 
 async function loadList() {
   loading.value = true;
