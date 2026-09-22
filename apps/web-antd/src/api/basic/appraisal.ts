@@ -10,6 +10,7 @@ export interface AppraisalListItem {
   year: number;
   seq: number;
   review_model: number;
+  review_model_display?: string;
   review_date?: string | null;
   meeting_state: number;
   meeting_state_display?: string;
@@ -57,6 +58,40 @@ export function createAppraisal(data: Record<string, unknown>) {
 
 export function updateAppraisal(id: number, data: Record<string, unknown>) {
   return requestClient.put<void>(`/appraisals/${id}`, data);
+}
+
+export interface AppraisalArticleBrief {
+  article_id: number;
+  article_num: string;
+  customer_name?: string | null;
+  product_name?: string | null;
+  balance?: number | null;
+  supplies?: { total: number; pending: number };
+  comments_count?: number;
+}
+
+export interface AppraisalDetail {
+  id: number;
+  num: string;
+  year: number;
+  seq: number;
+  review_model: number;
+  review_model_display?: string;
+  review_date?: string | null;
+  compere_id?: number | null;
+  compere_name?: string | null;
+  meeting_state: number;
+  meeting_state_display?: string;
+  created_by?: number | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  articles_count: number;
+  articles: AppraisalArticleBrief[];
+}
+
+export function getAppraisal(id: number) {
+  return requestClient.get<AppraisalDetail>(`/appraisals/${id}`);
 }
 
 export function deleteAppraisal(id: number) {
@@ -109,7 +144,7 @@ export function getExpertList(params?: {
   page?: number;
   page_size?: number;
   expert_type?: number;
-  category_id?: number;
+  status?: boolean;
   keyword?: string;
 }) {
   return requestClient.get<PageResult<ExpertItem>>('/review-experts', { params });

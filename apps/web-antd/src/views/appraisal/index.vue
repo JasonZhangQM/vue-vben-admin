@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import type { AppraisalListItem } from '#/api/basic/appraisal';
+import type { AppraisalDetail, AppraisalListItem } from '#/api/basic/appraisal';
 import type { TableColumnType } from 'ant-design-vue';
 
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import { AccessControl } from '@vben/access';
 import { Page } from '@vben/common-ui';
@@ -11,6 +11,8 @@ import {
   Button,
   Card,
   DatePicker,
+  Descriptions,
+  DescriptionsItem,
   Drawer,
   Form,
   FormItem,
@@ -20,7 +22,9 @@ import {
   Popconfirm,
   Select,
   Space,
+  Spin,
   Table,
+  Tabs,
   Tag,
 } from 'ant-design-vue';
 
@@ -33,6 +37,7 @@ import {
   createAppraisal,
   deleteAppraisal,
   finishAppraisal,
+  getAppraisal,
   getAppraisalArticles,
   getAppraisalList,
   removeAppraisalArticle,
@@ -62,7 +67,7 @@ onMounted(async () => {
 });
 
 // ============ 列表 ============
-const { rowClassName, customRow } = useRowHighlight();
+const { rowClassName, customRow, highlight: highlightRow } = useRowHighlight();
 
 // 评审安排 Modal 内子表独立高亮
 const { customRow: arrangeCustomRow, rowClassName: arrangeRowClassName } = useRowHighlight();
@@ -100,15 +105,41 @@ function onReset() {
 }
 
 const columns = computed<TableColumnType[]>(() => [
-  { title: '会议编号', dataIndex: 'num', width: 140 },
-  { title: '状态', dataIndex: 'meeting_state', width: 100 },
+  { title: '会议编号', dataIndex: 'num', width: 180 },
   { title: '评审形式', dataIndex: 'review_model', width: 100 },
   { title: '评审日期', dataIndex: 'review_date', width: 120 },
   { title: '主持人', dataIndex: 'compere_name', width: 120 },
   { title: '参评项目数', dataIndex: 'articles_count', width: 100, align: 'right' },
-  { title: '创建时间', dataIndex: 'created_at', width: 170 },
-  { title: '创建人', dataIndex: 'created_by_name', width: 100, fixed: 'right' },
+  { title: '创建人', dataIndex: 'created_by_name', width: 100 },
+  { title: '状态', dataIndex: 'meeting_state', width: 100, fixed: 'right' },
 ]);
+
+// ============ 详情 Drawer ============
+const detailOpen = ref(false);
+const detailId = ref<number | null>(null);
+const detail = ref<AppraisalDetail | null>(null);
+const detailLoading = ref(false);
+
+async function openDetail(row: AppraisalListItem) {
+  highlightRow(row);
+  detailId.value = row.id;
+  detailOpen.value = true;
+}
+
+async function loadDetail() {
+  if (!detailId.value) return;
+  detailLoading.value = true;
+  try {
+    detail.value = await getAppraisal(detailId.value);
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+watch(detailOpen, (v) => {
+  if (v) loadDetail();
+  else detail.value = null;
+});
 
 // ============ 创建 ============
 const createOpen = ref(false);
@@ -291,6 +322,10 @@ onMounted(loadList);
         :scroll="{ x: 'max-content' }"
       >
         <template #bodyCell="{ column, record }">
+          <!-- 会议编号链接 -->
+          <template v-if="column.dataIndex === 'num'">
+            <a @click="openDetail(record as AppraisalListItem)">{{ (record as AppraisalListItem).num }}</a>
+          </template>
           <!-- 状态标签 -->
           <template v-if="column.dataIndex === 'meeting_state'">
             <Tag :color="(record as AppraisalListItem).meeting_state === 10 ? 'orange' : 'green'">
@@ -299,10 +334,10 @@ onMounted(loadList);
           </template>
           <!-- 评审形式 -->
           <template v-else-if="column.dataIndex === 'review_model'">
-            {{ dash(reviewModelOpts.find((o) => o.value === (record as AppraisalListItem).review_model)?.label) }}
+            {{ dash((record as AppraisalListItem).review_model_display) }}
           </template>
           <!-- 需要 dash 兜底的文本列 -->
-          <template v-else-if="['review_date','compere_name','created_at','created_by_name'].includes(column.dataIndex as string)">
+          <template v-else-if="['review_date','compere_name'].includes(column.dataIndex as string)">
             {{ dash((record as AppraisalListItem)[column.dataIndex as keyof AppraisalListItem] as string) }}
           </template>
           <!-- 操作列（固定在右） -->
@@ -455,5 +490,85 @@ onMounted(loadList);
         <div class="mt-1 text-xs text-muted-foreground">已出现在上表的项目会自动过滤，不可重复添加</div>
       </div>
     </Modal>
+    <!-- 详情 Drawer -->
+    <Drawer
+      v-model:open="detailOpen"
+      :title="detail?.num ?? '评审会详情'"
+      width="66%"
+      :destroy-on-close="true"
+      :mask-closable="false"
+    >
+      <Spin :spinning="detailLoading">
+        <template v-if="detail">
+          <!-- 基本信息 -->
+          <Card size="small" title="基本信息" class="mb-3">
+            <template #extra>
+              <div class="flex gap-2">
+                <AccessControl :codes="['appraisal:update']" type="code">
+                  <Button size="small" @click="detailOpen = false; openArrange(detail as unknown as AppraisalListItem)">安排项目</Button>
+                </AccessControl>
+                <AccessControl :codes="['appraisal:finish']" type="code">
+                  <Button
+                    size="small"
+                    type="primary"
+                    :disabled="detail.meeting_state !== 10"
+                    @click="onFinish(detail as unknown as AppraisalListItem)"
+                  >完成会议</Button>
+                </AccessControl>
+                <AccessControl :codes="['appraisal:delete']" type="code">
+                  <Popconfirm title="确认删除？" ok-text="删除" cancel-text="取消" @confirm="async () => { await onDelete(detail as unknown as AppraisalListItem); detailOpen = false; }">
+                    <Button size="small" danger>删除</Button>
+                  </Popconfirm>
+                </AccessControl>
+              </div>
+            </template>
+            <Descriptions size="small" :column="3">
+              <DescriptionsItem label="会议编号">{{ dash(detail.num) }}</DescriptionsItem>
+              <DescriptionsItem label="年份">{{ detail.year }}</DescriptionsItem>
+              <DescriptionsItem label="序号">{{ detail.seq }}</DescriptionsItem>
+              <DescriptionsItem label="评审形式">{{ dash(detail.review_model_display) }}</DescriptionsItem>
+              <DescriptionsItem label="状态">
+                <Tag :color="detail.meeting_state === 10 ? 'orange' : 'green'">
+                  {{ dash(detail.meeting_state_display) }}
+                </Tag>
+              </DescriptionsItem>
+              <DescriptionsItem label="评审日期">{{ dash(detail.review_date) }}</DescriptionsItem>
+              <DescriptionsItem label="主持人">{{ dash(detail.compere_name) }}</DescriptionsItem>
+              <DescriptionsItem label="创建人">{{ dash(detail.created_by_name) }}</DescriptionsItem>
+              <DescriptionsItem label="创建时间">{{ dash(detail.created_at) }}</DescriptionsItem>
+            </Descriptions>
+          </Card>
+
+          <!-- 参评项目 Tab -->
+          <Card size="small" title="参评项目" class="mb-3">
+            <Table
+              size="small"
+              :data-source="detail.articles"
+              :pagination="false"
+              row-key="article_id"
+            >
+              <Table.Column title="项目编号" dataIndex="article_num" width="160" />
+              <Table.Column title="客户" dataIndex="customer_name" width="160">
+                <template #default="{ record }">{{ dash(record.customer_name) }}</template>
+              </Table.Column>
+              <Table.Column title="产品" dataIndex="product_name" width="120">
+                <template #default="{ record }">{{ dash(record.product_name) }}</template>
+              </Table.Column>
+              <Table.Column title="授信额" dataIndex="balance" width="110" align="right">
+                <template #default="{ record }">{{ record.balance != null ? `${record.balance} 万` : '-' }}</template>
+              </Table.Column>
+              <Table.Column title="补调(待/总)" width="120" align="center">
+                <template #default="{ record }">
+                  {{ record.supplies ? `${record.supplies.pending}/${record.supplies.total}` : '—' }}
+                </template>
+              </Table.Column>
+              <Table.Column title="意见数" dataIndex="comments_count" width="90" align="right">
+                <template #default="{ record }">{{ record.comments_count ?? 0 }}</template>
+              </Table.Column>
+            </Table>
+          </Card>
+        </template>
+      </Spin>
+    </Drawer>
   </Page>
 </template>

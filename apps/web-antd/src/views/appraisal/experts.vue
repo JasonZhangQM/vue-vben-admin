@@ -37,6 +37,7 @@ const expertTypeOpts = computed(() => dictStore.get('appraisal.expert_type'));
 const query = reactive({
   keyword: '' as string,
   expert_type: undefined as number | undefined,
+  status: undefined as boolean | undefined,
 });
 
 // ========== 新建 Modal ==========
@@ -84,6 +85,7 @@ async function loadList() {
     const data = await getExpertList({
       keyword: query.keyword || undefined,
       expert_type: query.expert_type,
+      status: query.status,
     });
     list.value = data.items ?? [];
   }
@@ -94,6 +96,7 @@ function onQuery() { loadList(); }
 function onReset() {
   query.keyword = '';
   query.expert_type = undefined;
+  query.status = undefined;
   loadList();
 }
 
@@ -155,6 +158,18 @@ const columns = computed<TableColumnType[]>(() => [
             placeholder="全部"
             allow-clear
             style="width: 140px"
+          />
+        </FormItem>
+        <FormItem label="状态">
+          <Select
+            v-model:value="query.status"
+            :options="[
+              { label: '启用', value: true },
+              { label: '停用', value: false },
+            ]"
+            placeholder="全部"
+            allow-clear
+            style="width: 120px"
           />
         </FormItem>
         <FormItem>
