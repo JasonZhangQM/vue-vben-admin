@@ -117,6 +117,11 @@ watch(
   () => [open.value, props.warrantId],
   ([visible]) => {
     if (visible) load();
+    else {
+      // 父 Drawer 关闭时同步重置嵌套的客户详情抽屉（参照 appraisal/index.vue）
+      customerDetailOpen.value = false;
+      customerDetailId.value = null;
+    }
   },
 );
 
@@ -834,7 +839,12 @@ async function submitDraftEdit() {
 </script>
 
 <template>
-  <Drawer v-model:open="open" :title="detail ? detail.warrant_num : '权证详情'" width="66%">
+  <!-- 嵌套客户详情抽屉打开时父抽屉动态加宽（参照评审会详情 → 项目详情） -->
+  <Drawer
+    v-model:open="open"
+    :title="detail ? detail.warrant_num : '权证详情'"
+    :width="customerDetailOpen ? '70%' : '66%'"
+  >
     <div v-if="detail" class="space-y-4">
       <Card size="small" title="基本信息">
         <template #extra>
@@ -953,7 +963,7 @@ async function submitDraftEdit() {
             <RegionTreeSelect v-model:value="addHouseForm.region_id" placeholder="行政区域 *" allow-clear style="width: 260px" />
             <Input v-model:value="addHouseForm.house_locate" placeholder="详细地址 *" style="width: 280px" />
             <InputNumber v-model:value="addHouseForm.house_area" :min="0.01" :precision="2" placeholder="面积㎡ *" style="width: 110px" />
-            <Input v-model:value="addHouseForm.house_app" placeholder="产权用途" maxlength="128" style="width: 130px" />
+            <Input v-model:value="addHouseForm.house_app" placeholder="产权用途" :maxlength="128" style="width: 130px" />
             <Select
               v-model:value="addHouseForm.app_category"
               :options="dictStore.get('warrant.house_app_category')"
