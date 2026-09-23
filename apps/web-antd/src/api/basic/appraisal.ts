@@ -65,7 +65,8 @@ export interface AppraisalArticleBrief {
   article_num: string;
   customer_name?: string | null;
   product_name?: string | null;
-  balance?: number | null;
+  renewal?: number;
+  augment?: number;
   supplies?: { total: number; pending: number };
   comments_count?: number;
 }
@@ -178,7 +179,8 @@ export interface AppraisalArticleItem {
   article_num: string;
   customer_name: string | null;
   product_name: string | null;
-  balance: number | null;
+  renewal?: number;
+  augment?: number;
 }
 
 export function getAppraisalArticles(id: number) {

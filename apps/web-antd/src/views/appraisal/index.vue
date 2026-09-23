@@ -29,7 +29,9 @@ import {
 } from 'ant-design-vue';
 
 import SearchSelect from '#/components/SearchSelect/index.vue';
+import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
+import ArticleDetailDrawer from '#/views/article/detail-drawer.vue';
 import { dash } from '#/utils/format';
 
 import {
@@ -67,6 +69,9 @@ onMounted(async () => {
     value: a.id,
   }));
 });
+
+// ============ 详情基本信息响应式列数 ============
+const { columns: detailColumns } = useDetailColumns();
 
 // ============ 列表 ============
 const { rowClassName, customRow, highlight: highlightRow } = useRowHighlight();
@@ -122,6 +127,10 @@ const detailId = ref<number | null>(null);
 const detail = ref<AppraisalDetail | null>(null);
 const detailLoading = ref(false);
 
+// 嵌套的项目详情抽屉（从参评项目 Tab 点击项目编号打开）
+const articleDrawerOpen = ref(false);
+const articleDrawerId = ref<number | null>(null);
+
 async function openDetail(row: AppraisalListItem) {
   highlightRow(row);
   detailId.value = row.id;
@@ -140,7 +149,12 @@ async function loadDetail() {
 
 watch(detailOpen, (v) => {
   if (v) loadDetail();
-  else detail.value = null;
+  else {
+    detail.value = null;
+    // 父 Drawer 关闭时同步重置嵌套的项目详情抽屉
+    articleDrawerOpen.value = false;
+    articleDrawerId.value = null;
+  }
 });
 
 // ============ 创建 ============
@@ -197,6 +211,19 @@ async function onDelete(row: AppraisalListItem) {
   await deleteAppraisal(row.id);
   message.success('已删除');
   loadList();
+}
+
+async function onRemoveArticleFromDetail(articleId: number) {
+  if (!detailId.value) return;
+  await removeAppraisalArticle(detailId.value, articleId);
+  message.success('已移除');
+  loadDetail(); // 刷新详情抽屉
+  loadList(); // 刷新列表 articles_count
+}
+
+function openArticleDrawer(articleId: number) {
+  articleDrawerId.value = articleId;
+  articleDrawerOpen.value = true;
 }
 
 // ============ 安排项目 Modal ============
@@ -524,7 +551,7 @@ onMounted(loadList);
                 </AccessControl>
               </div>
             </template>
-            <Descriptions size="small" :column="3">
+            <Descriptions size="small" :column="detailColumns">
               <DescriptionsItem label="会议编号">{{ dash(detail.num) }}</DescriptionsItem>
               <DescriptionsItem label="年份">{{ detail.year }}</DescriptionsItem>
               <DescriptionsItem label="序号">{{ detail.seq }}</DescriptionsItem>
@@ -549,28 +576,45 @@ onMounted(loadList);
               :pagination="false"
               row-key="article_id"
             >
-              <Table.Column title="项目编号" dataIndex="article_num" width="160" />
-              <Table.Column title="客户" dataIndex="customer_name" width="160">
+              <Table.Column title="项目编号" dataIndex="article_num" width="160">
+                <template #default="{ record }">
+                  <Button type="link" size="small" @click="openArticleDrawer(record.article_id)">{{ record.article_num }}</Button>
+                </template>
+              </Table.Column>
+              <Table.Column title="客户" dataIndex="customer_name" width="180">
                 <template #default="{ record }">{{ dash(record.customer_name) }}</template>
               </Table.Column>
               <Table.Column title="产品" dataIndex="product_name" width="120">
                 <template #default="{ record }">{{ dash(record.product_name) }}</template>
               </Table.Column>
-              <Table.Column title="授信额" dataIndex="balance" width="110" align="right">
-                <template #default="{ record }">{{ record.balance != null ? `${record.balance} 万` : '-' }}</template>
-              </Table.Column>
-              <Table.Column title="补调(待/总)" width="120" align="center">
+              <Table.Column title="金额(万)" width="120" align="right">
                 <template #default="{ record }">
-                  {{ record.supplies ? `${record.supplies.pending}/${record.supplies.total}` : '—' }}
+                  {{ (((record.renewal ?? 0) + (record.augment ?? 0)) / 10000).toLocaleString() }}
                 </template>
               </Table.Column>
-              <Table.Column title="意见数" dataIndex="comments_count" width="90" align="right">
-                <template #default="{ record }">{{ record.comments_count ?? 0 }}</template>
+              <Table.Column title="操作" width="100" fixed="right">
+                <template #default="{ record }">
+                  <Popconfirm
+                    title="确认移除该项目？"
+                    ok-text="确认移除"
+                    ok-type="danger"
+                    @confirm="onRemoveArticleFromDetail(record.article_id)"
+                  >
+                    <Button size="small" type="link" danger>移除</Button>
+                  </Popconfirm>
+                </template>
               </Table.Column>
             </Table>
           </Card>
         </template>
       </Spin>
+      <!-- 嵌套：从参评项目 Tab 点击项目编号打开项目详情 -->
+      <ArticleDetailDrawer
+        v-model:open="articleDrawerOpen"
+        :article-id="articleDrawerId"
+        @saved="loadDetail"
+        @deleted="(id) => { articleDrawerOpen = false; loadDetail(); loadList(); }"
+      />
     </Drawer>
   </Page>
 </template>
