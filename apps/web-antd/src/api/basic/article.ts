@@ -222,9 +222,18 @@ export interface ArticleCommentItem {
   id: number;
   expert_id: number;
   expert_name: string;
+  /** 评委单位（AppraisalExpert.org_name 联表） */
+  org_name?: string | null;
+  /** 评委职务 */
+  title?: string | null;
+  /** 联系电话 */
+  contact_numb?: string | null;
+  /** 邮箱 */
+  email?: string | null;
   comment: number;
   comment_display: string;
-  score: number | null;
+  /** 已废弃：后端 AppraisalComment 无 score 字段，接口不再返回（恒 undefined，模板渲染 '—'） */
+  score?: number | null;
   detail: string | null;
   created_at: string | null;
 }
@@ -264,6 +273,10 @@ export interface ApprovalInstanceItem {
 
 export function getArticleComments(id: number) {
   return requestClient.get<ArticleCommentItem[]>(`/articles/${id}/comments`);
+}
+
+export function deleteArticleComment(articleId: number, expertId: number) {
+  return requestClient.delete<void>(`/articles/${articleId}/comments/${expertId}`);
 }
 
 export function getArticleSupplies(id: number) {

@@ -181,6 +181,17 @@ export interface AppraisalArticleItem {
   product_name: string | null;
   renewal?: number;
   augment?: number;
+  article_state?: number | null;
+  article_state_display?: string | null;
+  director_id?: number | null;
+  director_name?: string | null;
+  assistant_id?: number | null;
+  assistant_name?: string | null;
+  control_id?: number | null;
+  control_name?: string | null;
+  /** 上会建议（ArticleFeedback.propose：10 符合上会 / 20 暂不符合 / 30 建议终止） */
+  propose?: number | null;
+  propose_display?: string | null;
 }
 
 export function getAppraisalArticles(id: number) {

@@ -6,6 +6,7 @@ import { useAccessStore, useUserStore } from '@vben/stores';
 import { startProgress, stopProgress } from '@vben/utils';
 
 import { accessRoutes, coreRouteNames } from '#/router/routes';
+import { getAccessCodesApi } from '#/api';
 import { useAuthStore } from '#/store';
 
 import { generateAccess } from './access';
@@ -94,6 +95,14 @@ function setupAccessGuard(router: Router) {
     // 当前登录用户拥有的角色标识列表
     const userInfo = userStore.userInfo || (await authStore.fetchUserInfo());
     const userRoles = userInfo.roles ?? [];
+
+    // 刷新页面时重新拉取按钮级权限码：localStorage 持久化的 codes 是登录时的旧值，
+    // 不重拉会导致权限变更后必须退出重登才生效（后端权限缓存已有失效机制，应即时生效）
+    try {
+      accessStore.setAccessCodes(await getAccessCodesApi());
+    } catch {
+      // 拉取失败保留持久化旧值，不阻塞路由生成
+    }
 
     // 生成菜单和路由
     const { accessibleMenus, accessibleRoutes } = await generateAccess({

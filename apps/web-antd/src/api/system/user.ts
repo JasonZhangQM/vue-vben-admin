@@ -102,7 +102,7 @@ export function updateUser(id: number, data: UserUpdateParams) {
   });
 }
 
-/** 删除用户(逻辑删除) */
+/** 删除用户(硬删除：存在业务引用时后端拒绝) */
 export function deleteUser(id: number) {
   return requestClient.delete(`/users/${id}`);
 }

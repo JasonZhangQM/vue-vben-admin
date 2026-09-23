@@ -200,7 +200,12 @@ async function onDelete() {
               <Button size="small" @click="onResetPwd">重置密码</Button>
             </AccessControl>
             <AccessControl :codes="['user:delete']" type="code">
-              <Popconfirm title="确认删除该用户？(逻辑删除)" @confirm="onDelete">
+              <Popconfirm
+                title="确认永久删除该用户？不可恢复；若名下有业务引用将被拒绝。"
+                ok-text="删除"
+                cancel-text="取消"
+                @confirm="onDelete"
+              >
                 <Button danger size="small">删除</Button>
               </Popconfirm>
             </AccessControl>

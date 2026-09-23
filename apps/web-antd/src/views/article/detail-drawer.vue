@@ -1164,7 +1164,7 @@ const supplyColumns = [
                             placeholder="担保方式"
                             style="width: 120px"
                           />
-                          <AccessControl :codes="['article:order']" type="code">
+                          <AccessControl :codes="['article:sure']" type="code">
                             <Button
                               type="primary"
                               :disabled="
@@ -1218,9 +1218,11 @@ const supplyColumns = [
                               {{ record.contact_phone || '-' }}
                             </template>
                             <template v-else-if="column.key === 'op'">
-                              <Popconfirm title="确定删除该保证人的反担保？" ok-text="删除" cancel-text="取消" @confirm="() => deleteGuarantor(record as GuarantorItem)">
-                                <Button type="link" danger size="small">删除</Button>
-                              </Popconfirm>
+                              <AccessControl :codes="['article:sure']" type="code">
+                                <Popconfirm title="确定删除该保证人的反担保？" ok-text="删除" cancel-text="取消" @confirm="() => deleteGuarantor(record as GuarantorItem)">
+                                  <Button type="link" danger size="small">删除</Button>
+                                </Popconfirm>
+                              </AccessControl>
                             </template>
                           </template>
                         </Table>
@@ -1263,9 +1265,11 @@ const supplyColumns = [
                               {{ record.house_usage_display || '-' }}
                             </template>
                             <template v-else-if="column.key === 'op'">
-                              <Popconfirm title="确定删除该反担保物？" ok-text="删除" cancel-text="取消" @confirm="() => deleteCollateral(record as CollateralItem)">
-                                <Button type="link" danger size="small">删除</Button>
-                              </Popconfirm>
+                              <AccessControl :codes="['article:sure']" type="code">
+                                <Popconfirm title="确定删除该反担保物？" ok-text="删除" cancel-text="取消" @confirm="() => deleteCollateral(record as CollateralItem)">
+                                  <Button type="link" danger size="small">删除</Button>
+                                </Popconfirm>
+                              </AccessControl>
                             </template>
                           </template>
                         </Table>

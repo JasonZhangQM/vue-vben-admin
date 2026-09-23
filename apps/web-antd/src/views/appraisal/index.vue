@@ -14,9 +14,12 @@ import {
   DatePicker,
   Descriptions,
   DescriptionsItem,
+  Divider,
   Drawer,
+  Empty,
   Form,
   FormItem,
+  Input,
   InputNumber,
   message,
   Modal,
@@ -25,6 +28,8 @@ import {
   Space,
   Spin,
   Table,
+  TabPane,
+  Tabs,
   Tag,
 } from 'ant-design-vue';
 
@@ -48,14 +53,32 @@ import {
   removeAppraisalArticle,
   type AppraisalArticleItem,
 } from '#/api/basic/appraisal';
-import { getArticleComments, getArticleDictList } from '#/api/basic/article';
+import { deleteArticleComment, getArticleComments, getArticleDictList } from '#/api/basic/article';
 import { getAppraisalDict } from '#/api/basic/dict';
+import { useDictStore } from '#/store/dict';
 
 // ============ 字典 ============
+const dictStore = useDictStore();
 const meetingStateOpts = ref<{ label: string; value: number }[]>([]);
 const reviewModelOpts = ref<{ label: string; value: number }[]>([]);
 const compereOptions = ref<{ label: string; value: number }[]>([]);
 const articleOptions = ref<{ label: string; value: number }[]>([]);
+
+/** 评委意见 Tag 颜色：同意=green 复议=orange 不同意=red 未发表=default */
+function commentColor(c: number): string {
+  if (c === 10) return 'green';
+  if (c === 20) return 'orange';
+  if (c === 30) return 'red';
+  return 'default';
+}
+
+/** 上会建议 Tag 颜色：符合上会=green 暂不符合=orange 建议终止=red 未反馈=default */
+function proposeColor(p: number): string {
+  if (p === 10) return 'green';
+  if (p === 20) return 'orange';
+  if (p === 30) return 'red';
+  return 'default';
+}
 
 onMounted(async () => {
   const dict = await getAppraisalDict();
@@ -80,6 +103,12 @@ const { rowClassName, customRow, highlight: highlightRow } = useRowHighlight();
 
 // 评审安排 Modal 内子表独立高亮
 const { customRow: arrangeCustomRow, rowClassName: arrangeRowClassName } = useRowHighlight();
+// 评委 Tab 数据表独立高亮（与全项目表格一致的点击高亮交互）
+const {
+  customRow: commentCustomRow,
+  rowClassName: commentRowClassName,
+  clearHighlight: clearCommentHighlight,
+} = useRowHighlight();
 const list = ref<AppraisalListItem[]>([]);
 const total = ref(0);
 const loading = ref(false);
@@ -146,6 +175,15 @@ async function loadDetail() {
   detailLoading.value = true;
   try {
     detail.value = await getAppraisal(detailId.value);
+    // 默认选中第一个参评项目；当前选中项目被移出时重置（参照放款次序 Tab 的默认选中）
+    const ids = detail.value.articles.map((a) => a.article_id);
+    if (activeArticleId.value == null || !ids.includes(activeArticleId.value)) {
+      activeArticleId.value = ids.length > 0 ? ids[0]! : null;
+      if (activeArticleId.value != null) void loadArticleComments(activeArticleId.value);
+      else articleComments.value = [];
+    }
+    // 评委库选项（内联添加用，加载一次）
+    if (expertOptions.value.length === 0) void loadExpertOptions();
   } finally {
     detailLoading.value = false;
   }
@@ -155,10 +193,14 @@ watch(detailOpen, (v) => {
   if (v) loadDetail();
   else {
     detail.value = null;
-    // 父 Drawer 关闭时同步重置嵌套的项目详情抽屉
+    // 父 Drawer 关闭时同步重置嵌套的项目详情抽屉与评委区域
     articleDrawerOpen.value = false;
     articleDrawerId.value = null;
     articleDeep.value = 0;
+    activeArticleId.value = null;
+    articleComments.value = [];
+    pendingExpertId.value = undefined;
+    clearCommentHighlight();
   }
 });
 
@@ -231,58 +273,109 @@ function openArticleDrawer(articleId: number) {
   articleDrawerOpen.value = true;
 }
 
-// ============ 添加评委 Modal（参评项目行操作） ============
-const expertsOpen = ref(false);
-const expertsLoading = ref(false);
-const expertsSaving = ref(false);
-const expertsArticle = ref<AppraisalArticleItem | null>(null);
-// 已有评委（该项目的 AppraisalComment 列表）
-const expertComments = ref<ArticleCommentItem[]>([]);
-// 启用状态评委库选项
+// ============ 评委区域（参评项目行点击选中，下方展示该项目的评委；参照项目详情放款次序→反担保） ============
+// 当前选中的参评项目（article_id）
+const activeArticleId = ref<number | null>(null);
+const activeArticle = computed(() =>
+  detail.value?.articles.find((a) => a.article_id === activeArticleId.value),
+);
+// 选中项目的评委意见列表
+const articleComments = ref<ArticleCommentItem[]>([]);
+const commentsLoading = ref(false);
+// 评委区域 DOM 引用，用于滚动定位
+const expertsSectionRef = ref<HTMLElement | null>(null);
+// 启用状态评委库选项（内联添加用，抽屉打开时加载一次）
 const expertOptions = ref<{ label: string; value: number }[]>([]);
-// 待添加的评委 ID（多选）
-const pendingExpertIds = ref<number[]>([]);
+// 内联添加选中的评委 ID
+const pendingExpertId = ref<number | undefined>();
 
 // 已担任评委的 expert_id 集合，用于 Select 过滤（防止重复添加覆盖已有意见）
-const expertCommentIds = computed(() => new Set(expertComments.value.map((c) => c.expert_id)));
+const expertCommentIds = computed(() => new Set(articleComments.value.map((c) => c.expert_id)));
 
-async function openExpertsModal(record: AppraisalArticleItem) {
-  expertsArticle.value = record;
-  expertsOpen.value = true;
-  pendingExpertIds.value = [];
-  expertsLoading.value = true;
+async function loadArticleComments(articleId: number) {
+  commentsLoading.value = true;
   try {
-    const [cmts, page] = await Promise.all([
-      getArticleComments(record.article_id),
-      getExpertList({ page: 1, page_size: 500, status: true }),
-    ]);
-    expertComments.value = cmts;
-    expertOptions.value = (page.items ?? []).map((e) => ({ label: e.name, value: e.id }));
+    articleComments.value = await getArticleComments(articleId);
   } finally {
-    expertsLoading.value = false;
+    commentsLoading.value = false;
   }
 }
 
-async function confirmAddExperts() {
-  if (!expertsArticle.value || pendingExpertIds.value.length === 0) {
+/** 参评项目行点击：选中 + 高亮 + 滚动到评委区域（参照 jumpToSureSection） */
+function selectArticle(record: AppraisalArticleItem) {
+  if (activeArticleId.value === record.article_id) return; // 点击当前激活行不做任何状态变更
+  activeArticleId.value = record.article_id;
+  pendingExpertId.value = undefined;
+  clearCommentHighlight(); // 切换项目后评委表数据刷新，旧行高亮失效
+  void loadArticleComments(record.article_id);
+  setTimeout(() => {
+    expertsSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+async function loadExpertOptions() {
+  const page = await getExpertList({ page: 1, page_size: 500, status: true });
+  expertOptions.value = (page.items ?? []).map((e) => ({ label: e.name, value: e.id }));
+}
+
+async function submitAddExpert() {
+  if (!activeArticleId.value || !pendingExpertId.value) {
     message.warning('请选择要添加的评委');
     return;
   }
-  expertsSaving.value = true;
+  // 走批量录入评委意见接口：comment=0 未发表（后续在下方表格"修改"录入实际意见）
+  await batchUpsertComments(activeArticleId.value, [
+    { expert_id: pendingExpertId.value, comment: 0 },
+  ]);
+  message.success('评委已添加');
+  pendingExpertId.value = undefined;
+  await loadArticleComments(activeArticleId.value);
+  if (detailId.value) loadDetail();
+}
+
+// ===== 修改评委意见 Modal =====
+const commentEditOpen = ref(false);
+const commentEditSaving = ref(false);
+const commentEditForm = reactive({
+  expert_id: 0,
+  expert_name: '',
+  comment: 0,
+  detail: '' as string | null,
+});
+
+function openCommentEdit(record: ArticleCommentItem) {
+  Object.assign(commentEditForm, {
+    expert_id: record.expert_id,
+    expert_name: record.expert_name,
+    comment: record.comment,
+    detail: record.detail ?? '',
+  });
+  commentEditOpen.value = true;
+}
+
+async function saveCommentEdit() {
+  if (!activeArticleId.value) return;
+  commentEditSaving.value = true;
   try {
-    // 走批量录入评委意见接口：comment=0 未发表（后续在项目详情评审记录中录入实际意见）
-    await batchUpsertComments(
-      expertsArticle.value.article_id,
-      pendingExpertIds.value.map((id) => ({ expert_id: id, comment: 0 })),
-    );
-    message.success('评委已添加');
-    pendingExpertIds.value = [];
-    // 刷新已有评委列表 + 详情（comments_count 计数），Modal 保持打开便于继续操作
-    expertComments.value = await getArticleComments(expertsArticle.value.article_id);
+    await batchUpsertComments(activeArticleId.value, [
+      { expert_id: commentEditForm.expert_id, comment: commentEditForm.comment, detail: commentEditForm.detail },
+    ]);
+    message.success('评委意见已保存');
+    commentEditOpen.value = false;
+    await loadArticleComments(activeArticleId.value);
     if (detailId.value) loadDetail();
   } finally {
-    expertsSaving.value = false;
+    commentEditSaving.value = false;
   }
+}
+
+/** 删除评委（意见记录）：后端有状态门槛，不符时 requestClient 已 toast */
+async function onDeleteComment(record: ArticleCommentItem) {
+  if (!activeArticleId.value) return;
+  await deleteArticleComment(activeArticleId.value, record.expert_id);
+  message.success('评委已删除');
+  await loadArticleComments(activeArticleId.value);
+  if (detailId.value) loadDetail(); // 刷新参评项目 Tab 标题里的评委数
 }
 
 // ============ 安排项目 Modal ============
@@ -580,45 +673,36 @@ onMounted(loadList);
     </Modal>
 
     <!-- 添加评委 Modal（参评项目行操作，批量写入评委意见，comment=0 未发表） -->
+    <!-- 修改评委意见 Modal（评委表格行操作，upsert 单条） -->
     <Modal
-      v-model:open="expertsOpen"
-      :title="expertsArticle ? `添加评委 · ${expertsArticle.article_num}` : '添加评委'"
-      :confirm-loading="expertsSaving"
-      ok-text="添加"
-      cancel-text="关闭"
-      width="560px"
+      v-model:open="commentEditOpen"
+      :title="`修改评委意见 · ${commentEditForm.expert_name}`"
+      :confirm-loading="commentEditSaving"
+      ok-text="保存"
+      cancel-text="取消"
       destroy-on-close
-      @ok="confirmAddExperts"
+      @ok="saveCommentEdit"
     >
-      <Spin :spinning="expertsLoading">
-        <!-- 已有评委 -->
-        <div class="mb-3">
-          <div class="mb-2 font-medium">已有评委（{{ expertComments.length }}）</div>
-          <div v-if="expertComments.length" class="flex flex-wrap gap-2">
-            <Tag v-for="c in expertComments" :key="c.id">
-              {{ c.expert_name }}{{ c.comment ? ` · ${c.comment_display}` : '' }}
-            </Tag>
-          </div>
-          <div v-else class="text-xs text-muted-foreground">暂无评委，请在下方选择添加</div>
-        </div>
-        <!-- 添加区域 -->
-        <div class="border-t pt-3">
-          <div class="mb-2 font-medium">添加评委</div>
+      <Form :model="commentEditForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }" size="small">
+        <FormItem label="评委">
+          <Input :value="commentEditForm.expert_name" disabled />
+        </FormItem>
+        <FormItem label="意见" required>
           <Select
-            v-model:value="pendingExpertIds"
-            mode="multiple"
-            :options="expertOptions.filter((o) => !expertCommentIds.has(o.value))"
-            placeholder="搜索评委姓名"
-            :max-tag-count="8"
-            show-search
-            allow-clear
+            v-model:value="commentEditForm.comment"
+            :options="dictStore.get('appraisal.comment_type')"
             style="width: 100%"
           />
-          <div class="mt-1 text-xs text-muted-foreground">
-            已担任评委的专家自动过滤；添加后意见默认"未发表"，可在项目详情评审记录中录入
-          </div>
-        </div>
-      </Spin>
+        </FormItem>
+        <FormItem label="意见详情">
+          <textarea
+            v-model="commentEditForm.detail"
+            rows="3"
+            class="w-full border border-border rounded px-2 py-1"
+            placeholder="可选，评委意见补充说明"
+          />
+        </FormItem>
+      </Form>
     </Modal>
     <!-- 详情 Drawer（宽度按嵌套抽屉约定：66% + 4% × 已打开后代层数，AGENTS.md §6.4） -->
     <Drawer
@@ -669,13 +753,20 @@ onMounted(loadList);
             </Descriptions>
           </Card>
 
-          <!-- 参评项目 Tab -->
+          <!-- 参评项目（上半 master 表格：行点击选中高亮；下半联动展示该项目评委，参照项目详情放款次序→反担保） -->
           <Card size="small" title="参评项目" class="mb-3">
             <Table
               size="small"
               :data-source="detail.articles"
               :pagination="false"
               row-key="article_id"
+              :scroll="{ x: 'max-content' }"
+              :custom-row="(record: AppraisalArticleItem) => ({
+                onClick: () => selectArticle(record),
+              })"
+              :row-class-name="(record: AppraisalArticleItem) =>
+                record.article_id === activeArticleId ? 'row-active' : ''
+              "
             >
               <Table.Column title="项目编号" dataIndex="article_num" width="160">
                 <template #default="{ record }">
@@ -693,11 +784,25 @@ onMounted(loadList);
                   {{ (((record.renewal ?? 0) + (record.augment ?? 0)) / 10000).toLocaleString() }}
                 </template>
               </Table.Column>
-              <Table.Column title="操作" width="120" fixed="right">
+              <Table.Column title="项目经理" dataIndex="director_name" width="90">
+                <template #default="{ record }">{{ dash(record.director_name) }}</template>
+              </Table.Column>
+              <Table.Column title="项目助理" dataIndex="assistant_name" width="90">
+                <template #default="{ record }">{{ dash(record.assistant_name) }}</template>
+              </Table.Column>
+              <Table.Column title="风控专员" dataIndex="control_name" width="90">
+                <template #default="{ record }">{{ dash(record.control_name) }}</template>
+              </Table.Column>
+              <Table.Column title="上会建议" dataIndex="propose" width="100" align="center">
                 <template #default="{ record }">
-                  <AccessControl :codes="['appraisal:comment']" type="code">
-                    <Button size="small" type="link" @click="openExpertsModal(record)">评委</Button>
-                  </AccessControl>
+                  <Tag v-if="record.propose != null" :color="proposeColor(record.propose)">
+                    {{ record.propose_display || `#${record.propose}` }}
+                  </Tag>
+                  <span v-else>-</span>
+                </template>
+              </Table.Column>
+              <Table.Column title="操作" width="100" fixed="right">
+                <template #default="{ record }">
                   <Popconfirm
                     title="确认移除该项目？"
                     ok-text="确认移除"
@@ -709,6 +814,86 @@ onMounted(loadList);
                 </template>
               </Table.Column>
             </Table>
+
+            <!-- ===== 评委区域：无 Card 包装，Divider + Tabs（参照反担保区域） ===== -->
+            <Divider class="!my-4" />
+            <div ref="expertsSectionRef">
+              <Spin :spinning="commentsLoading">
+                <!-- 未选中参评项目 → 提示 -->
+                <template v-if="!activeArticle">
+                  <Empty description="请在上方参评项目列表点击一行选择项目" />
+                </template>
+                <template v-else>
+                  <Tabs size="small">
+                    <TabPane :tab="`评委 · ${activeArticle.article_num}(${articleComments.length})`">
+                      <!-- 内联添加行（已担任评委的自动过滤） -->
+                      <div class="mb-2 flex flex-wrap items-center gap-2">
+                        <Select
+                          v-model:value="pendingExpertId"
+                          :options="expertOptions.filter((o) => !expertCommentIds.has(o.value))"
+                          placeholder="搜索评委姓名"
+                          show-search
+                          allow-clear
+                          style="width: 220px"
+                        />
+                        <AccessControl :codes="['appraisal:comment']" type="code">
+                          <Button type="primary" :disabled="!pendingExpertId" @click="submitAddExpert">添加</Button>
+                        </AccessControl>
+                      </div>
+                      <Table
+                        :columns="[
+                          { title: '评委', dataIndex: 'expert_name', width: 70, ellipsis: true },
+                          { title: '单位', dataIndex: 'org_name', width: 140, ellipsis: true },
+                          { title: '职务', dataIndex: 'title', width: 100, ellipsis: true },
+                          { title: '电话', dataIndex: 'contact_numb', width: 120 },
+                          { title: '邮箱', dataIndex: 'email', width: 160, ellipsis: true },
+                          { title: '意见', dataIndex: 'comment_display', width: 70, align: 'center' },
+                          { title: '意见详情', dataIndex: 'detail' },
+                          { title: '操作', key: 'op', width: 110, align: 'center' },
+                        ]"
+                        :data-source="articleComments"
+                        :pagination="false"
+                        row-key="id"
+                        size="small"
+                        :scroll="{ x: 950 }"
+                        :custom-row="commentCustomRow"
+                        :row-class-name="commentRowClassName"
+                      >
+                        <template #bodyCell="{ column, record }">
+                          <template v-if="column.dataIndex === 'comment_display'">
+                            <Tag :color="commentColor(record.comment)">{{ record.comment_display || `#${record.comment}` }}</Tag>
+                          </template>
+                          <template v-else-if="['org_name', 'title', 'contact_numb', 'email'].includes(column.dataIndex as string)">
+                            {{ dash(record[column.dataIndex as string]) }}
+                          </template>
+                          <template v-else-if="column.dataIndex === 'detail'">
+                            {{ record.detail || '-' }}
+                          </template>
+                          <template v-else-if="column.key === 'op'">
+                            <AccessControl :codes="['appraisal:comment']" type="code">
+                              <Space :size="4">
+                                <Button size="small" type="link" @click="openCommentEdit(record as ArticleCommentItem)">意见</Button>
+                                <Popconfirm
+                                  :title="`确认删除评委 ${record.expert_name}？`"
+                                  ok-text="删除"
+                                  cancel-text="取消"
+                                  @confirm="onDeleteComment(record as ArticleCommentItem)"
+                                >
+                                  <Button size="small" type="link" danger>删除</Button>
+                                </Popconfirm>
+                              </Space>
+                            </AccessControl>
+                          </template>
+                        </template>
+                        <template #emptyText>
+                          <div class="py-4 text-muted-foreground">暂无评委，请在上方选择添加</div>
+                        </template>
+                      </Table>
+                    </TabPane>
+                  </Tabs>
+                </template>
+              </Spin>
+            </div>
           </Card>
         </template>
       </Spin>
