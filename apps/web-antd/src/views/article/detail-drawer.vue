@@ -899,7 +899,7 @@ const supplyColumns = [
   <Drawer
     v-model:open="open"
     :title="detail ? detail.article_num : '项目详情'"
-    width="66%"
+    :width="customerDetailOpen || warrantDetailOpen ? '70%' : '66%'"
     :destroyOnClose="true"
   >
     <Spin :spinning="loading">

@@ -523,7 +523,7 @@ onMounted(loadList);
     <Drawer
       v-model:open="detailOpen"
       :title="detail?.num ?? '评审会详情'"
-      width="66%"
+      :width="articleDrawerOpen ? '70%' : '66%'"
       :destroy-on-close="true"
       :mask-closable="false"
     >
