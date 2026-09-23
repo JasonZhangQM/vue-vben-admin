@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { AppraisalDetail, AppraisalListItem } from '#/api/basic/appraisal';
+import type { ArticleCommentItem } from '#/api/basic/article';
 import type { TableColumnType } from 'ant-design-vue';
 
 import { computed, onMounted, reactive, ref, watch } from 'vue';
@@ -36,6 +37,7 @@ import { dash } from '#/utils/format';
 
 import {
   arrangeAppraisalArticles,
+  batchUpsertComments,
   createAppraisal,
   deleteAppraisal,
   finishAppraisal,
@@ -46,7 +48,7 @@ import {
   removeAppraisalArticle,
   type AppraisalArticleItem,
 } from '#/api/basic/appraisal';
-import { getArticleDictList } from '#/api/basic/article';
+import { getArticleComments, getArticleDictList } from '#/api/basic/article';
 import { getAppraisalDict } from '#/api/basic/dict';
 
 // ============ 字典 ============
@@ -227,6 +229,60 @@ async function onRemoveArticleFromDetail(articleId: number) {
 function openArticleDrawer(articleId: number) {
   articleDrawerId.value = articleId;
   articleDrawerOpen.value = true;
+}
+
+// ============ 添加评委 Modal（参评项目行操作） ============
+const expertsOpen = ref(false);
+const expertsLoading = ref(false);
+const expertsSaving = ref(false);
+const expertsArticle = ref<AppraisalArticleItem | null>(null);
+// 已有评委（该项目的 AppraisalComment 列表）
+const expertComments = ref<ArticleCommentItem[]>([]);
+// 启用状态评委库选项
+const expertOptions = ref<{ label: string; value: number }[]>([]);
+// 待添加的评委 ID（多选）
+const pendingExpertIds = ref<number[]>([]);
+
+// 已担任评委的 expert_id 集合，用于 Select 过滤（防止重复添加覆盖已有意见）
+const expertCommentIds = computed(() => new Set(expertComments.value.map((c) => c.expert_id)));
+
+async function openExpertsModal(record: AppraisalArticleItem) {
+  expertsArticle.value = record;
+  expertsOpen.value = true;
+  pendingExpertIds.value = [];
+  expertsLoading.value = true;
+  try {
+    const [cmts, page] = await Promise.all([
+      getArticleComments(record.article_id),
+      getExpertList({ page: 1, page_size: 500, status: true }),
+    ]);
+    expertComments.value = cmts;
+    expertOptions.value = (page.items ?? []).map((e) => ({ label: e.name, value: e.id }));
+  } finally {
+    expertsLoading.value = false;
+  }
+}
+
+async function confirmAddExperts() {
+  if (!expertsArticle.value || pendingExpertIds.value.length === 0) {
+    message.warning('请选择要添加的评委');
+    return;
+  }
+  expertsSaving.value = true;
+  try {
+    // 走批量录入评委意见接口：comment=0 未发表（后续在项目详情评审记录中录入实际意见）
+    await batchUpsertComments(
+      expertsArticle.value.article_id,
+      pendingExpertIds.value.map((id) => ({ expert_id: id, comment: 0 })),
+    );
+    message.success('评委已添加');
+    pendingExpertIds.value = [];
+    // 刷新已有评委列表 + 详情（comments_count 计数），Modal 保持打开便于继续操作
+    expertComments.value = await getArticleComments(expertsArticle.value.article_id);
+    if (detailId.value) loadDetail();
+  } finally {
+    expertsSaving.value = false;
+  }
 }
 
 // ============ 安排项目 Modal ============
@@ -522,6 +578,48 @@ onMounted(loadList);
         <div class="mt-1 text-xs text-muted-foreground">已出现在上表的项目会自动过滤，不可重复添加</div>
       </div>
     </Modal>
+
+    <!-- 添加评委 Modal（参评项目行操作，批量写入评委意见，comment=0 未发表） -->
+    <Modal
+      v-model:open="expertsOpen"
+      :title="expertsArticle ? `添加评委 · ${expertsArticle.article_num}` : '添加评委'"
+      :confirm-loading="expertsSaving"
+      ok-text="添加"
+      cancel-text="关闭"
+      width="560px"
+      destroy-on-close
+      @ok="confirmAddExperts"
+    >
+      <Spin :spinning="expertsLoading">
+        <!-- 已有评委 -->
+        <div class="mb-3">
+          <div class="mb-2 font-medium">已有评委（{{ expertComments.length }}）</div>
+          <div v-if="expertComments.length" class="flex flex-wrap gap-2">
+            <Tag v-for="c in expertComments" :key="c.id">
+              {{ c.expert_name }}{{ c.comment ? ` · ${c.comment_display}` : '' }}
+            </Tag>
+          </div>
+          <div v-else class="text-xs text-muted-foreground">暂无评委，请在下方选择添加</div>
+        </div>
+        <!-- 添加区域 -->
+        <div class="border-t pt-3">
+          <div class="mb-2 font-medium">添加评委</div>
+          <Select
+            v-model:value="pendingExpertIds"
+            mode="multiple"
+            :options="expertOptions.filter((o) => !expertCommentIds.has(o.value))"
+            placeholder="搜索评委姓名"
+            :max-tag-count="8"
+            show-search
+            allow-clear
+            style="width: 100%"
+          />
+          <div class="mt-1 text-xs text-muted-foreground">
+            已担任评委的专家自动过滤；添加后意见默认"未发表"，可在项目详情评审记录中录入
+          </div>
+        </div>
+      </Spin>
+    </Modal>
     <!-- 详情 Drawer（宽度按嵌套抽屉约定：66% + 4% × 已打开后代层数，AGENTS.md §6.4） -->
     <Drawer
       v-model:open="detailOpen"
@@ -595,8 +693,11 @@ onMounted(loadList);
                   {{ (((record.renewal ?? 0) + (record.augment ?? 0)) / 10000).toLocaleString() }}
                 </template>
               </Table.Column>
-              <Table.Column title="操作" width="100" fixed="right">
+              <Table.Column title="操作" width="120" fixed="right">
                 <template #default="{ record }">
+                  <AccessControl :codes="['appraisal:comment']" type="code">
+                    <Button size="small" type="link" @click="openExpertsModal(record)">评委</Button>
+                  </AccessControl>
                   <Popconfirm
                     title="确认移除该项目？"
                     ok-text="确认移除"

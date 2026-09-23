@@ -220,6 +220,7 @@ export function submitChangeRequest(id: number, data: Record<string, unknown>) {
 
 export interface ArticleCommentItem {
   id: number;
+  expert_id: number;
   expert_name: string;
   comment: number;
   comment_display: string;
