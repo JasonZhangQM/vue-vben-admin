@@ -36,6 +36,7 @@ import RegionTreeSelect from '#/components/RegionTreeSelect/index.vue';
 import { getAcceptorDict, getCoreDict, getCustomerDict } from '#/api/basic/dict';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import { useDictStore } from '#/store/dict';
+import { drawerWidth, useDeepLevels } from '#/utils/drawer';
 import { dash, opt } from '#/utils/format';
 
 import {
@@ -68,7 +69,8 @@ import {
 import { warrantStateColor } from './constants';
 
 const props = defineProps<{ warrantId: null | number }>();
-const emit = defineEmits<{ updated: [] }>();
+/** deepOpen：向宿主上报已打开的后代抽屉层数（0/1），宿主据此动态加宽（见 AGENTS.md §6.4） */
+const emit = defineEmits<{ deepOpen: [levels: number]; updated: [] }>();
 
 const dictStore = useDictStore();
 
@@ -79,6 +81,10 @@ const loading = ref(false);
 // ========== 客户详情抽屉（从产权人列等入口打开） ==========
 const customerDetailOpen = ref(false);
 const customerDetailId = ref<number | null>(null);
+
+// 已打开的后代抽屉层数（客户详情为叶子抽屉，不上报），上报给宿主用于动态加宽
+const deepLevels = useDeepLevels([[customerDetailOpen]]);
+watch(deepLevels, (v) => emit('deepOpen', v), { immediate: true });
 
 // 各子表独立高亮状态（抽屉内 Tab 多，互不干扰）
 const { customRow: ownerCustomRow, rowClassName: ownerRowClassName } = useRowHighlight();
@@ -839,11 +845,11 @@ async function submitDraftEdit() {
 </script>
 
 <template>
-  <!-- 嵌套客户详情抽屉打开时父抽屉动态加宽（参照评审会详情 → 项目详情） -->
+  <!-- 宽度按嵌套抽屉约定：66% + 4% × 已打开后代层数（AGENTS.md §6.4） -->
   <Drawer
     v-model:open="open"
     :title="detail ? detail.warrant_num : '权证详情'"
-    :width="customerDetailOpen ? '70%' : '66%'"
+    :width="drawerWidth(deepLevels)"
   >
     <div v-if="detail" class="space-y-4">
       <Card size="small" title="基本信息">

@@ -11,13 +11,12 @@ import type {
   CollateralItem,
 } from '#/api/basic/article';
 
-import { reactive, ref, watch, computed, h } from 'vue';
+import { reactive, ref, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { AccessControl } from '@vben/access';
 import { useUserStore } from '@vben/stores';
 import {
-  AutoComplete,
   Button,
   Card,
   Descriptions,
@@ -46,6 +45,7 @@ import { requestClient } from '#/api/request';
 import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
+import { drawerWidth, useDeepLevels } from '#/utils/drawer';
 import { dash } from '#/utils/format';
 import CustomDetailDrawer from '#/views/custom/detail-drawer.vue';
 import WarrantDetailDrawer from '#/views/warrant/detail-drawer.vue';
@@ -80,8 +80,10 @@ const props = defineProps<{ articleId: null | number }>();
 
 const open = defineModel<boolean>('open', { default: false });
 
-/** 事件契约：saved 是编辑保存（父刷新列表即可），deleted 是删除（父需刷新 + 决定下一条定位）*/
+/** 事件契约：saved 是编辑保存（父刷新列表即可），deleted 是删除（父需刷新 + 决定下一条定位）
+ * deepOpen：向宿主上报已打开的后代抽屉层数（0/1/2），宿主据此动态加宽（见 AGENTS.md §6.4） */
 const emit = defineEmits<{
+  deepOpen: [levels: number];
   saved: [id: number];
   deleted: [id: number];
 }>();
@@ -105,6 +107,16 @@ const customerDetailOpen = ref(false);
 const customerDetailId = ref<number | null>(null);
 const warrantDetailOpen = ref(false);
 const warrantDetailId = ref<number | null>(null);
+
+// 权证详情抽屉通过 @deep-open 上报的自身后代层数（其产权人 → 客户详情算 1 层）
+const warrantDeep = ref(0);
+
+// 已打开的后代抽屉层数：客户（叶子）或 权证(1 + 其上报层数)，取最大
+const deepLevels = useDeepLevels([
+  [customerDetailOpen],
+  [warrantDetailOpen, warrantDeep],
+]);
+watch(deepLevels, (v) => emit('deepOpen', v), { immediate: true });
 
 // ========== 编辑 Modal ==========
 const editVisible = ref(false);
@@ -630,6 +642,12 @@ watch(
       supplies.value = [];
       approvals.value = [];
       editVisible.value = false;
+      // 父 Drawer 关闭时同步重置嵌套的客户/权证详情抽屉（防止下次打开残留）
+      customerDetailOpen.value = false;
+      customerDetailId.value = null;
+      warrantDetailOpen.value = false;
+      warrantDetailId.value = null;
+      warrantDeep.value = 0;
     }
   },
 );
@@ -896,10 +914,11 @@ const supplyColumns = [
 </script>
 
 <template>
+  <!-- 宽度按嵌套抽屉约定：66% + 4% × 已打开后代层数（AGENTS.md §6.4） -->
   <Drawer
     v-model:open="open"
     :title="detail ? detail.article_num : '项目详情'"
-    :width="customerDetailOpen || warrantDetailOpen ? '70%' : '66%'"
+    :width="drawerWidth(deepLevels)"
     :destroyOnClose="true"
   >
     <Spin :spinning="loading">
@@ -1705,10 +1724,11 @@ const supplyColumns = [
     :customer-id="customerDetailId"
   />
 
-  <!-- 权证详情抽屉 -->
+  <!-- 权证详情抽屉（@deep-open 上报其后代层数，用于本抽屉继续加宽） -->
   <WarrantDetailDrawer
     v-model:open="warrantDetailOpen"
     :warrant-id="warrantDetailId"
+    @deep-open="(n) => (warrantDeep = n)"
   />
 </template>
 

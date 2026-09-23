@@ -24,7 +24,6 @@ import {
   Space,
   Spin,
   Table,
-  Tabs,
   Tag,
 } from 'ant-design-vue';
 
@@ -32,6 +31,7 @@ import SearchSelect from '#/components/SearchSelect/index.vue';
 import { useDetailColumns } from '#/composables/useDetailColumns';
 import { useRowHighlight } from '#/composables/useRowHighlight';
 import ArticleDetailDrawer from '#/views/article/detail-drawer.vue';
+import { drawerWidth } from '#/utils/drawer';
 import { dash } from '#/utils/format';
 
 import {
@@ -130,6 +130,8 @@ const detailLoading = ref(false);
 // 嵌套的项目详情抽屉（从参评项目 Tab 点击项目编号打开）
 const articleDrawerOpen = ref(false);
 const articleDrawerId = ref<number | null>(null);
+// 项目详情抽屉通过 @deep-open 上报的后代层数（其客户/权证详情算 1 层，权证再嵌客户算 2 层）
+const articleDeep = ref(0);
 
 async function openDetail(row: AppraisalListItem) {
   highlightRow(row);
@@ -154,6 +156,7 @@ watch(detailOpen, (v) => {
     // 父 Drawer 关闭时同步重置嵌套的项目详情抽屉
     articleDrawerOpen.value = false;
     articleDrawerId.value = null;
+    articleDeep.value = 0;
   }
 });
 
@@ -519,11 +522,11 @@ onMounted(loadList);
         <div class="mt-1 text-xs text-muted-foreground">已出现在上表的项目会自动过滤，不可重复添加</div>
       </div>
     </Modal>
-    <!-- 详情 Drawer -->
+    <!-- 详情 Drawer（宽度按嵌套抽屉约定：66% + 4% × 已打开后代层数，AGENTS.md §6.4） -->
     <Drawer
       v-model:open="detailOpen"
       :title="detail?.num ?? '评审会详情'"
-      :width="articleDrawerOpen ? '70%' : '66%'"
+      :width="drawerWidth(articleDrawerOpen ? 1 + articleDeep : 0)"
       :destroy-on-close="true"
       :mask-closable="false"
     >
@@ -608,12 +611,13 @@ onMounted(loadList);
           </Card>
         </template>
       </Spin>
-      <!-- 嵌套：从参评项目 Tab 点击项目编号打开项目详情 -->
+      <!-- 嵌套：从参评项目 Tab 点击项目编号打开项目详情（@deep-open 上报其后代层数） -->
       <ArticleDetailDrawer
         v-model:open="articleDrawerOpen"
         :article-id="articleDrawerId"
+        @deep-open="(n) => (articleDeep = n)"
         @saved="loadDetail"
-        @deleted="(id) => { articleDrawerOpen = false; loadDetail(); loadList(); }"
+        @deleted="() => { articleDrawerOpen = false; loadDetail(); loadList(); }"
       />
     </Drawer>
   </Page>
